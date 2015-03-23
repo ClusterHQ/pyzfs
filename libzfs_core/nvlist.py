@@ -1,197 +1,198 @@
-from .bindings import c_libnvpair, ffi_libnvpair, data_type
+from contextlib import contextmanager
+from .bindings import libnvpair
 
-class NVList(object):
-	def __init__(self, props):
-		self.props = props
+_ffi = libnvpair._ffi
+_lib = libnvpair._lib
 
-	def get_props(self)
-		return self.props:
+TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert']);
 
-	@classmethod
-	def from_c_ptr(cls, ptr):
-		nvlist = cls({})
-		nvlist._extract_props(ptr)
-		return nvlist
+def _type_info(typeid):
+	return {
+		_lib.DATA_TYPE_BOOLEAN:		TypeInfo(None, None, None),
+		_lib.DATA_TYPE_BOOLEAN_VALUE:	TypeInfo("boolean_value", "boolean_t *", lambda x: bool(x)),
+		_lib.DATA_TYPE_BYTE:		TypeInfo("byte", "uchar_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_INT8:		TypeInfo("int8", "int8_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT8:		TypeInfo("uint8", "uint8_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_INT16:		TypeInfo("int16", "int16_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT16:		TypeInfo("uint16", "uint16_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_INT32:		TypeInfo("int32", "int32_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT32:		TypeInfo("uint32", "uint32_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_INT64:		TypeInfo("int64", "int64_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT64:		TypeInfo("uint64", "uint64_t *", lambda x: int(x)),
+		_lib.DATA_TYPE_STRING:		TypeInfo("string", "char **", lambda x: _ffi.string(x)),
+		_lib.DATA_TYPE_NVLIST:		TypeInfo("nvlist", "nvlist_t **", lambda x: _nvlist_to_dict(x, {})),
+		_lib.DATA_TYPE_BOOLEAN_ARRAY:	TypeInfo("boolean_array", "boolean_t **", lambda x: bool(x)),
+		_lib.DATA_TYPE_BYTE_ARRAY:	TypeInfo("byte_array", "uchar_t **", lambda x: int(x)),			# XXX use bytearray ?
+		_lib.DATA_TYPE_INT8_ARRAY:	TypeInfo("int8_array", "int8_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT8_ARRAY:	TypeInfo("uint8_array", "uint8_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_INT16_ARRAY:	TypeInfo("int16_array", "int16_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT16_ARRAY:	TypeInfo("uint16_array", "uint16_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_INT32_ARRAY:	TypeInfo("int32_array", "int32_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT32_ARRAY:	TypeInfo("uint32_array", "uint32_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_INT64_ARRAY:	TypeInfo("int64_array", "int64_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_UINT64_ARRAY:	TypeInfo("uint64_array", "uint64_t **", lambda x: int(x)),
+		_lib.DATA_TYPE_STRING_ARRAY:	TypeInfo("string_array", "char ***", lambda x: _ffi.string(x)),
+		_lib.DATA_TYPE_NVLIST_ARRAY:	TypeInfo("nvlist_array", "nvlist_t ***", lambda x: _nvlist_to_dict(x, {})),
+	}[typeid]
 
-	def get_c_ptr(self):
-		ptrptr = ffi_libnvpair.new('nvlist_t **')
-		# UNIQUE_NAME == 1
-		ptr = c_libnvpair.nvlist_alloc(ptrptr, 1, 0)
-		self._populate_nvlist(ptr, self.props)
-		return ptr
+# only integer properties need to be here
+_prop_name_to_type_str = {
+	"history time":			"uint64",
+	"history internal event":	"uint64",
+	"history txg":			"uint64",
+	"history who":			"uint64",
+	"pool_guid":			"uint64",
+	"rewind-request-txg":		"uint64",
+	"volsize":			"uint64",
+	"volblocksize":			"uint64",
+	"used":				"uint64",
+	"available":			"uint64",
+	"referenced":			"uint64",
+	"compressratio":		"uint64",
+	"refcompressratio":		"uint64",
+	"usedbysnapshots":		"uint64",
+	"usedbydataset":		"uint64",
+	"usedbychildren":		"uint64",
+	"usedbyrefreservation":		"uint64",
+	"userrefs":			"uint64",
+	"written":			"uint64",
+	"logicalused":			"uint64",
+	"logicalreferenced":		"uint64",
+	"quota":			"uint64",
+	"refquota":			"uint64",
+	"recordsize":			"uint64",
+	"createtxg":			"uint64",
+	"numclones":			"uint64",
+	"guid":				"uint64",
+	"useraccounting":		"uint64",
+	"unique":			"uint64",
+	"objsetid":			"uint64",
+	"name":				"uint64",
+	"size":				"uint64",
+	"free":				"uint64",
+	"freeing":			"uint64",
+	"leaked":			"uint64",
+	"allocated":			"uint64",
+	"expandsize":			"uint64",
+	"fragmentation":		"uint64",
+	"capacity":			"uint64",
+	"guid":				"uint64",
+	"health":			"uint64",
+	"dedupratio":			"uint64",
+	"dedupditto":			"uint64",
+	"ashift":			"uint64",
+	"version":			"uint64",
+	"delegation":			"uint64",
+	"autoreplace":			"uint64",
+	"listsnapshots":		"uint64",
+	"autoexpand":			"uint64",
+	"readonly":			"uint64",
+	"failmode":			"uint64",
+	"is_log":			"uint64",
+	"is_hole":			"uint64",
+	"not_present":			"uint64",
+	"whole_disk":			"uint64",
+	"nparity":			"uint64",
+	"state":			"uint64",
+	"hostid":			"uint64",
+	"timestamp":			"uint64",
+	"dataset":			"uint64",
+	"object":			"uint64",
+	"error_count":			"uint64",
+	"dsid":				"uint64",
+	"utf8only":			"uint64",
 
-	def _populate_nvlist(self, arg=None, **kwargs):
-		if arg:
-			if hasattr(arg, 'keys'):
-				for k in arg:
-					self._add(k, arg[k])
-			else:
-				for k, v in arg:
-					self._add(k, v)
-		for k, v in kwargs.items():
-			self._add(k, v)
-
-	def _add(self, key, type, value):
-		info = self.info_for_type(type)
-		value = info.convert_add(value)
-		return not bool(info.nvlist_add(self.ptr, key, value))
-
-	def _extract_props(self, ptr):
-		data = {}
-		pair = c_libnvpair.nvlist_next_nvpair(ptr, ffi_libnvpair.NULL)
-		while pair != ffi_libnvpair.NULL:
-			name = ffi_libnvpair.string(c_libnvpair.nvpair_name(pair))
-			typeid = c_libnvpair.nvpair_type(pair)
-			try:
-				dt = data_type(typeid)
-				info = self.info_for_type(dt)
-			except (ValueError, UnknownValue):
-				if not skip_unknown:
-					raise UnknownValue("Unknown type: '%r'" % typeid)
-				else:
-					try:
-						dt = data_type(typeid)
-					except:
-						dt = (None, typeid, None)
-					data[name] = dt
-					pair = c_libnvpair.nvlist_next_nvpair(self.ptr, pair)
-					continue
-			valholder = info.create_holder()
-			countholder = None
-			if info.is_array:
-				countholder = info.create_count_holder()
-				val = info.nvpair_value(pair, valholder, countholder)
-			else:
-				val = info.nvpair_value(pair, valholder)
-			if not bool(val):
-				value = info.convert(valholder, countholder)
-				if deep and isinstance(value, NVList):
-					value._free = self._free
-					with value:
-						data[name] = value.to_dict(skip_unknown = skip_unknown)
-				elif deep and isinstance(value, list) and isinstance(value[0], NVList):
-					temp = data[name] = []
-					for item in value:
-						item._free = self._free
-						with item:
-							temp.append(item.to_dict(skip_unknown = skip_unknown))
-				else:
-					data[name] = value
-
-			pair = c_libnvpair.nvlist_next_nvpair(self.ptr, pair)
-		return data
-
-	@classmethod
-	def info_for_type(cls, type):
-		info = NVLIST_HANDLERS.get(type)
-		if info is None:
-			raise UnknownValue("Unknown type: '%r'" % type)
-		return info
-
-
-def _to_int(hdl):
-	if isinstance(hdl, (int, long)):
-		return int(hdl)
-	return int(hdl[0])
-
-
-def _to_long(hdl):
-	if isinstance(hdl, (int, long)):
-		return long(hdl)
-	return long(hdl[0])
-
-
-class NVListHandler(object):
-	def __init__(self, funcname, typename, converter, add_converter = None, is_array = False):
-		self._funcname = funcname
-		self._typename = typename
-		self._converter = converter
-		self._add_converter = add_converter
-		self._is_array = is_array
-
-	def create_holder(self):
-		return ffi_libnvpair.new(self._typename)
-
-	def create_count_holder(self):
-		return ffi_libnvpair.new('uint_t *')
-
-	def convert(self, x, count = None):
-		if self._converter:
-			if self.is_array:
-				return self._converter(x, count)
-			return self._converter(x)
-		return x
-
-	def convert_add(self, x):
-		if callable(self._add_converter):
-			return self._add_converter(x)
-		if self._add_converter is False:
-			raise Exception("Unable to convert type")
-		return x
-
-	def _get_c_func(self, prefix):
-		return getattr(c_libnvpair, '%s_%s' % (prefix, self._funcname))
-
-	@property
-	def nvlist_add(self):
-		return self._get_c_func('nvlist_add')
-
-	@property
-	def nvlist_lookup(self):
-		return self._get_c_func('nvlist_lookup')
-
-	@property
-	def nvpair_value(self):
-		return self._get_c_func('nvpair_value')
-
-	@property
-	def is_array(self):
-		return self._is_array
-
-
-def _array_converter(converter):
-	def _inner(x, count):
-		items = []
-		for i in range(count[0]):
-			items.append(converter(x[0][i]))
-		return items
-	return _inner
-
-
-#
-# Key: configuration
-#  - add func
-#  - lookup func
-#  - lookup holder type
-#  - add converter
-#  - lookup converter
-#
-NVLIST_HANDLERS = {
-	data_type.BOOLEAN:	 NVListHandler('boolean_value', 'boolean_t *', lambda x: bool(x[0]), boolean_t),
-	data_type.BOOLEAN_VALUE: NVListHandler('boolean_value', 'boolean_t *', lambda x: bool(x[0]), boolean_t),
-	data_type.BYTE:		NVListHandler('byte', 'uchar_t *', _to_int, None),
-	data_type.INT8:		NVListHandler('int8', 'int8_t *', _to_int, None),
-	data_type.UINT8:	NVListHandler('uint8', 'uint8_t *', _to_int, None),
-	data_type.INT16:	NVListHandler('int16', 'int16_t *', _to_int, None),
-	data_type.UINT16:	NVListHandler('uint16', 'uint16_t *', _to_int, None),
-	data_type.INT32:	NVListHandler('int32', 'int32_t *', _to_int, None),
-	data_type.UINT32:	NVListHandler('uint32', 'uint32_t *', _to_int, None),
-	data_type.INT64:	NVListHandler('int64', 'int64_t *', _to_int, None),
-	data_type.UINT64:	NVListHandler('uint64', 'uint64_t *', _to_int, None),
-	data_type.STRING:	NVListHandler('string', 'char **', lambda x: ffi_libnvpair.string(x[0]), None),
-	data_type.NVLIST:	NVListHandler('nvlist', 'nvlist_t **', NVList.from_nvlist_handle, False),
-
-	data_type.BYTE_ARRAY:   NVListHandler('byte_array', 'uchar_t **', _array_converter(_to_int), None),
-	data_type.INT8_ARRAY:   NVListHandler('int8_array', 'int8_t **', _array_converter(_to_int), False, True),
-	data_type.UINT8_ARRAY:  NVListHandler('uint8_array', 'uint8_t **', _array_converter(_to_int), False, True),
-	data_type.INT16_ARRAY:  NVListHandler('int16_array', 'int16_t **', _array_converter(_to_int), False, True),
-	data_type.UINT16_ARRAY: NVListHandler('uint16_array', 'uint16_t **', _array_converter(_to_int), False, True),
-	data_type.INT32_ARRAY:  NVListHandler('int32_array', 'int32_t **', _array_converter(_to_int), False, True),
-	data_type.UINT32_ARRAY: NVListHandler('uint32_array', 'uint32_t **', _array_converter(_to_int), False, True),
-	data_type.INT64_ARRAY:  NVListHandler('int64_array', 'int64_t **', _array_converter(_to_int), False, True),
-	data_type.UINT64_ARRAY: NVListHandler('uint64_array', 'uint64_t **', _array_converter(_to_int), False, True),
-	data_type.NVLIST_ARRAY: NVListHandler('nvlist_array', 'nvlist_t ***',
-										_array_converter(NVList.from_nvlist_ptr), False, True),
-	data_type.STRING_ARRAY: NVListHandler('string_array', 'char ***', 
-										_array_converter(lambda x: ffi_libnvpair.string(x)), False, True),
+	"rewind-request":		"uint32",
+	"type":				"uint32",
+	"N_MORE_ERRORS":		"int32",
+	"pool_context":			"int32",
 }
+
+
+def _nvlist_add_array(nvlist, array):
+	raise NotImplementedError('Array values are not supported yet')
+
+
+def _nvlist_to_dict(nvlist, props):
+	pair = _lib.nvlist_next_nvpair(nvlist, _ffi.NULL)
+	while pair != _ffi.NULL:
+		name = _ffi.string(_lib.nvpair_name(pair))
+		typeid = int(_lib.nvpair_type(pair))
+		typeinfo = _type_info(typeid)
+		is_array = bool(_lib.nvpair_type_is_array(pair))
+		cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix))
+		val = None
+		ret = 0
+		if is_array:
+			valptr = _ffi.new(typeinfo.ctype)
+			lenptr = _ffi.new("uint_t *")
+			ret = cfunc(pair, valptr, lenptr)
+			assert ret == 0
+			length = int(lenptr[0])
+			val = []
+			for i in range(length):
+				val.append(typeinfo.convert(valptr[0][i]))
+		else:
+			if typeid == _lib.DATA_TYPE_BOOLEAN:
+				val = None # XXX or should it be True ?
+			else:
+				valptr = _ffi.new(typeinfo.ctype)
+				ret = cfunc(pair, valptr)
+				assert ret == 0
+				val = typeinfo.convert(valptr[0])
+		props[name] = val
+		pair = _lib.nvlist_next_nvpair(nvlist, pair)
+	return props
+
+
+def _dict_to_nvlist(props, nvlist):
+	for k, v in props.items():
+		assert isinstance(k, basestring)
+		ret = 0
+		if isinstance(v, dict):
+			with nvlist_in(v) as sub_nvlist:
+				ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
+		elif isinstance(v, list):
+			_nvlist_add_array(nvlist, v)
+		elif isinstance(v, basestring):
+			ret = _lib.nvlist_add_string(nvlist, k, v)
+		elif isinstance(v, bool):
+			ret = _lib.nvlist_add_boolean_value(nvlist, k, v)
+		elif v is None:
+			ret = _lib.nvlist_add_boolean(nvlist, k)
+		elif isinstance(v, (int, long)):
+			suffix = _prop_name_to_type_str[k]
+			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
+			ret = cfunc(nvlist, k, v);
+		assert ret == 0
+
+
+@contextmanager
+def nvlist_in(props):
+	nvlistp = _ffi.new("nvlist_t **")
+	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
+#	if res != 0:
+#		raise ...
+	assert res == 0
+	nvlist = nvlistp[0]
+	_dict_to_nvlist(props, nvlist)
+	try:
+		yield nvlist
+	finally:
+		_lib.nvlist_free(nvlist)
+
+
+@contextmanager
+def nvlist_out(props):
+	nvlistp = _ffi.new("nvlist_t **")
+	nvlistp[0] = _ffi.NULL # to be sure
+	try:
+		yield nvlistp
+		# clear old entries, if any
+		props.clear()
+		_nvlist_to_dict(nvlist[0], props)
+	finally:
+		if (nvlist[0] != _ffi.NULL)
+			_lib.nvlist_free(nvlist[0])
+
+
