@@ -1,58 +1,141 @@
 import errno
 from .bindings import libzfs_core
-from .nvlist import NVList
+from .nvlist import nvlist_in, nvlist_out
 
 _ffi = libzfs_core._ffi
 _lib = libzfs_core._lib
 
 _lib.libzfs_core_init()
 
+
 def lzc_create(name, is_zvol, props):
-	nvlist = NVList(props).get_c_ptr()
-	ret = _lib.lzc_create(name, is_zvol, nvlist)
-	NVList.free_c_ptr(nvlist)
+	ret = 0
+	with nvlist_in(props) as nvlist:
+		ret = _lib.lzc_create(name, is_zvol, nvlist)
 	return ret
 
-def lzc_snapshot(snaps, props):
-	snaps = NVList(snaps).get_c_ptr()
-	props = NVList(props).get_c_ptr()
-	errlist = NVList.alloc_c_ptr()
-	ret = _lib.lzc_snapshot(snaps, props, errlist)
-	NVList.free_c_ptr(snaps)
-	NVList.free_c_ptr(props)
-	errlist = NVList.from_c_ptr(errlist[0]).get_props()
-	return (ret, errlist)
+
+def lzc_snapshot(snaps, props, errlist):
+	ret = 0
+	with nvlist_in(snaps) as snaps_nvlist, nvlist_in(props) as props_nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
+	return ret
+
 
 def lzc_promote(name):
-	return _lib.lzc_promote(name)
+	ret = _lib.lzc_promote(name)
+	return ret
 
-def lzc_set_props(name, props, received)
+
+def lzc_rollback(name):
+	snapnamep = ffi.new('char[]', 256)
+	ret = _lib.lzc_rollback(name, snapnamep, 256)
+	return (ret, ffi.string(snapnamep))
+
+
+def lzc_set_props(name, props, received):
+	ret = 0
+	with nvlist_in(props) as nvlist:
+		ret = _lib.lzc_set_props(name, nvlist, received)
+	return ret
 	
 
-"""
-	int lzc_promote(const char *);
-	int lzc_set_props(const char *, nvlist_t *, boolean_t);
-	int lzc_destroy_snaps(nvlist_t *, boolean_t, nvlist_t **);
-	int lzc_bookmark(nvlist_t *, nvlist_t **);
-	int lzc_get_bookmarks(const char *, nvlist_t *, nvlist_t **);
-	int lzc_destroy_bookmarks(nvlist_t *, nvlist_t **);
+def lzc_destroy_snaps(snaps, defer, errlist):
+	ret = 0
+	with nvlist_in(snaps) as snaps_nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
+	return ret
 
-	int lzc_snaprange_space(const char *, const char *, uint64_t *);
 
-	int lzc_hold(nvlist_t *, int, nvlist_t **);
-	int lzc_release(nvlist_t *, nvlist_t **);
-	int lzc_get_holds(const char *, nvlist_t **);
-	    
-	enum lzc_send_flags { ... };  
-	    
-	int lzc_send(const char *, const char *, int, enum lzc_send_flags);
-	int lzc_send_ext(const char *, const char *, int, nvlist_t *);
-	int lzc_receive(const char *, nvlist_t *, const char *, boolean_t, int);
-	int lzc_send_space(const char *, const char *, uint64_t *);
-	int lzc_send_progress(const char *, int, uint64_t *);
+def lzc_bookmark(bookmarks, errlist):
+	ret = 0
+	with nvlist_in(bookmarks) as nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
+	return ret
 
-	boolean_t lzc_exists(const char *);
 
-	int lzc_rollback(const char *, char *, int);
-"""
+def lzc_get_bookmarks(fsname, props, bmarks):
+	ret = 0
+	with nvlist_in(props) as nvlist:
+		with nvlist_out(bmarks) as bmarks_nvlist:
+			ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
+	return ret
+
+
+def lzc_destroy_bookmarks(bookmarks, errlist):
+	ret = 0
+	with nvlist_in(bookmarks) as nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
+	return ret
+
+
+def lzc_snaprange_space(firstsnap, lastsnap):
+	valp = ffi.new('uint64_t *')
+	ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
+	return (ret, int(valp[0]))
+
+
+def lzc_hold(holds, fd, errlist):
+	ret = 0
+	with nvlist_in(holds) as nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
+	return ret
+
+
+def lzc_release(holds, errlist):
+	ret = 0
+	with nvlist_in(holds) as nvlist:
+		with nvlist_out(errlist) as errlist_nvlist:
+			ret = _lib.lzc_release(nvlist, errlist_nvlist)
+	return ret
+
+
+def lzc_get_holds(snapname, holds):
+	ret = 0
+	with nvlist_out(holds) as nvlist:
+		ret = _lib.lzc_get_holds(snapname, nvlist)
+	return ret
+
+
+
+def lzc_send(snapname, fromsnap, fd, flags):
+	ret = _lib.lzc_send(snapname, fromsnap, fd, flags)
+	return ret
+
+
+def lzc_send_ext(snapname, fromsnap, fd, props):
+	ret = 0
+	with nvlist_in(props) as nvlist:
+		ret = _lib.lzc_send_ext(snapname, fromsnap, fd, props)
+	return ret
+
+
+def lzc_send_space(snapname, fromsnap):
+	valp = ffi.new('uint64_t *')
+	ret = _lib.lzc_send_space(snapname, fromsnap, valp)
+	return (ret, int(valp[0]))
+
+
+def lzc_send_progress(snapname, fd):
+	valp = ffi.new('uint64_t *')
+	ret = _lib.lzc_send_progress(snapname, fd, valp)
+	return (ret, int(valp[0]))
+
+
+def lzc_receive(snapname, props, origin, force, fd):
+	ret = 0
+	with nvlist_in(props) as nvlist:
+		ret = _lib.lzc_receive(snapname, nvlist, origin, force, fd)
+	return ret
+
+
+def lzc_exists(name):
+	ret = _lib.lzc_exists(name)
+	return bool(ret)
+
 
