@@ -19,6 +19,8 @@ uint32_t =	_ffi_cast('uint32_t')
 int32_t =	_ffi_cast('int32_t')
 uint64_t =	_ffi_cast('uint64_t')
 int64_t =	_ffi_cast('int64_t')
+boolean_t =	_ffi_cast('boolean_t')
+uchar_t =	_ffi_cast('uchar_t')
 
 _type_to_suffix = {
 	_ffi.typeof('uint8_t'):		'uint8',
@@ -29,6 +31,8 @@ _type_to_suffix = {
 	_ffi.typeof('int32_t'):		'int32',
 	_ffi.typeof('uint64_t'):	'uint64',
 	_ffi.typeof('int64_t'):		'int64',
+	_ffi.typeof('boolean_t'):	'boolean',
+	_ffi.typeof('uchar_t'):		'byte',
 }
 
 TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert']);
