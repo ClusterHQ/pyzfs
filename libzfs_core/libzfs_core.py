@@ -1,4 +1,4 @@
-import errno
+from .exceptions import *
 from .bindings import libzfs_core
 from .nvlist import nvlist_in, nvlist_out
 
@@ -12,7 +12,11 @@ def lzc_create(name, is_zvol, props):
 	ret = 0
 	with nvlist_in(props) as nvlist:
 		ret = _lib.lzc_create(name, is_zvol, nvlist)
-	return ret
+	if ret != 0:
+		raise {
+			errno.EEXIST: FilesystemExists(name),
+			errno.ENOENT: ParentNotFound(name),
+		}.get(ret, ZFSError(ret, "Failed to create filesystem", name))
 
 
 def lzc_snapshot(snaps, props, errlist):
@@ -20,12 +24,20 @@ def lzc_snapshot(snaps, props, errlist):
 	with nvlist_in(snaps) as snaps_nvlist, nvlist_in(props) as props_nvlist:
 		with nvlist_out(errlist) as errlist_nvlist:
 			ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-	return ret
+	if ret != 0:
+		raise {
+			errno.EEXIST: SnapshotExists(None),
+			errno.ENOENT: FilesystemNotFound(None),
+		}.get(ret, ZFSError(ret, "Failed to create snapshot", name))
 
 
 def lzc_promote(name):
 	ret = _lib.lzc_promote(name)
-	return ret
+	if ret != 0:
+		raise {
+			errno.EEXIST: SnapshotExists(None),
+			errno.ENOENT: FilesystemNotFound(None),
+		}.get(ret, ZFSError(ret, "Failed to create snapshot", name))
 
 
 def lzc_rollback(name):
