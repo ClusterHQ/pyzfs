@@ -75,8 +75,55 @@ _prop_name_to_type_str = {
 }
 
 
-def _nvlist_add_array(nvlist, array):
-	raise NotImplementedError('Array values are not supported yet')
+def _nvlist_add_array(nvlist, key, array):
+	ret = 0
+	length = len(array)
+	specimen = array[0]
+
+	for i in range(1, length):
+		if type(array[i]) is not type(specimen)
+			raise TypeError('Array has elements of different types: ' +
+				type(specimen).__name__ +
+				' and ' +
+				type(array[i]).__name__)
+
+	if isinstance(specimen, dict):
+		c_array = _ffi.new('nvlist_t *[]', length)
+		# NB: can't use automatic memory management via nvlist_in() here,
+		# we have a loop, but 'with' would require recursion
+		res = 0
+		for i in range(0, length):
+			res = _lib.nvlist_alloc(c_array + i, 1, 0) # UNIQUE_NAME == 1
+			if res != 0:
+				break
+			_dict_to_nvlist(array[i], c_array[i])
+		if res != 0:
+			for i in range(0, length):
+				if c_array[i] != _ffi.NULL:
+					_lib.nvlist_free(c_array[i])
+			raise MemoryError('nvlist_alloc failed')
+		ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array)
+		for i in range(0, length):
+			_lib.nvlist_free(c_array[i])
+	elif isinstance(specimen, basestring):
+		c_array = []
+		for i in range(0, length):
+			c_array.append(ffi.new('char[]', array[i]))
+		ret = _lib.nvlist_add_string_array(nvlist, key, c_array)
+	elif isinstance(specimen, bool):
+		ret = _lib.nvlist_add_boolean_array(nvlist, key, array)
+	elif isinstance(specimen, (int, long)):
+		suffix = _prop_name_to_type_str,get(key, "uint64")
+		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
+		ret = cfunc(nvlist, key, array);
+	elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
+		suffix = _type_to_suffix[_ffi.typeof(specimen)]
+		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
+		ret = cfunc(nvlist, key, s_array);
+	else
+		raise TypeError('Unsupported value type ' + type(specimen).__name__)
+	if ret != 0:
+		raise MemoryError('nvlist_add failed')
 
 
 def _nvlist_to_dict(nvlist, props):
