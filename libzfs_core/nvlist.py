@@ -124,20 +124,17 @@ def _nvlist_add_array(nvlist, key, array):
 		c_array = _ffi.new('nvlist_t *[]', length)
 		# NB: can't use automatic memory management via nvlist_in() here,
 		# we have a loop, but 'with' would require recursion
-		res = 0
-		for i in range(0, length):
-			res = _lib.nvlist_alloc(c_array + i, 1, 0) # UNIQUE_NAME == 1
-			if res != 0:
-				break
-			_dict_to_nvlist(array[i], c_array[i])
-		if res != 0:
+		try:
+			for i in range(0, length):
+				res = _lib.nvlist_alloc(c_array + i, 1, 0) # UNIQUE_NAME == 1
+				if res != 0:
+					raise MemoryError('nvlist_alloc failed')
+				_dict_to_nvlist(array[i], c_array[i])
+			ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array)
+		finally:
 			for i in range(0, length):
 				if c_array[i] != _ffi.NULL:
 					_lib.nvlist_free(c_array[i])
-			raise MemoryError('nvlist_alloc failed')
-		ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array)
-		for i in range(0, length):
-			_lib.nvlist_free(c_array[i])
 	elif isinstance(specimen, basestring):
 		c_array = []
 		for i in range(0, length):
