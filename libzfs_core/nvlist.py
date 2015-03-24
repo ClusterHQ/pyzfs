@@ -127,7 +127,8 @@ def _nvlist_to_dict(nvlist, props):
 			valptr = _ffi.new(typeinfo.ctype)
 			lenptr = _ffi.new("uint_t *")
 			ret = cfunc(pair, valptr, lenptr)
-			assert ret == 0
+			if ret != 0:
+				raise RuntimeError('nvpair_value failed')
 			length = int(lenptr[0])
 			val = []
 			for i in range(length):
@@ -138,7 +139,8 @@ def _nvlist_to_dict(nvlist, props):
 			else:
 				valptr = _ffi.new(typeinfo.ctype)
 				ret = cfunc(pair, valptr)
-				assert ret == 0
+				if ret != 0:
+					raise RuntimeError('nvpair_value failed')
 				val = typeinfo.convert(valptr[0])
 		props[name] = val
 		pair = _lib.nvlist_next_nvpair(nvlist, pair)
@@ -147,7 +149,8 @@ def _nvlist_to_dict(nvlist, props):
 
 def _dict_to_nvlist(props, nvlist):
 	for k, v in props.items():
-		assert isinstance(k, basestring)
+		if not isinstance(k, basestring):
+			raise TypeError('Unsupported key type ' + type(k).__name__)
 		ret = 0
 		if isinstance(v, dict):
 			with nvlist_in(v) as sub_nvlist:
@@ -164,16 +167,18 @@ def _dict_to_nvlist(props, nvlist):
 			suffix = _prop_name_to_type_str[k]
 			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
 			ret = cfunc(nvlist, k, v);
-		assert ret == 0
+		else
+			raise TypeError('Unsupported value type ' + type(v).__name__)
+		if ret != 0:
+			raise MemoryError('nvlist_add failed')
 
 
 @contextmanager
 def nvlist_in(props):
 	nvlistp = _ffi.new("nvlist_t **")
 	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
-#	if res != 0:
-#		raise ...
-	assert res == 0
+	if res != 0:
+		raise MemoryError('nvlist_alloc failed')
 	nvlist = nvlistp[0]
 	_dict_to_nvlist(props, nvlist)
 	try:
