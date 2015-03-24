@@ -1,6 +1,39 @@
 from contextlib import contextmanager
 from .bindings import libnvpair
 
+"""
+nvlist_in and nvlist_out provide support for converting between
+a dictionary on the Python side and an nvlist_t on the C side
+with the automatic memory management for C memory allocations.
+
+nvlist_in and nvlist_out are to be used with the 'with' statement.
+
+nvlist_in takes a dictionary and produces a CData object corresponding
+to a C nvlist_t pointer suitable for passing as an input parameter.
+The nvlist_t is populated based on the dictionary.
+
+nvlist_out takes a dictionary and produces a CData object corresponding
+to a C nvlist_t pointer to pointer suitable for passing as an output parameter.
+Upon exit from a with-block the dictionary is populated based on the nvlist_t.
+
+The dictionary must follow a certain format to be convertible
+to the nvlist_t.  The dictionary produced from the nvlist_t
+will follow the same format.
+
+Format:
+- keys are always strings
+- a value can be None in which case it represents boolean truth by its mere presence
+- a value can be a bool
+- a value can be a string
+- a value can be an integer
+- a value can be a CFFI CData object representing one of the following C types:
+    int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, boolean_t, uchar_t
+- a value can be a dictionary that recursively adheres to this format
+- a value can be a list of bools, strings, integers or CData objects of types specified above
+- a value can be a list of dictionaries that adhere to this format
+- all elements of a list value must be of the same type
+"""
+
 _ffi = libnvpair._ffi
 _lib = libnvpair._lib
 
