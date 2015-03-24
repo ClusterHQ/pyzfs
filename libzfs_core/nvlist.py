@@ -4,6 +4,33 @@ from .bindings import libnvpair
 _ffi = libnvpair._ffi
 _lib = libnvpair._lib
 
+def _ffi_cast(type_name):
+	def _func(value):
+		return _ffi.cast(type_name, value)
+	_func.__name__ = type_name
+	return _func
+
+# Utility functions for casting to a specific C type
+uint8_t =	_ffi_cast('uint8_t')
+int8_t =	_ffi_cast('int8_t')
+uint16_t =	_ffi_cast('uint16_t')
+int16_t =	_ffi_cast('int16_t')
+uint32_t =	_ffi_cast('uint32_t')
+int32_t =	_ffi_cast('int32_t')
+uint64_t =	_ffi_cast('uint64_t')
+int64_t =	_ffi_cast('int64_t')
+
+_type_to_suffix = {
+	_ffi.typeof('uint8_t'):		'uint8',
+	_ffi.typeof('int8_t'):		'int8',
+	_ffi.typeof('uint16_t'):	'uint16',
+	_ffi.typeof('int16_t'):		'int16',
+	_ffi.typeof('uint32_t'):	'uint32',
+	_ffi.typeof('int32_t'):		'int32',
+	_ffi.typeof('uint64_t'):	'uint64',
+	_ffi.typeof('int64_t'):		'int64',
+}
+
 TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert']);
 
 def _type_info(typeid):
@@ -100,6 +127,10 @@ def _dict_to_nvlist(props, nvlist):
 			ret = _lib.nvlist_add_boolean(nvlist, k)
 		elif isinstance(v, (int, long)):
 			suffix = _prop_name_to_type_str,get(k, "uint64")
+			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
+			ret = cfunc(nvlist, k, v);
+		elif isinstance(v, _ffi.CData) and _ffi.typeof(v) in _type_to_suffix:
+			suffix = _type_to_suffix[_ffi.typeof(v)]
 			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
 			ret = cfunc(nvlist, k, v);
 		else
