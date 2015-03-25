@@ -40,6 +40,8 @@ _lib = libnvpair.lib
 
 def _ffi_cast(type_name):
 	def _func(value):
+		# this is for overflow / underflow checking only
+		_ffi.new(type_name + '*', value)
 		return _ffi.cast(type_name, value)
 	_func.__name__ = type_name
 	return _func
