@@ -1,5 +1,3 @@
-#from cffi import FFI
-
 CDEF = """
 	int libzfs_core_init(void);
 	void libzfs_core_fini(void);
