@@ -1,3 +1,4 @@
+import numbers
 from collections import namedtuple
 from contextlib import contextmanager
 from .bindings import libnvpair
@@ -116,8 +117,11 @@ def _nvlist_add_array(nvlist, key, array):
 	length = len(array)
 	specimen = array[0]
 
+	is_integer = isinstance(specimen, numbers.Integral)
 	for i in range(1, length):
-		if type(array[i]) is not type(specimen):
+		if is_integer and isinstance(array[i], numbers.Integral):
+			pass
+		elif type(array[i]) is not type(specimen):
 			raise TypeError('Array has elements of different types: ' +
 				type(specimen).__name__ +
 				' and ' +
@@ -145,7 +149,7 @@ def _nvlist_add_array(nvlist, key, array):
 		ret = _lib.nvlist_add_string_array(nvlist, key, c_array, length)
 	elif isinstance(specimen, bool):
 		ret = _lib.nvlist_add_boolean_array(nvlist, key, array, length)
-	elif isinstance(specimen, (int, long)):
+	elif isinstance(specimen, numbers.Integral):
 		suffix = _prop_name_to_type_str.get(key, "uint64")
 		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
 		ret = cfunc(nvlist, key, array, length)
@@ -209,7 +213,7 @@ def _dict_to_nvlist(props, nvlist):
 			ret = _lib.nvlist_add_boolean_value(nvlist, k, v)
 		elif v is None:
 			ret = _lib.nvlist_add_boolean(nvlist, k)
-		elif isinstance(v, (int, long)):
+		elif isinstance(v, numbers.Integral):
 			suffix = _prop_name_to_type_str.get(k, "uint64")
 			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
 			ret = cfunc(nvlist, k, v)
