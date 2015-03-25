@@ -39,5 +39,6 @@ SOURCE = """
 #include <libzfs/libzfs_core.h>
 """
 
-LIBRARIES = [ "zfs_core", ]
+LIBRARY = "zfs_core"
+LIBDEPS = [ "zfs" ]
 
