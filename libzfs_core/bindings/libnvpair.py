@@ -40,6 +40,9 @@ CDEF = """
 	int nvlist_alloc(nvlist_t **, uint_t, int);
 	void nvlist_free(nvlist_t *);
 
+	void dump_nvlist(nvlist_t *, int);
+	int nvlist_dup(nvlist_t *, nvlist_t **, int);
+
 	int nvlist_add_boolean(nvlist_t *, const char *);
 	int nvlist_add_boolean_value(nvlist_t *, const char *, boolean_t);
 	int nvlist_add_byte(nvlist_t *, const char *, uchar_t);
