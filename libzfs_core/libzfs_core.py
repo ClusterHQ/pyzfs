@@ -2,9 +2,10 @@ from .exceptions import *
 from .bindings import libzfs_core
 from .nvlist import nvlist_in, nvlist_out
 
-_ffi = libzfs_core._ffi
-_lib = libzfs_core._lib
+_ffi = libzfs_core.ffi
+_lib = libzfs_core.lib
 
+# TODO: a better way to init and uninit the library
 _lib.libzfs_core_init()
 
 
@@ -41,9 +42,9 @@ def lzc_promote(name):
 
 
 def lzc_rollback(name):
-	snapnamep = ffi.new('char[]', 256)
+	snapnamep = _ffi.new('char[]', 256)
 	ret = _lib.lzc_rollback(name, snapnamep, 256)
-	return (ret, ffi.string(snapnamep))
+	return (ret, _ffi.string(snapnamep))
 
 
 def lzc_set_props(name, props, received):
@@ -86,7 +87,7 @@ def lzc_destroy_bookmarks(bookmarks, errlist):
 
 
 def lzc_snaprange_space(firstsnap, lastsnap):
-	valp = ffi.new('uint64_t *')
+	valp = _ffi.new('uint64_t *')
 	ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
 	return (ret, int(valp[0]))
 
@@ -128,13 +129,13 @@ def lzc_send_ext(snapname, fromsnap, fd, props):
 
 
 def lzc_send_space(snapname, fromsnap):
-	valp = ffi.new('uint64_t *')
+	valp = _ffi.new('uint64_t *')
 	ret = _lib.lzc_send_space(snapname, fromsnap, valp)
 	return (ret, int(valp[0]))
 
 
 def lzc_send_progress(snapname, fd):
-	valp = ffi.new('uint64_t *')
+	valp = _ffi.new('uint64_t *')
 	ret = _lib.lzc_send_progress(snapname, fd, valp)
 	return (ret, int(valp[0]))
 
