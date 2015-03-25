@@ -1,3 +1,4 @@
+from collections import namedtuple
 from contextlib import contextmanager
 from .bindings import libnvpair
 
@@ -34,8 +35,8 @@ Format:
 - all elements of a list value must be of the same type
 """
 
-_ffi = libnvpair._ffi
-_lib = libnvpair._lib
+_ffi = libnvpair.ffi
+_lib = libnvpair.lib
 
 def _ffi_cast(type_name):
 	def _func(value):
@@ -68,7 +69,7 @@ _type_to_suffix = {
 	_ffi.typeof('uchar_t'):		'byte',
 }
 
-TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert']);
+TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert'])
 
 def _type_info(typeid):
 	return {
@@ -114,7 +115,7 @@ def _nvlist_add_array(nvlist, key, array):
 	specimen = array[0]
 
 	for i in range(1, length):
-		if type(array[i]) is not type(specimen)
+		if type(array[i]) is not type(specimen):
 			raise TypeError('Array has elements of different types: ' +
 				type(specimen).__name__ +
 				' and ' +
@@ -130,7 +131,7 @@ def _nvlist_add_array(nvlist, key, array):
 				if res != 0:
 					raise MemoryError('nvlist_alloc failed')
 				_dict_to_nvlist(array[i], c_array[i])
-			ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array)
+			ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, length)
 		finally:
 			for i in range(0, length):
 				if c_array[i] != _ffi.NULL:
@@ -138,22 +139,22 @@ def _nvlist_add_array(nvlist, key, array):
 	elif isinstance(specimen, basestring):
 		c_array = []
 		for i in range(0, length):
-			c_array.append(ffi.new('char[]', array[i]))
-		ret = _lib.nvlist_add_string_array(nvlist, key, c_array)
+			c_array.append(_ffi.new('char[]', array[i]))
+		ret = _lib.nvlist_add_string_array(nvlist, key, c_array, length)
 	elif isinstance(specimen, bool):
-		ret = _lib.nvlist_add_boolean_array(nvlist, key, array)
+		ret = _lib.nvlist_add_boolean_array(nvlist, key, array, length)
 	elif isinstance(specimen, (int, long)):
-		suffix = _prop_name_to_type_str,get(key, "uint64")
+		suffix = _prop_name_to_type_str.get(key, "uint64")
 		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
-		ret = cfunc(nvlist, key, array);
+		ret = cfunc(nvlist, key, array, length)
 	elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
 		suffix = _type_to_suffix[_ffi.typeof(specimen)]
 		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
-		ret = cfunc(nvlist, key, s_array);
-	else
+		ret = cfunc(nvlist, key, array, length)
+	else:
 		raise TypeError('Unsupported value type ' + type(specimen).__name__)
 	if ret != 0:
-		raise MemoryError('nvlist_add failed')
+		raise MemoryError('nvlist_add failed, err = %d' % ret)
 
 
 def _nvlist_to_dict(nvlist, props):
@@ -163,7 +164,7 @@ def _nvlist_to_dict(nvlist, props):
 		typeid = int(_lib.nvpair_type(pair))
 		typeinfo = _type_info(typeid)
 		is_array = bool(_lib.nvpair_type_is_array(pair))
-		cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix))
+		cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix), None)
 		val = None
 		ret = 0
 		if is_array:
@@ -199,7 +200,7 @@ def _dict_to_nvlist(props, nvlist):
 			with nvlist_in(v) as sub_nvlist:
 				ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
 		elif isinstance(v, list):
-			_nvlist_add_array(nvlist, v)
+			_nvlist_add_array(nvlist, k, v)
 		elif isinstance(v, basestring):
 			ret = _lib.nvlist_add_string(nvlist, k, v)
 		elif isinstance(v, bool):
@@ -207,14 +208,14 @@ def _dict_to_nvlist(props, nvlist):
 		elif v is None:
 			ret = _lib.nvlist_add_boolean(nvlist, k)
 		elif isinstance(v, (int, long)):
-			suffix = _prop_name_to_type_str,get(k, "uint64")
+			suffix = _prop_name_to_type_str.get(k, "uint64")
 			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
-			ret = cfunc(nvlist, k, v);
+			ret = cfunc(nvlist, k, v)
 		elif isinstance(v, _ffi.CData) and _ffi.typeof(v) in _type_to_suffix:
 			suffix = _type_to_suffix[_ffi.typeof(v)]
 			cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
-			ret = cfunc(nvlist, k, v);
-		else
+			ret = cfunc(nvlist, k, v)
+		else:
 			raise TypeError('Unsupported value type ' + type(v).__name__)
 		if ret != 0:
 			raise MemoryError('nvlist_add failed')
@@ -242,9 +243,9 @@ def nvlist_out(props):
 		yield nvlistp
 		# clear old entries, if any
 		props.clear()
-		_nvlist_to_dict(nvlist[0], props)
+		_nvlist_to_dict(nvlistp[0], props)
 	finally:
-		if (nvlist[0] != _ffi.NULL)
-			_lib.nvlist_free(nvlist[0])
+		if (nvlistp[0] != _ffi.NULL):
+			_lib.nvlist_free(nvlistp[0])
 
 
