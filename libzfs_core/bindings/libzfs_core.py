@@ -5,7 +5,8 @@ CDEF = """
 	void libzfs_core_fini(void);
 
 	typedef ... nvlist_t;
-	typedef bool boolean_t;
+	typedef enum { B_FALSE, B_TRUE } boolean_t;
+
 	int lzc_snapshot(nvlist_t *, nvlist_t *, nvlist_t **);
 	int lzc_create(const char *, boolean_t, nvlist_t *);
 	int lzc_clone(const char *, const char *, nvlist_t *);
