@@ -1,8 +1,39 @@
 CDEF = """
 	typedef ... nvlist_t;
 	typedef ... nvpair_t;
-	enum data_type_t { ... };
-	typedef bool boolean_t;
+
+
+	typedef enum {
+		DATA_TYPE_UNKNOWN = 0,
+		DATA_TYPE_BOOLEAN,
+		DATA_TYPE_BYTE,
+		DATA_TYPE_INT16,
+		DATA_TYPE_UINT16,
+		DATA_TYPE_INT32,
+		DATA_TYPE_UINT32,
+		DATA_TYPE_INT64,
+		DATA_TYPE_UINT64,
+		DATA_TYPE_STRING,
+		DATA_TYPE_BYTE_ARRAY,
+		DATA_TYPE_INT16_ARRAY,
+		DATA_TYPE_UINT16_ARRAY,
+		DATA_TYPE_INT32_ARRAY,
+		DATA_TYPE_UINT32_ARRAY,
+		DATA_TYPE_INT64_ARRAY,
+		DATA_TYPE_UINT64_ARRAY,
+		DATA_TYPE_STRING_ARRAY,
+		DATA_TYPE_HRTIME,
+		DATA_TYPE_NVLIST,
+		DATA_TYPE_NVLIST_ARRAY,
+		DATA_TYPE_BOOLEAN_VALUE,
+		DATA_TYPE_INT8,
+		DATA_TYPE_UINT8,
+		DATA_TYPE_BOOLEAN_ARRAY,
+		DATA_TYPE_INT8_ARRAY,
+		DATA_TYPE_UINT8_ARRAY
+	} data_type_t;
+	typedef enum { B_FALSE, B_TRUE } boolean_t;
+
 	typedef unsigned char uchar_t;
 	typedef unsigned int uint_t;
 
