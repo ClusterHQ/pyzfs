@@ -70,5 +70,6 @@ SOURCE = """
 #include <libzfs/sys/nvpair.h>
 """
 
-LIBRARIES = [ "nvpair", ]
+LIBRARY = "nvpair"
+LIBDEPS = []
 
