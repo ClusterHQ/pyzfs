@@ -42,7 +42,9 @@ props_in = {
 			"skey72": "f",
 		}
 
-	]
+	],
+	"type": 2 ** 32 - 1,
+	"pool_context": -(2 ** 31)
 }
 
 props_out = {}
