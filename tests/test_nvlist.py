@@ -49,6 +49,7 @@ props_out = {}
 
 with nvlist_in(props_in) as x:
 	print "Dumping a C nvlist_t produced from a python dictionary:"
+	print "(ignore 'bad config type 24' message)"
 	_lib.dump_nvlist(x, 2)
 
 	with nvlist_out(props_out) as y:
