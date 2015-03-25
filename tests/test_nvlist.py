@@ -1,5 +1,4 @@
 import json
-import math
 from libzfs_core.nvlist import *
 from libzfs_core.nvlist import _lib
 
@@ -20,7 +19,7 @@ props_in = {
 		"bc"
 	],
 	"key5": [
-		int(math.pow(2, 62)),
+		2 ** 64 - 1,
 		1,
 		2,
 		3
