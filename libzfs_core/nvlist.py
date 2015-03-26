@@ -72,35 +72,35 @@ _type_to_suffix = {
 	_ffi.typeof('uchar_t'):		'byte',
 }
 
-TypeInfo = namedtuple('TypeInfo', ['suffix', 'ctype', 'convert'])
+_TypeInfo = namedtuple('_TypeInfo', ['suffix', 'ctype', 'convert'])
 
 def _type_info(typeid):
 	return {
-		_lib.DATA_TYPE_BOOLEAN:		TypeInfo(None, None, None),
-		_lib.DATA_TYPE_BOOLEAN_VALUE:	TypeInfo("boolean_value", "boolean_t *", bool),
-		_lib.DATA_TYPE_BYTE:		TypeInfo("byte", "uchar_t *", int),
-		_lib.DATA_TYPE_INT8:		TypeInfo("int8", "int8_t *", int),
-		_lib.DATA_TYPE_UINT8:		TypeInfo("uint8", "uint8_t *", int),
-		_lib.DATA_TYPE_INT16:		TypeInfo("int16", "int16_t *", int),
-		_lib.DATA_TYPE_UINT16:		TypeInfo("uint16", "uint16_t *", int),
-		_lib.DATA_TYPE_INT32:		TypeInfo("int32", "int32_t *", int),
-		_lib.DATA_TYPE_UINT32:		TypeInfo("uint32", "uint32_t *", int),
-		_lib.DATA_TYPE_INT64:		TypeInfo("int64", "int64_t *", int),
-		_lib.DATA_TYPE_UINT64:		TypeInfo("uint64", "uint64_t *", int),
-		_lib.DATA_TYPE_STRING:		TypeInfo("string", "char **", _ffi.string),
-		_lib.DATA_TYPE_NVLIST:		TypeInfo("nvlist", "nvlist_t **", lambda x: _nvlist_to_dict(x, {})),
-		_lib.DATA_TYPE_BOOLEAN_ARRAY:	TypeInfo("boolean_array", "boolean_t **", bool),
-		_lib.DATA_TYPE_BYTE_ARRAY:	TypeInfo("byte_array", "uchar_t **", int),			# XXX use bytearray ?
-		_lib.DATA_TYPE_INT8_ARRAY:	TypeInfo("int8_array", "int8_t **", int),
-		_lib.DATA_TYPE_UINT8_ARRAY:	TypeInfo("uint8_array", "uint8_t **", int),
-		_lib.DATA_TYPE_INT16_ARRAY:	TypeInfo("int16_array", "int16_t **", int),
-		_lib.DATA_TYPE_UINT16_ARRAY:	TypeInfo("uint16_array", "uint16_t **", int),
-		_lib.DATA_TYPE_INT32_ARRAY:	TypeInfo("int32_array", "int32_t **", int),
-		_lib.DATA_TYPE_UINT32_ARRAY:	TypeInfo("uint32_array", "uint32_t **", int),
-		_lib.DATA_TYPE_INT64_ARRAY:	TypeInfo("int64_array", "int64_t **", int),
-		_lib.DATA_TYPE_UINT64_ARRAY:	TypeInfo("uint64_array", "uint64_t **", int),
-		_lib.DATA_TYPE_STRING_ARRAY:	TypeInfo("string_array", "char ***", _ffi.string),
-		_lib.DATA_TYPE_NVLIST_ARRAY:	TypeInfo("nvlist_array", "nvlist_t ***", lambda x: _nvlist_to_dict(x, {})),
+		_lib.DATA_TYPE_BOOLEAN:		_TypeInfo(None, None, None),
+		_lib.DATA_TYPE_BOOLEAN_VALUE:	_TypeInfo("boolean_value", "boolean_t *", bool),
+		_lib.DATA_TYPE_BYTE:		_TypeInfo("byte", "uchar_t *", int),
+		_lib.DATA_TYPE_INT8:		_TypeInfo("int8", "int8_t *", int),
+		_lib.DATA_TYPE_UINT8:		_TypeInfo("uint8", "uint8_t *", int),
+		_lib.DATA_TYPE_INT16:		_TypeInfo("int16", "int16_t *", int),
+		_lib.DATA_TYPE_UINT16:		_TypeInfo("uint16", "uint16_t *", int),
+		_lib.DATA_TYPE_INT32:		_TypeInfo("int32", "int32_t *", int),
+		_lib.DATA_TYPE_UINT32:		_TypeInfo("uint32", "uint32_t *", int),
+		_lib.DATA_TYPE_INT64:		_TypeInfo("int64", "int64_t *", int),
+		_lib.DATA_TYPE_UINT64:		_TypeInfo("uint64", "uint64_t *", int),
+		_lib.DATA_TYPE_STRING:		_TypeInfo("string", "char **", _ffi.string),
+		_lib.DATA_TYPE_NVLIST:		_TypeInfo("nvlist", "nvlist_t **", lambda x: _nvlist_to_dict(x, {})),
+		_lib.DATA_TYPE_BOOLEAN_ARRAY:	_TypeInfo("boolean_array", "boolean_t **", bool),
+		_lib.DATA_TYPE_BYTE_ARRAY:	_TypeInfo("byte_array", "uchar_t **", int),			# XXX use bytearray ?
+		_lib.DATA_TYPE_INT8_ARRAY:	_TypeInfo("int8_array", "int8_t **", int),
+		_lib.DATA_TYPE_UINT8_ARRAY:	_TypeInfo("uint8_array", "uint8_t **", int),
+		_lib.DATA_TYPE_INT16_ARRAY:	_TypeInfo("int16_array", "int16_t **", int),
+		_lib.DATA_TYPE_UINT16_ARRAY:	_TypeInfo("uint16_array", "uint16_t **", int),
+		_lib.DATA_TYPE_INT32_ARRAY:	_TypeInfo("int32_array", "int32_t **", int),
+		_lib.DATA_TYPE_UINT32_ARRAY:	_TypeInfo("uint32_array", "uint32_t **", int),
+		_lib.DATA_TYPE_INT64_ARRAY:	_TypeInfo("int64_array", "int64_t **", int),
+		_lib.DATA_TYPE_UINT64_ARRAY:	_TypeInfo("uint64_array", "uint64_t **", int),
+		_lib.DATA_TYPE_STRING_ARRAY:	_TypeInfo("string_array", "char ***", _ffi.string),
+		_lib.DATA_TYPE_NVLIST_ARRAY:	_TypeInfo("nvlist_array", "nvlist_t ***", lambda x: _nvlist_to_dict(x, {})),
 	}[typeid]
 
 # only integer properties need to be here
