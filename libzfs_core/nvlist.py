@@ -128,20 +128,18 @@ def _nvlist_add_array(nvlist, key, array):
 				type(array[i]).__name__)
 
 	if isinstance(specimen, dict):
-		c_array = _ffi.new('nvlist_t *[]', length)
 		# NB: can't use automatic memory management via nvlist_in() here,
 		# we have a loop, but 'with' would require recursion
-		try:
-			for i in range(0, length):
-				res = _lib.nvlist_alloc(c_array + i, 1, 0) # UNIQUE_NAME == 1
-				if res != 0:
-					raise MemoryError('nvlist_alloc failed')
-				_dict_to_nvlist(array[i], c_array[i])
-			ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, length)
-		finally:
-			for i in range(0, length):
-				if c_array[i] != _ffi.NULL:
-					_lib.nvlist_free(c_array[i])
+		c_array = []
+		for dictionary in array:
+			nvlistp = _ffi.new('nvlist_t **')
+			res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
+			if res != 0:
+				raise MemoryError('nvlist_alloc failed')
+			nested_nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
+			_dict_to_nvlist(dictionary, nested_nvlist)
+			c_array.append(nested_nvlist)
+		ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, len(c_array))
 	elif isinstance(specimen, basestring):
 		c_array = []
 		for i in range(0, length):
@@ -233,12 +231,9 @@ def nvlist_in(props):
 	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
 	if res != 0:
 		raise MemoryError('nvlist_alloc failed')
-	nvlist = nvlistp[0]
+	nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
 	_dict_to_nvlist(props, nvlist)
-	try:
-		yield nvlist
-	finally:
-		_lib.nvlist_free(nvlist)
+	yield nvlist
 
 
 @contextmanager
