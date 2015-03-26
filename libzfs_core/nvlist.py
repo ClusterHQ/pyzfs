@@ -39,6 +39,32 @@ from .bindings import libnvpair
 _ffi = libnvpair.ffi
 _lib = libnvpair.lib
 
+
+@contextmanager
+def nvlist_in(props):
+	nvlistp = _ffi.new("nvlist_t **")
+	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
+	if res != 0:
+		raise MemoryError('nvlist_alloc failed')
+	nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
+	_dict_to_nvlist(props, nvlist)
+	yield nvlist
+
+
+@contextmanager
+def nvlist_out(props):
+	nvlistp = _ffi.new("nvlist_t **")
+	nvlistp[0] = _ffi.NULL # to be sure
+	try:
+		yield nvlistp
+		# clear old entries, if any
+		props.clear()
+		_nvlist_to_dict(nvlistp[0], props)
+	finally:
+		if nvlistp[0] != _ffi.NULL:
+			_lib.nvlist_free(nvlistp[0])
+
+
 def _ffi_cast(type_name):
 	def _func(value):
 		# this is for overflow / underflow checking only
@@ -46,6 +72,7 @@ def _ffi_cast(type_name):
 		return _ffi.cast(type_name, value)
 	_func.__name__ = type_name
 	return _func
+
 
 # Utility functions for casting to a specific C type
 uint8_t =	_ffi_cast('uint8_t')
@@ -58,6 +85,7 @@ uint64_t =	_ffi_cast('uint64_t')
 int64_t =	_ffi_cast('int64_t')
 boolean_t =	_ffi_cast('boolean_t')
 uchar_t =	_ffi_cast('uchar_t')
+
 
 _type_to_suffix = {
 	_ffi.typeof('uint8_t'):		'uint8',
@@ -222,30 +250,5 @@ def _dict_to_nvlist(props, nvlist):
 			raise TypeError('Unsupported value type ' + type(v).__name__)
 		if ret != 0:
 			raise MemoryError('nvlist_add failed')
-
-
-@contextmanager
-def nvlist_in(props):
-	nvlistp = _ffi.new("nvlist_t **")
-	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
-	if res != 0:
-		raise MemoryError('nvlist_alloc failed')
-	nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
-	_dict_to_nvlist(props, nvlist)
-	yield nvlist
-
-
-@contextmanager
-def nvlist_out(props):
-	nvlistp = _ffi.new("nvlist_t **")
-	nvlistp[0] = _ffi.NULL # to be sure
-	try:
-		yield nvlistp
-		# clear old entries, if any
-		props.clear()
-		_nvlist_to_dict(nvlistp[0], props)
-	finally:
-		if nvlistp[0] != _ffi.NULL:
-			_lib.nvlist_free(nvlistp[0])
 
 
