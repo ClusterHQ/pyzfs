@@ -114,11 +114,10 @@ _prop_name_to_type_str = {
 
 def _nvlist_add_array(nvlist, key, array):
 	ret = 0
-	length = len(array)
 	specimen = array[0]
 
 	is_integer = isinstance(specimen, numbers.Integral)
-	for i in range(1, length):
+	for i in range(1, len(array)):
 		if is_integer and isinstance(array[i], numbers.Integral):
 			pass
 		elif type(array[i]) is not type(specimen):
@@ -142,19 +141,19 @@ def _nvlist_add_array(nvlist, key, array):
 		ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, len(c_array))
 	elif isinstance(specimen, basestring):
 		c_array = []
-		for i in range(0, length):
-			c_array.append(_ffi.new('char[]', array[i]))
-		ret = _lib.nvlist_add_string_array(nvlist, key, c_array, length)
+		for string in array:
+			c_array.append(_ffi.new('char[]', string))
+		ret = _lib.nvlist_add_string_array(nvlist, key, c_array, len(c_array))
 	elif isinstance(specimen, bool):
-		ret = _lib.nvlist_add_boolean_array(nvlist, key, array, length)
+		ret = _lib.nvlist_add_boolean_array(nvlist, key, array, len(array))
 	elif isinstance(specimen, numbers.Integral):
 		suffix = _prop_name_to_type_str.get(key, "uint64")
 		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
-		ret = cfunc(nvlist, key, array, length)
+		ret = cfunc(nvlist, key, array, len(array))
 	elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
 		suffix = _type_to_suffix[_ffi.typeof(specimen)]
 		cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
-		ret = cfunc(nvlist, key, array, length)
+		ret = cfunc(nvlist, key, array, len(array))
 	else:
 		raise TypeError('Unsupported value type ' + type(specimen).__name__)
 	if ret != 0:
