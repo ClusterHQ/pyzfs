@@ -1,8 +1,3 @@
-import numbers
-from collections import namedtuple
-from contextlib import contextmanager
-from .bindings import libnvpair
-
 """
 nvlist_in and nvlist_out provide support for converting between
 a dictionary on the Python side and an nvlist_t on the C side
@@ -35,6 +30,11 @@ Format:
 - a value can be a list of dictionaries that adhere to this format
 - all elements of a list value must be of the same type
 """
+
+import numbers
+from collections import namedtuple
+from contextlib import contextmanager
+from .bindings import libnvpair
 
 _ffi = libnvpair.ffi
 _lib = libnvpair.lib
