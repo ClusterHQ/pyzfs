@@ -251,7 +251,7 @@ def nvlist_out(props):
 		props.clear()
 		_nvlist_to_dict(nvlistp[0], props)
 	finally:
-		if (nvlistp[0] != _ffi.NULL):
+		if nvlistp[0] != _ffi.NULL:
 			_lib.nvlist_free(nvlistp[0])
 
 
