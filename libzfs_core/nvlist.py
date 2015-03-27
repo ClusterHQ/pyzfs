@@ -18,15 +18,15 @@ to the nvlist_t.  The dictionary produced from the nvlist_t
 will follow the same format.
 
 Format:
-- keys are always strings
+- keys are always byte strings
 - a value can be None in which case it represents boolean truth by its mere presence
 - a value can be a bool
-- a value can be a string
+- a value can be a byte string
 - a value can be an integer
 - a value can be a CFFI CData object representing one of the following C types:
     int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, boolean_t, uchar_t
 - a value can be a dictionary that recursively adheres to this format
-- a value can be a list of bools, strings, integers or CData objects of types specified above
+- a value can be a list of bools, byte strings, integers or CData objects of types specified above
 - a value can be a list of dictionaries that adhere to this format
 - all elements of a list value must be of the same type
 """
@@ -185,7 +185,7 @@ def _nvlist_add_array(nvlist, key, array):
             _dict_to_nvlist(dictionary, nested_nvlist)
             c_array.append(nested_nvlist)
         ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, len(c_array))
-    elif isinstance(specimen, basestring):
+    elif isinstance(specimen, str):
         c_array = []
         for string in array:
             c_array.append(_ffi.new('char[]', string))
@@ -242,7 +242,7 @@ def _nvlist_to_dict(nvlist, props):
 
 def _dict_to_nvlist(props, nvlist):
     for k, v in props.items():
-        if not isinstance(k, basestring):
+        if not isinstance(k, str):
             raise TypeError('Unsupported key type ' + type(k).__name__)
         ret = 0
         if isinstance(v, dict):
@@ -250,7 +250,7 @@ def _dict_to_nvlist(props, nvlist):
                 ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
         elif isinstance(v, list):
             _nvlist_add_array(nvlist, k, v)
-        elif isinstance(v, basestring):
+        elif isinstance(v, str):
             ret = _lib.nvlist_add_string(nvlist, k, v)
         elif isinstance(v, bool):
             ret = _lib.nvlist_add_boolean_value(nvlist, k, v)
