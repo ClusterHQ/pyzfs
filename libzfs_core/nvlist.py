@@ -42,17 +42,35 @@ _lib = libnvpair.lib
 
 @contextmanager
 def nvlist_in(props):
+	"""
+	A context manager that converts a python dictionary to a C nvlist_t
+	and provides automatic memory management for the latter.
+	An FFI CData object representing the nvlist_t pointer can be acccessed
+	via 'as' target.
+	"""
 	nvlistp = _ffi.new("nvlist_t **")
 	res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
 	if res != 0:
 		raise MemoryError('nvlist_alloc failed')
 	nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
 	_dict_to_nvlist(props, nvlist)
+	# NB 'yield' is the last statement, so this function could be
+	# just a regular function, it is kept as a context manager
+	# only for symmetry with nvlist_out
 	yield nvlist
 
 
 @contextmanager
 def nvlist_out(props):
+	"""
+	A context manager that allocates a pointer to a C nvlist_t and yields
+	a CData object representing a pointer to the pointer via 'as' target.
+	The caller can pass that pointer to a pointer to a C function that
+	creates a new nvlist_t object.
+	The context manager takes care of memory management for the nvlist_t
+	and also populates the 'props' dictionary with data from the nvlist_t
+	upon leaving the 'with' block.
+	"""
 	nvlistp = _ffi.new("nvlist_t **")
 	nvlistp[0] = _ffi.NULL # to be sure
 	try:
