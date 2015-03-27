@@ -194,11 +194,11 @@ def _nvlist_add_array(nvlist, key, array):
         ret = _lib.nvlist_add_boolean_array(nvlist, key, array, len(array))
     elif isinstance(specimen, numbers.Integral):
         suffix = _prop_name_to_type_str.get(key, "uint64")
-        cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
+        cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
         ret = cfunc(nvlist, key, array, len(array))
     elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
         suffix = _type_to_suffix[_ffi.typeof(specimen)]
-        cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix))
+        cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
         ret = cfunc(nvlist, key, array, len(array))
     else:
         raise TypeError('Unsupported value type ' + type(specimen).__name__)
@@ -213,7 +213,7 @@ def _nvlist_to_dict(nvlist, props):
         typeid = int(_lib.nvpair_type(pair))
         typeinfo = _type_info(typeid)
         is_array = bool(_lib.nvpair_type_is_array(pair))
-        cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix), None)
+        cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix,), None)
         val = None
         ret = 0
         if is_array:
@@ -258,11 +258,11 @@ def _dict_to_nvlist(props, nvlist):
             ret = _lib.nvlist_add_boolean(nvlist, k)
         elif isinstance(v, numbers.Integral):
             suffix = _prop_name_to_type_str.get(k, "uint64")
-            cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
+            cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
             ret = cfunc(nvlist, k, v)
         elif isinstance(v, _ffi.CData) and _ffi.typeof(v) in _type_to_suffix:
             suffix = _type_to_suffix[_ffi.typeof(v)]
-            cfunc = getattr(_lib, "nvlist_add_%s" % (suffix))
+            cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
             ret = cfunc(nvlist, k, v)
         else:
             raise TypeError('Unsupported value type ' + type(v).__name__)
