@@ -1,6 +1,7 @@
 import json
-from libzfs_core.nvlist import *
-from libzfs_core.nvlist import _lib
+from libzfs_core._nvlist import nvlist_in, nvlist_out
+from libzfs_core._nvlist import _lib
+from libzfs_core.ctypes import uint32_t
 
 props_in = {
     "key1": "str",

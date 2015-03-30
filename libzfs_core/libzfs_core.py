@@ -1,6 +1,6 @@
 from .exceptions import *
 from .bindings import libzfs_core
-from .nvlist import nvlist_in, nvlist_out
+from ._nvlist import nvlist_in, nvlist_out
 
 _ffi = libzfs_core.ffi
 _lib = libzfs_core.lib
