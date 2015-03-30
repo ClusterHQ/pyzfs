@@ -23,10 +23,10 @@ Format:
 - a value can be a bool
 - a value can be a byte string
 - a value can be an integer
-- a value can be a CFFI CData object representing one of the following C types:
+- a value can be a ctypes.NvInteger object representing one of the following C types:
     int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, boolean_t, uchar_t
 - a value can be a dictionary that recursively adheres to this format
-- a value can be a list of bools, byte strings, integers or CData objects of types specified above
+- a value can be a list of bools, byte strings, integers or NvInteger objects of types specified above
 - a value can be a list of dictionaries that adhere to this format
 - all elements of a list value must be of the same type
 """
@@ -35,7 +35,7 @@ import numbers
 from collections import namedtuple
 from contextlib import contextmanager
 from .bindings import libnvpair
-from .ctypes import _type_to_suffix
+from .ctypes import NvInteger
 
 _ffi = libnvpair.ffi
 _lib = libnvpair.lib
@@ -162,10 +162,14 @@ def _nvlist_add_array(nvlist, key, array):
         suffix = _prop_name_to_type_str.get(key, "uint64")
         cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
         ret = cfunc(nvlist, key, array, len(array))
-    elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
-        suffix = _type_to_suffix[_ffi.typeof(specimen)]
+    elif isinstance(specimen, NvInteger):
+        suffix = specimen.suffix()
         cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
-        ret = cfunc(nvlist, key, array, len(array))
+        c_array = []
+        for item in array:
+            #c_array.append(item.cast(_ffi))
+            c_array.append(item.val)
+        ret = cfunc(nvlist, key, c_array, len(array))
     else:
         raise TypeError('Unsupported value type ' + type(specimen).__name__)
     if ret != 0:
@@ -226,10 +230,10 @@ def _dict_to_nvlist(props, nvlist):
             suffix = _prop_name_to_type_str.get(k, "uint64")
             cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
             ret = cfunc(nvlist, k, v)
-        elif isinstance(v, _ffi.CData) and _ffi.typeof(v) in _type_to_suffix:
-            suffix = _type_to_suffix[_ffi.typeof(v)]
+        elif isinstance(v, NvInteger):
+            suffix = v.suffix()
             cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
-            ret = cfunc(nvlist, k, v)
+            ret = cfunc(nvlist, k, v.val)
         else:
             raise TypeError('Unsupported value type ' + type(v).__name__)
         if ret != 0:

@@ -2,42 +2,43 @@
 Utility functions for casting to a specific C type.
 """
 
-from .bindings.libnvpair import ffi as _ffi
+
+class NvInteger(object):
+    val = 0
+
+    def __init__(self, val):
+        self.val = val
+
+    def _ctype(self):
+        raise NotImplementedError("_ctype() must be implemented")
+
+    def suffix(self):
+        raise NotImplementedError("suffix() must be implemented")
+
+    def cast(self, ffi):
+        return ffi.cast(self._ctype(), self.val)
 
 
-def _ffi_cast(type_name):
-    def _func(value):
-        # this is for overflow / underflow checking only
-        _ffi.new(type_name + '*', value)
-        return _ffi.cast(type_name, value)
-    _func.__name__ = type_name
-    return _func
+def _gen_class(ctype, suffix):
+    class _class(NvInteger):
+        def _ctype(self):
+            return ctype
+        def suffix(self):
+            return suffix
+    _class.__name__ = ctype
+    return _class
 
 
-uint8_t =       _ffi_cast('uint8_t')
-int8_t =        _ffi_cast('int8_t')
-uint16_t =      _ffi_cast('uint16_t')
-int16_t =       _ffi_cast('int16_t')
-uint32_t =      _ffi_cast('uint32_t')
-int32_t =       _ffi_cast('int32_t')
-uint64_t =      _ffi_cast('uint64_t')
-int64_t =       _ffi_cast('int64_t')
-boolean_t =     _ffi_cast('boolean_t')
-uchar_t =       _ffi_cast('uchar_t')
-
-
-_type_to_suffix = {
-    _ffi.typeof('uint8_t'):     'uint8',
-    _ffi.typeof('int8_t'):      'int8',
-    _ffi.typeof('uint16_t'):    'uint16',
-    _ffi.typeof('int16_t'):     'int16',
-    _ffi.typeof('uint32_t'):    'uint32',
-    _ffi.typeof('int32_t'):     'int32',
-    _ffi.typeof('uint64_t'):    'uint64',
-    _ffi.typeof('int64_t'):     'int64',
-    _ffi.typeof('boolean_t'):   'boolean',
-    _ffi.typeof('uchar_t'):     'byte',
-}
+uint8_t =     _gen_class('uint8_t', 'uint8')
+int8_t =      _gen_class('int8_t', 'int8')
+uint16_t =    _gen_class('uint16_t', 'uint16')
+int16_t =     _gen_class('int16_t', 'int16')
+uint32_t =    _gen_class('uint32_t', 'uint32')
+int32_t =     _gen_class('int32_t', 'int32')
+uint64_t =    _gen_class('uint64_t', 'uint64')
+int64_t =     _gen_class('int64_t', 'int64')
+boolean_t =   _gen_class('boolean_t', 'boolean')
+uchar_t =     _gen_class('uchar_t', 'byte')
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

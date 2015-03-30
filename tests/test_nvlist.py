@@ -1,7 +1,7 @@
 import json
 from libzfs_core._nvlist import nvlist_in, nvlist_out
 from libzfs_core._nvlist import _lib
-from libzfs_core.ctypes import uint32_t
+from libzfs_core.ctypes import uint32_t, boolean_t, uchar_t
 
 props_in = {
     "key1": "str",
@@ -43,6 +43,14 @@ props_in = {
             "skey72": "f",
         }
 
+    ],
+    "key8": [
+        boolean_t(True),
+        boolean_t(False)
+    ],
+    "key9": [
+        uchar_t(0xa5),
+        uchar_t(0x5a)
     ],
     "type": 2 ** 32 - 1,
     "pool_context": -(2 ** 31)
