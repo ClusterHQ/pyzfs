@@ -1,17 +1,7 @@
 """
-nvlist_in and nvlist_out provide support for converting between
+nv_call provides support for converting between
 a dictionary on the Python side and an nvlist_t on the C side
 with the automatic memory management for C memory allocations.
-
-nvlist_in and nvlist_out are to be used with the 'with' statement.
-
-nvlist_in takes a dictionary and produces a CData object corresponding
-to a C nvlist_t pointer suitable for passing as an input parameter.
-The nvlist_t is populated based on the dictionary.
-
-nvlist_out takes a dictionary and produces a CData object corresponding
-to a C nvlist_t pointer to pointer suitable for passing as an output parameter.
-Upon exit from a with-block the dictionary is populated based on the nvlist_t.
 
 The dictionary must follow a certain format to be convertible
 to the nvlist_t.  The dictionary produced from the nvlist_t
@@ -41,47 +31,90 @@ _ffi = libnvpair.ffi
 _lib = libnvpair.lib
 
 
-@contextmanager
-def nvlist_in(props):
+def nv_call(func, *args):
     """
-    A context manager that converts a python dictionary to a C nvlist_t
-    and provides automatic memory management for the latter.
-    An FFI CData object representing the nvlist_t pointer can be acccessed
-    via 'as' target.
+    Call func that must be a CFFI C function object with arguments
+    specified in args while converting between python dictionary
+    objects and nvlist_t C parameters.
+    Wherever the C function expects an nvlist_t * parameter the
+    corresponding python dictionary argument is converted to an nvlist
+    and a pointer to it is passed to the function.
+    Wherever the C function expects an nvlist_t ** parameter an nvlist_t
+    pointer is allocated and passed to the function.  After the function
+    returns the nvlist data is converted to the corresponding python
+    dictionary argument.
     """
-    nvlistp = _ffi.new("nvlist_t **")
-    res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
-    if res != 0:
-        raise MemoryError('nvlist_alloc failed')
-    nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
-    _dict_to_nvlist(props, nvlist)
-    # NB 'yield' is the last statement, so this function could be
-    # just a regular function, it is kept as a context manager
-    # only for symmetry with nvlist_out
-    yield nvlist
+    new_args = []
+    nvpps = []
+    for (arg, arg_info) in zip(args, _ffi.typeof(func).args):
+        if arg_info.cname == 'nvlist_t *':
+            nvpp = _ffi.new("nvlist_t **")
+            res = _lib.nvlist_alloc(nvpp, 1, 0) # UNIQUE_NAME == 1
+            if res != 0:
+                raise MemoryError('nvlist_alloc failed')
+            nvp = _ffi.gc(nvpp[0], _lib.nvlist_free)
+            _dict_to_nvlist(arg, nvp)
+            new_args.append(nvp)
+        elif arg_info.cname == 'nvlist_t * *':
+            nvpp = _ffi.new("nvlist_t **")
+            nvpps.append((nvpp, arg))
+            new_args.append(nvpp)
+        else:
+            new_args.append(arg)
+
+    ret = func(*new_args)
+
+    # associate a destructor with each nvlist_t produced by 'func'
+    nvpp_refs = []
+    for nvpp, x in nvpps:
+        nvpp_refs.append(_ffi.gc(nvpp[0], _lib.nvlist_free))
+
+    # convert data from nvlists to the respective dictionaries
+    for (nvpp, out_dict) in nvpps:
+        _nvlist_to_dict(nvpp[0], out_dict)
+
+    return ret
 
 
-@contextmanager
-def nvlist_out(props):
+def nv_wrap(func):
     """
-    A context manager that allocates a pointer to a C nvlist_t and yields
-    a CData object representing a pointer to the pointer via 'as' target.
-    The caller can pass that pointer to a pointer to a C function that
-    creates a new nvlist_t object.
-    The context manager takes care of memory management for the nvlist_t
-    and also populates the 'props' dictionary with data from the nvlist_t
-    upon leaving the 'with' block.
+    This a higher order function that produces a function that calls
+    func while performing transformations described in nv_call()
+    before and after the call.
     """
-    nvlistp = _ffi.new("nvlist_t **")
-    nvlistp[0] = _ffi.NULL # to be sure
-    try:
-        yield nvlistp
-        # clear old entries, if any
-        props.clear()
-        _nvlist_to_dict(nvlistp[0], props)
-    finally:
-        if nvlistp[0] != _ffi.NULL:
-            _lib.nvlist_free(nvlistp[0])
+    func_type = _ffi.typeof(func)
+    args_info = func_type.args
+
+    def _func(*args):
+        new_args = []
+        nvpps = []
+        for (arg, arg_info) in zip(args, args_info):
+            if arg_info.cname == 'nvlist_t *':
+                nvp = _nvlist_alloc()
+                _dict_to_nvlist(arg, nvp)
+                new_args.append(nvp)
+            elif arg_info.cname == 'nvlist_t * *':
+                nvpp = _ffi.new("nvlist_t **")
+                nvpps.append((nvpp, arg))
+                new_args.append(nvpp)
+            else:
+                new_args.append(arg)
+
+        ret = func(*new_args)
+
+        # associate a destructor with each nvlist_t produced by 'func'
+        nvpp_refs = []
+        for nvpp, x in nvpps:
+            nvpp_refs.append(_ffi.gc(nvpp[0], _lib.nvlist_free))
+
+        # convert data from nvlists to the respective dictionaries
+        for (nvpp, out_dict) in nvpps:
+            _nvlist_to_dict(nvpp[0], out_dict)
+
+        return ret
+
+    _func.__name__ = func_type.cname + ' wrapper'
+    return _func
 
 
 _TypeInfo = namedtuple('_TypeInfo', ['suffix', 'ctype', 'convert'])
@@ -124,6 +157,14 @@ _prop_name_to_type_str = {
 }
 
 
+def _nvlist_alloc():
+    nvpp = _ffi.new("nvlist_t **")
+    res = _lib.nvlist_alloc(nvpp, 1, 0) # UNIQUE_NAME == 1
+    if res != 0:
+        raise MemoryError('nvlist_alloc failed')
+    return _ffi.gc(nvpp[0], _lib.nvlist_free)
+
+
 def _nvlist_add_array(nvlist, key, array):
     ret = 0
     specimen = array[0]
@@ -139,8 +180,6 @@ def _nvlist_add_array(nvlist, key, array):
                 type(array[i]).__name__)
 
     if isinstance(specimen, dict):
-        # NB: can't use automatic memory management via nvlist_in() here,
-        # we have a loop, but 'with' would require recursion
         c_array = []
         for dictionary in array:
             nvlistp = _ffi.new('nvlist_t **')
@@ -212,8 +251,9 @@ def _dict_to_nvlist(props, nvlist):
             raise TypeError('Unsupported key type ' + type(k).__name__)
         ret = 0
         if isinstance(v, dict):
-            with nvlist_in(v) as sub_nvlist:
-                ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
+            sub_nvlist = _nvlist_alloc()
+            _dict_to_nvlist(v, sub_nvlist)
+            ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
         elif isinstance(v, list):
             _nvlist_add_array(nvlist, k, v)
         elif isinstance(v, str):

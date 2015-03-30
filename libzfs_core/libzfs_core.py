@@ -1,6 +1,6 @@
 from .exceptions import *
 from .bindings import libzfs_core
-from ._nvlist import nvlist_in, nvlist_out
+from ._nvlist import nv_call
 
 _ffi = libzfs_core.ffi
 _lib = libzfs_core.lib
@@ -10,9 +10,7 @@ _lib.libzfs_core_init()
 
 
 def lzc_create(name, is_zvol, props):
-    ret = 0
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_create(name, is_zvol, nvlist)
+    ret = nv_call(_lib.lzc_create, name, is_zvol, props)
     if ret != 0:
         raise {
             errno.EEXIST: FilesystemExists(name),
@@ -21,10 +19,7 @@ def lzc_create(name, is_zvol, props):
 
 
 def lzc_snapshot(snaps, props, errlist):
-    ret = 0
-    with nvlist_in(snaps) as snaps_nvlist, nvlist_in(props) as props_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
+    ret = nv_call(_lib.lzc_snapshot, snaps, props, errlist)
     if ret != 0:
         raise {
             errno.EEXIST: SnapshotExists(None),
@@ -48,41 +43,27 @@ def lzc_rollback(name):
 
 
 def lzc_set_props(name, props, received):
-    ret = 0
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_set_props(name, nvlist, received)
+    ret = nv_call(_lib.lzc_set_props, name, props, received)
     return ret
 
 
 def lzc_destroy_snaps(snaps, defer, errlist):
-    ret = 0
-    with nvlist_in(snaps) as snaps_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
+    ret = nv_call(_lib.lzc_destroy_snaps, snaps, defer, errlist)
     return ret
 
 
 def lzc_bookmark(bookmarks, errlist):
-    ret = 0
-    with nvlist_in(bookmarks) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
+    ret = nv_call(_lib.lzc_bookmark, bookmarks, errlist)
     return ret
 
 
 def lzc_get_bookmarks(fsname, props, bmarks):
-    ret = 0
-    with nvlist_in(props) as nvlist:
-        with nvlist_out(bmarks) as bmarks_nvlist:
-            ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
+    ret = nv_call(_lib.lzc_get_bookmarks, fsname, props, bmarks)
     return ret
 
 
 def lzc_destroy_bookmarks(bookmarks, errlist):
-    ret = 0
-    with nvlist_in(bookmarks) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
+    ret = nv_call(_lib.lzc_destroy_bookmarks, bookmarks, errlist)
     return ret
 
 
@@ -93,25 +74,17 @@ def lzc_snaprange_space(firstsnap, lastsnap):
 
 
 def lzc_hold(holds, fd, errlist):
-    ret = 0
-    with nvlist_in(holds) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
+    ret = nv_call(_lib.lzc_hold, holds, fd, errlist)
     return ret
 
 
 def lzc_release(holds, errlist):
-    ret = 0
-    with nvlist_in(holds) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_release(nvlist, errlist_nvlist)
+    ret = nv_call(_lib.lzc_release, holds, errlist)
     return ret
 
 
 def lzc_get_holds(snapname, holds):
-    ret = 0
-    with nvlist_out(holds) as nvlist:
-        ret = _lib.lzc_get_holds(snapname, nvlist)
+    ret = nv_call(_lib.lzc_get_holds, snapname, holds)
     return ret
 
 
@@ -122,9 +95,7 @@ def lzc_send(snapname, fromsnap, fd, flags):
 
 
 def lzc_send_ext(snapname, fromsnap, fd, props):
-    ret = 0
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_send_ext(snapname, fromsnap, fd, props)
+    ret = nv_call(_lib.lzc_send_ext, snapname, fromsnap, fd, props)
     return ret
 
 
@@ -141,9 +112,7 @@ def lzc_send_progress(snapname, fd):
 
 
 def lzc_receive(snapname, props, origin, force, fd):
-    ret = 0
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_receive(snapname, nvlist, origin, force, fd)
+    ret = nv_call(_lib.lzc_receive, snapname, props, origin, force, fd)
     return ret
 
 

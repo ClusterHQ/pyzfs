@@ -1,5 +1,5 @@
 import json
-from libzfs_core._nvlist import nvlist_in, nvlist_out
+from libzfs_core._nvlist import nv_call, nv_wrap
 from libzfs_core._nvlist import _lib
 from libzfs_core.ctypes import uint32_t
 
@@ -50,15 +50,15 @@ props_in = {
 
 props_out = {}
 
-with nvlist_in(props_in) as x:
-    print "Dumping a C nvlist_t produced from a python dictionary:"
-    print "(ignore 'bad config type 24' message)"
-    _lib.dump_nvlist(x, 2)
+nvlist_dup = nv_wrap(_lib.nvlist_dup)
 
-    with nvlist_out(props_out) as y:
-        _lib.nvlist_dup(x, y, 0)
-    print "\n\n"
-    print "Dumping a dictionary reconstructed from the nvlist_t:"
-    print json.dumps(props_out, sort_keys=True, indent=4)
+print "Dumping a C nvlist_t produced from a python dictionary:"
+print "(ignore 'bad config type 24' message)"
+ret = nv_call(_lib.dump_nvlist, props_in, 2)
+
+print "\n\n"
+print "Dumping a dictionary reconstructed from the nvlist_t:"
+ret = nvlist_dup(props_in, props_out, 0)
+print json.dumps(props_out, sort_keys=True, indent=4)
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
