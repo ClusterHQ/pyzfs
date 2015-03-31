@@ -125,12 +125,14 @@ _prop_name_to_type_str = {
 
 
 def _nvlist_add_array(nvlist, key, array):
+    def _is_integer(x):
+        return isinstance(x, numbers.Integral) and not isinstance(x, bool)
+
     ret = 0
     specimen = array[0]
-
-    is_integer = isinstance(specimen, numbers.Integral)
+    is_integer = _is_integer(specimen)
     for i in range(1, len(array)):
-        if is_integer and isinstance(array[i], numbers.Integral):
+        if is_integer and _is_integer(array[i]):
             pass
         elif type(array[i]) is not type(specimen):
             raise TypeError('Array has elements of different types: ' +
