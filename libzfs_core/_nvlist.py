@@ -131,6 +131,10 @@ def _nvlist_add_array(nvlist, key, array):
     ret = 0
     specimen = array[0]
     is_integer = _is_integer(specimen)
+    specimen_ctype = None
+    if isinstance(specimen, _ffi.CData):
+        specimen_ctype = _ffi.typeof(specimen)
+
     for i in range(1, len(array)):
         if is_integer and _is_integer(array[i]):
             pass
@@ -139,6 +143,13 @@ def _nvlist_add_array(nvlist, key, array):
                 type(specimen).__name__ +
                 ' and ' +
                 type(array[i]).__name__)
+        elif specimen_ctype is not None:
+            ctype = _ffi.typeof(array[i])
+            if ctype is not specimen_ctype:
+                raise TypeError('Array has elements of different C types: ' +
+                    _ffi.typeof(specimen).cname +
+                    ' and ' +
+                    _ffi.typeof(array[i]).cname)
 
     if isinstance(specimen, dict):
         # NB: can't use automatic memory management via nvlist_in() here,
