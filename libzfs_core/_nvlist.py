@@ -163,7 +163,7 @@ def _nvlist_add_array(nvlist, key, array):
         cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
         ret = cfunc(nvlist, key, array, len(array))
     elif isinstance(specimen, _ffi.CData) and _ffi.typeof(specimen) in _type_to_suffix:
-        suffix = _type_to_suffix[_ffi.typeof(specimen)]
+        suffix = _type_to_suffix[_ffi.typeof(specimen)][True]
         cfunc = getattr(_lib, "nvlist_add_%s_array" % (suffix,))
         ret = cfunc(nvlist, key, array, len(array))
     else:
@@ -227,7 +227,7 @@ def _dict_to_nvlist(props, nvlist):
             cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
             ret = cfunc(nvlist, k, v)
         elif isinstance(v, _ffi.CData) and _ffi.typeof(v) in _type_to_suffix:
-            suffix = _type_to_suffix[_ffi.typeof(v)]
+            suffix = _type_to_suffix[_ffi.typeof(v)][False]
             cfunc = getattr(_lib, "nvlist_add_%s" % (suffix,))
             ret = cfunc(nvlist, k, v)
         else:

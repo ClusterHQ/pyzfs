@@ -34,17 +34,19 @@ boolean_t =     _ffi_cast('boolean_t')
 uchar_t =       _ffi_cast('uchar_t')
 
 
+# First element of the value tuple is a suffix for a single value function
+# while the second element is for an array function
 _type_to_suffix = {
-    _ffi.typeof('uint8_t'):     'uint8',
-    _ffi.typeof('int8_t'):      'int8',
-    _ffi.typeof('uint16_t'):    'uint16',
-    _ffi.typeof('int16_t'):     'int16',
-    _ffi.typeof('uint32_t'):    'uint32',
-    _ffi.typeof('int32_t'):     'int32',
-    _ffi.typeof('uint64_t'):    'uint64',
-    _ffi.typeof('int64_t'):     'int64',
-    _ffi.typeof('boolean_t'):   'boolean_value',
-    _ffi.typeof('uchar_t'):     'byte',
+    _ffi.typeof('uint8_t'):     ('uint8', 'uint8'),
+    _ffi.typeof('int8_t'):      ('int8', 'int8'),
+    _ffi.typeof('uint16_t'):    ('uint16', 'uint16'),
+    _ffi.typeof('int16_t'):     ('int16', 'int16'),
+    _ffi.typeof('uint32_t'):    ('uint32', 'uint32'),
+    _ffi.typeof('int32_t'):     ('int32', 'int32'),
+    _ffi.typeof('uint64_t'):    ('uint64', 'uint64'),
+    _ffi.typeof('int64_t'):     ('int64', 'int64'),
+    _ffi.typeof('boolean_t'):   ('boolean_value', 'boolean'),
+    _ffi.typeof('uchar_t'):     ('byte', 'byte'),
 }
 
 
