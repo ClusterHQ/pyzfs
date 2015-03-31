@@ -35,7 +35,7 @@ _type_to_suffix = {
     _ffi.typeof('int32_t'):     'int32',
     _ffi.typeof('uint64_t'):    'uint64',
     _ffi.typeof('int64_t'):     'int64',
-    _ffi.typeof('boolean_t'):   'boolean',
+    _ffi.typeof('boolean_t'):   'boolean_value',
     _ffi.typeof('uchar_t'):     'byte',
 }
 
