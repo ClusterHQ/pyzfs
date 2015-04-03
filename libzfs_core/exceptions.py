@@ -94,7 +94,7 @@ class PropertyNotSupported(ZFSError):
 
 class PropertyInvalid(ZFSError):
     def __init__(self, name):
-        super(PropertyInvalid, self).__init__(errno.EINVAL, "Invalid value for property", name)
+        super(PropertyInvalid, self).__init__(errno.EINVAL, "Invalid property or property value", name)
 
 class MultipleErrors(ZFSError):
     errors = None

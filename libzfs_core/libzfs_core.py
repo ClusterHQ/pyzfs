@@ -21,6 +21,7 @@ def lzc_create(name, is_zvol, props):
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
+            errno.EINVAL: PropertyInvalid(name),
         }.get(ret, ZFSError(ret, "Failed to create filesystem", name))
 
 
@@ -35,6 +36,7 @@ def lzc_snapshot(snaps, props, errlist):
             errno.EEXIST: SnapshotExists(name),
             errno.ENOENT: FilesystemNotFound(name),
             errno.EXDEV: MultipleSnapshots(name),
+            errno.EINVAL: PropertyInvalid(name),
         }.get(ret, ZFSError(ret, "Failed to create snapshot", name))
 
 
