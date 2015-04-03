@@ -21,9 +21,9 @@ class ZFSTest(unittest.TestCase):
         try:
             subprocess.check_output(['zpool', 'create', cls.pool_name, cls.pool_file_path],
                                     stderr = subprocess.STDOUT)
-            lzc_create(ZFSTest.pool_name + "/fs1", 2, {})
-            lzc_create(ZFSTest.pool_name + "/fs1/fs", 2, {})
-            lzc_create(ZFSTest.pool_name + "/fs2", 2, {})
+            lzc_create(ZFSTest.pool_name + "/fs1", False, {})
+            lzc_create(ZFSTest.pool_name + "/fs1/fs", False, {})
+            lzc_create(ZFSTest.pool_name + "/fs2", False, {})
         except subprocess.CalledProcessError as e:
             cls._cleanUp()
             if 'permission denied' in e.output:
