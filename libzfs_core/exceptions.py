@@ -84,6 +84,10 @@ class ReadOnlyDataset(ZFSError):
     def __init__(self, name):
         super(NameTooLong, self).__init__(errno.EROFS, "Dataset is read-only", name)
 
+class PoolsDiffer(ZFSError):
+    def __init__(self, name):
+        super(PoolsDiffer, self).__init__(errno.EXDEV, "Source and target belong to different pools", name)
+
 class PropertyNotSupported(ZFSError):
     def __init__(self, name):
         super(PropertyNotSupported, self).__init__(errno.ENOTSUP, "Property is note supported in this verrsion", name)

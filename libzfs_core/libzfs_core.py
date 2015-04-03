@@ -38,6 +38,20 @@ def lzc_snapshot(snaps, props, errlist):
         }.get(ret, ZFSError(ret, "Failed to create snapshot", name))
 
 
+def lzc_clone(name, origin, props):
+    with nvlist_in(props) as nvlist:
+        ret = _lib.lzc_clone(name, origin, nvlist)
+    if ret != 0:
+        # XXX Note a deficiency of the underlying C interface:
+        # ENOENT can mean that either a parent filesystem of the target
+        # or the origin snapshot does not exist.
+        raise {
+            errno.EEXIST: FilesystemExists(name),
+            errno.ENOENT: ParentNotFound(name),
+            errno.EXDEV: PoolsDiffer(name),
+        }.get(ret, ZFSError(ret, "Failed to create clone", name))
+
+
 def lzc_rollback(name):
     snapnamep = _ffi.new('char[]', 256)
     ret = _lib.lzc_rollback(name, snapnamep, 256)
