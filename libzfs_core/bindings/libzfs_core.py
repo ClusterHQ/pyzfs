@@ -1,9 +1,9 @@
+
 CDEF = """
+    enum lzc_send_flags { ... };
+
     int libzfs_core_init(void);
     void libzfs_core_fini(void);
-
-    typedef ... nvlist_t;
-    typedef enum { B_FALSE, B_TRUE } boolean_t;
 
     int lzc_snapshot(nvlist_t *, nvlist_t *, nvlist_t **);
     int lzc_create(const char *, boolean_t, nvlist_t *);
@@ -20,8 +20,6 @@ CDEF = """
     int lzc_hold(nvlist_t *, int, nvlist_t **);
     int lzc_release(nvlist_t *, nvlist_t **);
     int lzc_get_holds(const char *, nvlist_t **);
-
-    enum lzc_send_flags { ... };
 
     int lzc_send(const char *, const char *, int, enum lzc_send_flags);
     int lzc_send_ext(const char *, const char *, int, nvlist_t *);
