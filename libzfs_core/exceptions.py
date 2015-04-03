@@ -116,6 +116,7 @@ _errToException = {
     errno.EBUSY:   DatasetBusy,
     errno.ENAMETOOLONG:   NameTooLong,
     errno.EROFS:   ReadOnlyDataset,
+    errno.EXDEV:   PoolsDiffer,
 }
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

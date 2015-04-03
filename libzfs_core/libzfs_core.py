@@ -48,7 +48,6 @@ def lzc_clone(name, origin, props):
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
-            errno.EXDEV: PoolsDiffer(name),
         }.get(ret, ZFSError(ret, "Failed to create clone", name))
 
 
