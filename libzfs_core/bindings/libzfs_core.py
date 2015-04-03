@@ -39,6 +39,5 @@ SOURCE = """
 """
 
 LIBRARY = "zfs_core"
-LIBDEPS = [ "zfs" ]
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
