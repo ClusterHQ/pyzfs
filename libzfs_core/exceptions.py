@@ -74,7 +74,7 @@ class QuotaExceeded(ZFSError):
 
 class DatasetBusy(ZFSError):
     def __init__(self, name):
-        super(Busy, self).__init__(errno.EBUSY, "Dataset is busy", name)
+        super(DatasetBusy, self).__init__(errno.EBUSY, "Dataset is busy", name)
 
 class NameTooLong(ZFSError):
     def __init__(self, name):
@@ -82,7 +82,7 @@ class NameTooLong(ZFSError):
 
 class ReadOnlyDataset(ZFSError):
     def __init__(self, name):
-        super(NameTooLong, self).__init__(errno.EROFS, "Dataset is read-only", name)
+        super(ReadOnlyDataset, self).__init__(errno.EROFS, "Dataset is read-only", name)
 
 class PoolsDiffer(ZFSError):
     def __init__(self, name):
