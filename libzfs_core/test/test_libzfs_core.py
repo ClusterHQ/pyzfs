@@ -7,6 +7,8 @@ from ..libzfs_core import *
 
 class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
+    FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
+    SNAPSHOTS = ['snap', 'snap1', 'snap2']
     pool_file_path = None
     pool_name = None
 
@@ -21,9 +23,8 @@ class ZFSTest(unittest.TestCase):
         try:
             subprocess.check_output(['zpool', 'create', cls.pool_name, cls.pool_file_path],
                                     stderr = subprocess.STDOUT)
-            lzc_create(ZFSTest.pool_name + "/fs1", False, {})
-            lzc_create(ZFSTest.pool_name + "/fs1/fs", False, {})
-            lzc_create(ZFSTest.pool_name + "/fs2", False, {})
+            for fs in cls.FILESYSTEMS:
+                lzc_create(cls.pool_name + '/' + fs, False, {})
         except subprocess.CalledProcessError as e:
             cls._cleanUp()
             if 'permission denied' in e.output:
@@ -51,7 +52,15 @@ class ZFSTest(unittest.TestCase):
         pass
 
     def tearDown(self):
-        pass
+        snaps = {}
+        for fs in [None] + ZFSTest.FILESYSTEMS:
+            if not fs:
+                fsname = ZFSTest.pool_name
+            else:
+                fsname = ZFSTest.pool_name + '/' + fs
+            for snap in ZFSTest.SNAPSHOTS:
+                snaps[fsname + '@' + snap] = None
+        lzc_destroy_snaps(snaps, False, {})
 
     def test_exists(self):
         self.assertTrue(lzc_exists(ZFSTest.pool_name))
@@ -60,139 +69,73 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(ZFSTest.pool_name + '/non-existant'))
 
     def test_snapshot(self):
-        try:
-            snapname = ZFSTest.pool_name + "@snap"
-            snaps = { snapname: None }
-            errlist = {}
+        snapname = ZFSTest.pool_name + "@snap"
+        snaps = { snapname: None }
+        errlist = {}
 
-            lzc_snapshot(snaps, {}, errlist)
-            self.assertEqual(len(errlist), 0)
-            self.assertTrue(lzc_exists(snapname))
-        finally:
-            try:
-                lzc_destroy_snaps(snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        lzc_snapshot(snaps, {}, errlist)
+        self.assertEqual(len(errlist), 0)
+        self.assertTrue(lzc_exists(snapname))
 
     def test_snapshot_already_exists(self):
-        try:
-            snapname = ZFSTest.pool_name + "@snap"
-            snaps = { snapname: None }
-            errlist = {}
+        snapname = ZFSTest.pool_name + "@snap"
+        snaps = { snapname: None }
+        errlist = {}
 
+        lzc_snapshot(snaps, {}, errlist)
+
+        with self.assertRaises(SnapshotExists):
             lzc_snapshot(snaps, {}, errlist)
-            self.assertEqual(len(errlist), 0)
-            self.assertTrue(lzc_exists(snapname))
-
-            with self.assertRaises(SnapshotExists):
-                lzc_snapshot(snaps, {}, errlist)
-            if len(errlist):
-                print ''
-                for k, v in errlist.iteritems():
-                    print k, ' = ', v
-        finally:
-            try:
-                lzc_destroy_snaps(snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        self.assertEqual(len(errlist), 1)
 
     def test_multiple_snapshots_for_same_fs(self):
-        try:
-            snapname1 = ZFSTest.pool_name + "@snap1"
-            snapname2 = ZFSTest.pool_name + "@snap2"
-            snaps = { snapname1: None, snapname2: None }
-            errlist = {}
+        snapname1 = ZFSTest.pool_name + "@snap1"
+        snapname2 = ZFSTest.pool_name + "@snap2"
+        snaps = { snapname1: None, snapname2: None }
+        errlist = {}
 
-            with self.assertRaises(MultipleSnapshots):
-                lzc_snapshot(snaps, {}, errlist)
-            if len(errlist):
-                print ''
-                for k, v in errlist.iteritems():
-                    print k, ' = ', v
-
-        finally:
-            try:
-                lzc_destroy_snaps(snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        with self.assertRaises(MultipleSnapshots):
+            lzc_snapshot(snaps, {}, errlist)
+        self.assertEqual(len(errlist), 0)
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
 
     def test_multiple_snapshots(self):
-        try:
-            snapname1 = ZFSTest.pool_name + "@snap"
-            snapname2 = ZFSTest.pool_name + "/fs1@snap"
-            snaps = { snapname1: None, snapname2: None }
-            errlist = {}
+        snapname1 = ZFSTest.pool_name + "@snap"
+        snapname2 = ZFSTest.pool_name + "/fs1@snap"
+        snaps = { snapname1: None, snapname2: None }
+        errlist = {}
 
-            lzc_snapshot(snaps, {}, errlist)
-            self.assertEqual(len(errlist), 0)
-            self.assertTrue(lzc_exists(snapname1))
-            self.assertTrue(lzc_exists(snapname2))
-        finally:
-            try:
-                lzc_destroy_snaps(snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        lzc_snapshot(snaps, {}, errlist)
+        self.assertEqual(len(errlist), 0)
+        self.assertTrue(lzc_exists(snapname1))
+        self.assertTrue(lzc_exists(snapname2))
 
     def test_multiple_existing_snapshots(self):
-        try:
-            snapname1 = ZFSTest.pool_name + "@snap"
-            snapname2 = ZFSTest.pool_name + "/fs1@snap"
-            snaps = { snapname1: None, snapname2: None }
-            errlist = {}
+        snapname1 = ZFSTest.pool_name + "@snap"
+        snapname2 = ZFSTest.pool_name + "/fs1@snap"
+        snaps = { snapname1: None, snapname2: None }
+        errlist = {}
 
+        lzc_snapshot(snaps, {}, errlist)
+
+        with self.assertRaises(SnapshotExists):
             lzc_snapshot(snaps, {}, errlist)
-            self.assertEqual(len(errlist), 0)
-            self.assertTrue(lzc_exists(snapname1))
-            self.assertTrue(lzc_exists(snapname2))
-
-            with self.assertRaises(SnapshotExists):
-                lzc_snapshot(snaps, {}, errlist)
-            if len(errlist):
-                print ''
-                for k, v in errlist.iteritems():
-                    print k, ' = ', v
-        finally:
-            try:
-                lzc_destroy_snaps(snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        self.assertEqual(len(errlist), 2)
 
     def test_multiple_new_and_existing_snapshots(self):
-        try:
-            snapname1 = ZFSTest.pool_name + "@snap"
-            snapname2 = ZFSTest.pool_name + "/fs1@snap"
-            snapname3 = ZFSTest.pool_name + "/fs2@snap"
-            snaps = { snapname1: None, snapname2: None }
-            more_snaps = { snapname1: None, snapname2: None, snapname3: None }
-            errlist = {}
+        snapname1 = ZFSTest.pool_name + "@snap"
+        snapname2 = ZFSTest.pool_name + "/fs1@snap"
+        snapname3 = ZFSTest.pool_name + "/fs2@snap"
+        snaps = { snapname1: None, snapname2: None }
+        more_snaps = { snapname1: None, snapname2: None, snapname3: None }
+        errlist = {}
 
-            lzc_snapshot(snaps, {}, errlist)
-            self.assertEqual(len(errlist), 0)
-            self.assertTrue(lzc_exists(snapname1))
-            self.assertTrue(lzc_exists(snapname2))
+        lzc_snapshot(snaps, {}, errlist)
 
-            with self.assertRaises(SnapshotExists):
-                lzc_snapshot(more_snaps, {}, errlist)
-            if len(errlist):
-                print ''
-                for k, v in errlist.iteritems():
-                    print k, ' = ', v
-        finally:
-            try:
-                lzc_destroy_snaps(more_snaps, False, errlist)
-                self.assertEqual(len(errlist), 0)
-                self.assertFalse(lzc_exists(snapname))
-            except:
-                pass
+        with self.assertRaises(SnapshotExists):
+            lzc_snapshot(more_snaps, {}, errlist)
+        self.assertEqual(len(errlist), 2)
+        self.assertFalse(lzc_exists(snapname3))
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
