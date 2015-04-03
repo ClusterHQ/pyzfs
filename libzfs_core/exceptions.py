@@ -1,4 +1,5 @@
 import errno
+import os
 
 class ZFSError(OSError):
     pass
@@ -27,6 +28,14 @@ class SnapshotNotFound(ZFSError):
     def __init__(self, name):
         super(SnapshotNotFound, self).__init__(errno.ENOENT, "Snapshot not found", name)
 
+class SnapshotIsCloned(ZFSError):
+    def __init__(self, name):
+        super(SnapshotIsCloned, self).__init__(errno.ENOENT, "Snapshot is cloned", name)
+
+class MultipleSnapshots(ZFSError):
+    def __init__(self, name):
+        super(MultipleSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
+
 class BookmarkExists(ZFSError):
     def __init__(self, name):
         super(BookmarkExists, self).__init__(errno.EEXIST, "Bookmark already exists", name)
@@ -52,20 +61,20 @@ class BadStream(ZFSError):
         super(BadStream, self).__init__(errno.EINVAL, "Bad backup stream")
 
 class IOError(ZFSError):
-    def __init__(self):
-        super(IOError, self).__init__(errno.EIO, "I/O error")
+    def __init__(self, name):
+        super(IOError, self).__init__(errno.EIO, "I/O error", name)
 
 class NoSpace(ZFSError):
-    def __init__(self):
-        super(NoSpace, self).__init__(errno.ENOSPC, "No space")
+    def __init__(self, name):
+        super(NoSpace, self).__init__(errno.ENOSPC, "No space left", name)
 
 class QuotaExceeded(ZFSError):
-    def __init__(self):
-        super(QuotaExceeded, self).__init__(errno.EDQUOT, "Quouta exceeded")
+    def __init__(self, name):
+        super(QuotaExceeded, self).__init__(errno.EDQUOT, "Quouta exceeded", name)
 
-class Busy(ZFSError):
-    def __init__(self):
-        super(Busy, self).__init__(errno.EBUSY, "Dataset is busy")
+class DatasetBusy(ZFSError):
+    def __init__(self, name):
+        super(Busy, self).__init__(errno.EBUSY, "Dataset is busy", name)
 
 class NameTooLong(ZFSError):
     def __init__(self, name):
@@ -82,5 +91,27 @@ class PropertyNotSupported(ZFSError):
 class PropertyInvalid(ZFSError):
     def __init__(self, name):
         super(PropertyInvalid, self).__init__(errno.EINVAL, "Invalid value for property", name)
+
+class MultipleErrors(ZFSError):
+    errors = None
+    def __init__(self, *args):
+        super(MultipleErrors, self).__init__()
+        errors = args[:]
+
+
+def genericException(err, name):
+    if err in _errToException:
+        raise _errToException[err](name)
+    else:
+        raise ZFSError(err, os.strerror(err), name)
+
+_errToException = {
+    errno.EIO:      IOError,
+    errno.ENOSPC:   NoSpace,
+    errno.EDQUOT:   QuotaExceeded,
+    errno.EBUSY:   DatasetBusy,
+    errno.ENAMETOOLONG:   NameTooLong,
+    errno.EROFS:   ReadOnlyDataset,
+}
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
