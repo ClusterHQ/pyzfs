@@ -26,9 +26,11 @@ def lzc_snapshot(snaps, props, errlist):
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
     if ret != 0:
+        name = snaps.keys()[0]
         raise {
-            errno.EEXIST: SnapshotExists(None),
-            errno.ENOENT: FilesystemNotFound(None),
+            errno.EEXIST: SnapshotExists(name),
+            errno.ENOENT: FilesystemNotFound(name),
+            errno.EXDEV: MultipleSnapshots(name),
         }.get(ret, ZFSError(ret, "Failed to create snapshot", name))
 
 
