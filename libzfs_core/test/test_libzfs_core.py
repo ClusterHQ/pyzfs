@@ -122,54 +122,54 @@ class ZFSTest(unittest.TestCase):
 
     def test_snapshot(self):
         snapname = ZFSTest.pool_name + "@snap"
-        snaps = { snapname: None }
-        errlist = {}
+        snaps = [ snapname ]
 
-        lzc_snapshot(snaps, {}, errlist)
-        self.assertEqual(len(errlist), 0)
+        lzc_snapshot(snaps, {})
         self.assertTrue(lzc_exists(snapname))
 
     def test_snapshot_user_props(self):
         snapname = ZFSTest.pool_name + "@snap"
-        snaps = { snapname: None }
+        snaps = [ snapname ]
         props = { "user:foo": "bar" }
-        errlist = {}
 
-        lzc_snapshot(snaps, props, errlist)
-        self.assertEqual(len(errlist), 0)
+        lzc_snapshot(snaps, props)
         self.assertTrue(lzc_exists(snapname))
 
     def test_snapshot_invalid_props(self):
         snapname = ZFSTest.pool_name + "@snap"
-        snaps = { snapname: None }
+        snaps = [ snapname ]
         props = { "foo": "bar" }
-        errlist = {}
 
         with self.assertRaises(PropertyInvalid):
-            lzc_snapshot(snaps, props, errlist)
-        self.assertEqual(len(errlist), 0)
+            lzc_snapshot(snaps, props)
         self.assertFalse(lzc_exists(snapname))
 
     def test_snapshot_nonexistent_fs(self):
         snapname = ZFSTest.pool_name + "/nonexistent@snap"
-        snaps = { snapname: None }
-        errlist = {}
+        snaps = [ snapname ]
 
         with self.assertRaises(FilesystemNotFound):
-            lzc_snapshot(snaps, {}, errlist)
-        # XXX empty errlist
-        #self.assertEqual(len(errlist), 1)
+            lzc_snapshot(snaps, {})
 
     def test_snapshot_nonexistent_fs2(self):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/nonexistent@snap"
-        snaps = { snapname1: None, snapname2: None }
-        errlist = {}
+        snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(FilesystemNotFound):
-            lzc_snapshot(snaps, {}, errlist)
-        # XXX empty errlist
-        #self.assertEqual(len(errlist), 1)
+            lzc_snapshot(snaps, {})
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
+
+    def test_snapshot_nonexistent_fs3(self):
+        snapname1 = ZFSTest.pool_name + "/nonexistent@snap1"
+        snapname2 = ZFSTest.pool_name + "/nonexistent@snap2"
+        snaps = [ snapname1, snapname2 ]
+
+        # multiple errors should be reported but alas
+        #with self.assertRaises(MultiSnapshotFailure):
+        with self.assertRaises(FilesystemNotFound):
+            lzc_snapshot(snaps, {})
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
@@ -177,83 +177,79 @@ class ZFSTest(unittest.TestCase):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/nonexistent@snap"
         snapname3 = ZFSTest.pool_name + "/fs1@snap"
-        snaps = { snapname1: None }
-        more_snaps = { snapname1: None, snapname2: None, snapname3: None }
-        errlist = {}
+        snaps = [ snapname1 ]
+        more_snaps = [ snapname1, snapname2, snapname3 ]
 
         # create 'snapname1' snapshot
-        lzc_snapshot(snaps, {}, errlist)
+        lzc_snapshot(snaps, {})
 
         # attempt to create 3 snapshots:
         # 1. duplicate snapshot name
         # 2. refers to filesystem that doesn't exist
         # 3. could have succeeded if not for 1 and 2
-        with self.assertRaises(ZFSError):
-            lzc_snapshot(snaps, {}, errlist)
-        # XXX ENOENT is not reported at all
-        self.assertEqual(len(errlist), 1)
+
+        # FilesystemNotFound is not reported at all.
+        #with self.assertRaises(MultiSnapshotFailure) as ctx:
+        with self.assertRaises(SnapshotExists):
+            lzc_snapshot(snaps, {})
         self.assertFalse(lzc_exists(snapname2))
         self.assertFalse(lzc_exists(snapname3))
 
     def test_snapshot_already_exists(self):
         snapname = ZFSTest.pool_name + "@snap"
-        snaps = { snapname: None }
-        errlist = {}
+        snaps = [ snapname ]
 
-        lzc_snapshot(snaps, {}, errlist)
+        lzc_snapshot(snaps, {})
 
         with self.assertRaises(SnapshotExists):
-            lzc_snapshot(snaps, {}, errlist)
-        self.assertEqual(len(errlist), 1)
+            lzc_snapshot(snaps, {})
 
     def test_multiple_snapshots_for_same_fs(self):
         snapname1 = ZFSTest.pool_name + "@snap1"
         snapname2 = ZFSTest.pool_name + "@snap2"
-        snaps = { snapname1: None, snapname2: None }
-        errlist = {}
+        snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(MultipleSnapshots):
-            lzc_snapshot(snaps, {}, errlist)
-        self.assertEqual(len(errlist), 0)
+            lzc_snapshot(snaps, {})
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
     def test_multiple_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
-        snaps = { snapname1: None, snapname2: None }
-        errlist = {}
+        snaps = [ snapname1, snapname2 ]
 
-        lzc_snapshot(snaps, {}, errlist)
-        self.assertEqual(len(errlist), 0)
+        lzc_snapshot(snaps, {})
         self.assertTrue(lzc_exists(snapname1))
         self.assertTrue(lzc_exists(snapname2))
 
     def test_multiple_existing_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
-        snaps = { snapname1: None, snapname2: None }
-        errlist = {}
+        snaps = [ snapname1, snapname2 ]
 
-        lzc_snapshot(snaps, {}, errlist)
+        lzc_snapshot(snaps, {})
 
-        with self.assertRaises(SnapshotExists):
-            lzc_snapshot(snaps, {}, errlist)
-        self.assertEqual(len(errlist), 2)
+        with self.assertRaises(MultiSnapshotFailure) as ctx:
+            lzc_snapshot(snaps, {})
+        self.assertEqual(len(ctx.exception.details), 2)
+        for e in ctx.exception.details:
+            self.assertIsInstance(e, SnapshotExists)
 
     def test_multiple_new_and_existing_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
         snapname3 = ZFSTest.pool_name + "/fs2@snap"
-        snaps = { snapname1: None, snapname2: None }
-        more_snaps = { snapname1: None, snapname2: None, snapname3: None }
-        errlist = {}
+        snaps = [ snapname1, snapname2 ]
+        more_snaps = [ snapname1, snapname2, snapname3 ]
 
-        lzc_snapshot(snaps, {}, errlist)
+        lzc_snapshot(snaps, {})
 
-        with self.assertRaises(SnapshotExists):
-            lzc_snapshot(more_snaps, {}, errlist)
-        self.assertEqual(len(errlist), 2)
+        with self.assertRaises(MultiSnapshotFailure) as ctx:
+            lzc_snapshot(more_snaps, {})
+        self.assertEqual(len(ctx.exception.details), 2)
+        for e in ctx.exception.details:
+            self.assertIsInstance(e, SnapshotExists)
         self.assertFalse(lzc_exists(snapname3))
 
     def test_clone(self):
@@ -263,9 +259,8 @@ class ZFSTest(unittest.TestCase):
         # so no point in attempting to clean it up.
         snapname = ZFSTest.pool_name + "/fs2@origin1"
         name = ZFSTest.pool_name + "/fs1/fs/clone1"
-        errlist = {}
 
-        lzc_snapshot({snapname: None}, {}, errlist)
+        lzc_snapshot([snapname], {})
 
         lzc_clone(name, snapname, {})
         self.assertTrue(lzc_exists(name))
@@ -273,7 +268,6 @@ class ZFSTest(unittest.TestCase):
     def test_clone_nonexistent_snapshot(self):
         snapname = ZFSTest.pool_name + "/fs2@nonexistent"
         name = ZFSTest.pool_name + "/fs1/fs/clone2"
-        errlist = {}
 
         # XXX The error should be SnapshotNotFound
         # but limitations of C interface do not allow
@@ -285,9 +279,8 @@ class ZFSTest(unittest.TestCase):
     def test_clone_nonexistent_parent_fs(self):
         snapname = ZFSTest.pool_name + "/fs2@origin3"
         name = ZFSTest.pool_name + "/fs1/nonexistent/clone3"
-        errlist = {}
 
-        lzc_snapshot({snapname: None}, {}, errlist)
+        lzc_snapshot([snapname], {})
 
         with self.assertRaises(ParentNotFound):
             lzc_clone(name, snapname, {})

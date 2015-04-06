@@ -39,6 +39,11 @@ class MultipleSnapshots(ZFSError):
     def __init__(self, name):
         super(MultipleSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
 
+class MultiSnapshotFailure(ZFSError):
+    def __init__(self, err, details):
+        super(MultiSnapshotFailure, self).__init__(err, "Creation of multiple snapshots failed for multiple reasons")
+        self.details = details
+
 class BookmarkExists(ZFSError):
     def __init__(self, name):
         super(BookmarkExists, self).__init__(errno.EEXIST, "Bookmark already exists", name)

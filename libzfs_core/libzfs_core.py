@@ -70,7 +70,7 @@ def lzc_snapshot(snaps, props):
     with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, snaps[0] if len(snaps) else None, SnapshotFailed, _map)
+    _handleErrList(ret, errlist, snaps[0] if len(snaps) else None, MultiSnapshotFailure, _map)
 
 
 def lzc_clone(name, origin, props):
@@ -193,6 +193,23 @@ def lzc_receive(snapname, props, origin, force, fd):
 def lzc_exists(name):
     ret = _lib.lzc_exists(name)
     return bool(ret)
+
+
+def _handleErrList(ret, errlist, main_name, container_exception, mapper):
+    if ret == 0:
+        return
+
+    if len(errlist) == 0:
+        raise mapper(ret, main_name)
+    elif len(errlist) == 1:
+        name = errlist.keys()[0]
+        assert errlist[name] == ret
+        raise mapper(errlist[name], name)
+    else:
+        exceptions = []
+        for name, err in errlist.iteritems():
+            exceptions.append(mapper(err, name))
+        raise container_exception(ret, exceptions)
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
