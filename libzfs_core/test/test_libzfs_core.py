@@ -127,6 +127,9 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot(snaps, {})
         self.assertTrue(lzc_exists(snapname))
 
+    def test_snapshot_empty_list(self):
+        lzc_snapshot([], {})
+
     def test_snapshot_user_props(self):
         snapname = ZFSTest.pool_name + "@snap"
         snaps = [ snapname ]
