@@ -4,6 +4,9 @@ import os
 class ZFSError(OSError):
     pass
 
+class ZFSInitializationFailed(ZFSError):
+    pass
+
 class FilesystemExists(ZFSError):
     def __init__(self, name):
         super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)

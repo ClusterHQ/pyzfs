@@ -6,7 +6,11 @@ _ffi = libzfs_core.ffi
 _lib = libzfs_core.lib
 
 # TODO: a better way to init and uninit the library
-_lib.libzfs_core_init()
+def _initialize():
+    ret = _lib.libzfs_core_init()
+    if ret != 0:
+        raise ZFSInitializationFailed(ret)
+_initialize()
 
 
 def lzc_create(name, is_zvol, props):
