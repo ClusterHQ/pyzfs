@@ -14,7 +14,18 @@ _initialize()
 
 
 def lzc_create(name, is_zvol, props):
-    ret = 0
+    '''
+    Create a ZFS filesystem or a ZFS volume ("zvol").
+
+    :param str name: A name of the dataset to be created.
+    :param bool is_zvol: Whether to create a zvol.
+    :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
+    Each entry is a ``str`` to value mapping.
+    :raises FilesystemExists: if a dataset with the given name already exists.
+    :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+    or has an invalid type or value.
+    '''
     if is_zvol:
         ds_type = _lib.DMU_OST_ZVOL
     else:
@@ -29,22 +40,57 @@ def lzc_create(name, is_zvol, props):
         }.get(ret, genericException(ret, name, "Failed to create filesystem"))
 
 
-def lzc_snapshot(snaps, props, errlist):
-    ret = 0
-    with nvlist_in(snaps) as snaps_nvlist, nvlist_in(props) as props_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-    if ret != 0:
-        name = snaps.keys()[0]
-        raise {
+def lzc_snapshot(snaps, props):
+    '''
+    Create snapshots.
+
+    All snapshots must be in the same pool.
+
+    Optionally snapshot properties can be set on all snapshots.
+    Currently  only user properties (prefixed with "user:") are supported.
+
+    Either all snapshots are successfully created or none are created if
+    an exception is raised.
+
+    :param snaps: A list of names of snapshots to be created.
+    :type snaps: list of str
+    :param props: A ``dict`` of ZFS dataset property name-value pairs.
+    :type props: dict of str to str
+    '''
+    def _map(ret, name):
+        return {
             errno.EEXIST: SnapshotExists(name),
             errno.ENOENT: FilesystemNotFound(name),
             errno.EXDEV: MultipleSnapshots(name),
             errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create snapshot"))
 
+    snaps_dict = { name: None for name in snaps }
+    errlist = {}
+    with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
+        with nvlist_out(errlist) as errlist_nvlist:
+            ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
+    _handleErrList(ret, errlist, snaps[0] if len(snaps) else None, SnapshotFailed, _map)
+
 
 def lzc_clone(name, origin, props):
+    '''
+    Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
+
+    Note that it is impossible to distinguish between `ParentNotFound` exception
+    caused by a missing origin snapshot or by a missing parent dataset.
+    `lzc_hold` can be used to check that the snapshot exists and ensure that
+    it is not destroyed before cloning.
+
+    :param str name: A name of the dataset to be created.
+    :param str origin: A name of the origin snapshot.
+    :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
+    :raises FilesystemExists: if a dataset with the given name already exists.
+    :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
+    :raises ParentNotFound: if the origin snapshot does not exist.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+    or has an invalid type or value.
+    '''
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_clone(name, origin, nvlist)
     if ret != 0:
