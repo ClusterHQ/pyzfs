@@ -54,6 +54,7 @@ def lzc_clone(name, origin, props):
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
+            errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create clone"))
 
 
