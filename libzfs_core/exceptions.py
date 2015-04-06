@@ -113,13 +113,13 @@ def genericException(err, name):
         raise ZFSError(err, os.strerror(err), name)
 
 _errToException = {
-    errno.EIO:      IOError,
-    errno.ENOSPC:   NoSpace,
-    errno.EDQUOT:   QuotaExceeded,
-    errno.EBUSY:   DatasetBusy,
-    errno.ENAMETOOLONG:   NameTooLong,
-    errno.EROFS:   ReadOnlyDataset,
-    errno.EXDEV:   PoolsDiffer,
+    errno.EIO:          IOError,
+    errno.ENOSPC:       NoSpace,
+    errno.EDQUOT:       QuotaExceeded,
+    errno.EBUSY:        DatasetBusy,
+    errno.ENAMETOOLONG: NameTooLong,
+    errno.EROFS:        ReadOnlyDataset,
+    errno.EXDEV:        PoolsDiffer,
 }
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
