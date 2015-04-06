@@ -106,11 +106,11 @@ class MultipleErrors(ZFSError):
         errors = args[:]
 
 
-def genericException(err, name):
+def genericException(err, name, message):
     if err in _errToException:
-        raise _errToException[err](name)
+        return _errToException[err](name)
     else:
-        raise ZFSError(err, os.strerror(err), name)
+        return ZFSError(err, message, name)
 
 _errToException = {
     errno.EIO:          IOError,
