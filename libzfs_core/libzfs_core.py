@@ -26,7 +26,7 @@ def lzc_create(name, is_zvol, props):
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
             errno.EINVAL: PropertyInvalid(name),
-        }.get(ret, ZFSError(ret, "Failed to create filesystem", name))
+        }.get(ret, genericException(ret, name, "Failed to create filesystem"))
 
 
 def lzc_snapshot(snaps, props, errlist):
@@ -41,7 +41,7 @@ def lzc_snapshot(snaps, props, errlist):
             errno.ENOENT: FilesystemNotFound(name),
             errno.EXDEV: MultipleSnapshots(name),
             errno.EINVAL: PropertyInvalid(name),
-        }.get(ret, ZFSError(ret, "Failed to create snapshot", name))
+        }.get(ret, genericException(ret, name, "Failed to create snapshot"))
 
 
 def lzc_clone(name, origin, props):
@@ -54,7 +54,7 @@ def lzc_clone(name, origin, props):
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
-        }.get(ret, ZFSError(ret, "Failed to create clone", name))
+        }.get(ret, genericException(ret, name, "Failed to create clone"))
 
 
 def lzc_rollback(name):
