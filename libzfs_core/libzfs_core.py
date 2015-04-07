@@ -1,16 +1,32 @@
+import threading
 from .exceptions import *
 from .bindings import libzfs_core
 from ._nvlist import nvlist_in, nvlist_out
 
-_ffi = libzfs_core.ffi
-_lib = libzfs_core.lib
 
 # TODO: a better way to init and uninit the library
 def _initialize():
-    ret = _lib.libzfs_core_init()
-    if ret != 0:
-        raise ZFSInitializationFailed(ret)
-_initialize()
+    class LazyInit(object):
+
+        def __init__(self, lib):
+            self._lib = lib
+            self._inited = False
+            self._lock = threading.Lock()
+
+        def __getattr__(self, name):
+            if not self._inited:
+                with self._lock:
+                    if not self._inited:
+                        ret = self._lib.libzfs_core_init()
+                        if ret != 0:
+                            raise ZFSInitializationFailed(ret)
+                        self._inited = True
+            return getattr(self._lib, name)
+
+    return LazyInit(libzfs_core.lib)
+
+_ffi = libzfs_core.ffi
+_lib = _initialize()
 
 
 def lzc_create(name, is_zvol, props):
