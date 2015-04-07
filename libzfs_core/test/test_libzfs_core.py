@@ -25,7 +25,7 @@ class ZFSTest(unittest.TestCase):
             subprocess.check_output(['zpool', 'create', cls.pool_name, cls.pool_file_path],
                                     stderr = subprocess.STDOUT)
             for fs in cls.FILESYSTEMS:
-                lzc_create(cls.pool_name + '/' + fs, False, {})
+                lzc_create(cls.pool_name + '/' + fs, False)
         except subprocess.CalledProcessError as e:
             cls._cleanUp()
             if 'permission denied' in e.output:
@@ -79,7 +79,7 @@ class ZFSTest(unittest.TestCase):
     def test_create_fs(self):
         name = ZFSTest.pool_name + "/fs1/fs/test1"
 
-        lzc_create(name, False, {})
+        lzc_create(name, False)
         self.assertTrue(lzc_exists(name))
 
 
@@ -94,17 +94,17 @@ class ZFSTest(unittest.TestCase):
     def test_create_fs_duplicate(self):
         name = ZFSTest.pool_name + "/fs1/fs/test6"
 
-        lzc_create(name, False, {})
+        lzc_create(name, False)
 
         with self.assertRaises(FilesystemExists):
-            lzc_create(name, False, {})
+            lzc_create(name, False)
 
 
     def test_create_fs_without_parent(self):
         name = ZFSTest.pool_name + "/fs1/nonexistent/test"
 
         with self.assertRaises(ParentNotFound):
-            lzc_create(name, False, {})
+            lzc_create(name, False)
         self.assertFalse(lzc_exists(name))
 
 
@@ -139,12 +139,12 @@ class ZFSTest(unittest.TestCase):
         snapname = ZFSTest.pool_name + "@snap"
         snaps = [ snapname ]
 
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
         self.assertTrue(lzc_exists(snapname))
 
 
     def test_snapshot_empty_list(self):
-        lzc_snapshot([], {})
+        lzc_snapshot([])
 
 
     def test_snapshot_user_props(self):
@@ -175,7 +175,7 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
@@ -188,7 +188,7 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
@@ -203,7 +203,7 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         # XXX two errors should be reported but alas
         self.assertEquals(len(ctx.exception.errors), 1)
@@ -221,14 +221,14 @@ class ZFSTest(unittest.TestCase):
         more_snaps = [ snapname1, snapname2, snapname3 ]
 
         # create 'snapname1' snapshot
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
 
         # attempt to create 3 snapshots:
         # 1. duplicate snapshot name
         # 2. refers to filesystem that doesn't exist
         # 3. could have succeeded if not for 1 and 2
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         # XXX FilesystemNotFound is not reported at all.
         self.assertEquals(len(ctx.exception.errors), 1)
@@ -242,10 +242,10 @@ class ZFSTest(unittest.TestCase):
         snapname = ZFSTest.pool_name + "@snap"
         snaps = [ snapname ]
 
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
@@ -258,7 +258,7 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
@@ -272,7 +272,7 @@ class ZFSTest(unittest.TestCase):
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
         snaps = [ snapname1, snapname2 ]
 
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
         self.assertTrue(lzc_exists(snapname1))
         self.assertTrue(lzc_exists(snapname2))
 
@@ -282,10 +282,10 @@ class ZFSTest(unittest.TestCase):
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
         snaps = [ snapname1, snapname2 ]
 
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps, {})
+            lzc_snapshot(snaps)
 
         self.assertEqual(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
@@ -299,10 +299,10 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname1, snapname2 ]
         more_snaps = snaps + [ snapname3 ]
 
-        lzc_snapshot(snaps, {})
+        lzc_snapshot(snaps)
 
         with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(more_snaps, {})
+            lzc_snapshot(more_snaps)
 
         self.assertEqual(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
@@ -318,9 +318,9 @@ class ZFSTest(unittest.TestCase):
         snapname = ZFSTest.pool_name + "/fs2@origin1"
         name = ZFSTest.pool_name + "/fs1/fs/clone1"
 
-        lzc_snapshot([snapname], {})
+        lzc_snapshot([snapname])
 
-        lzc_clone(name, snapname, {})
+        lzc_clone(name, snapname)
         self.assertTrue(lzc_exists(name))
 
 
@@ -332,7 +332,7 @@ class ZFSTest(unittest.TestCase):
         # but limitations of C interface do not allow
         # to differentiate between the errors.
         with self.assertRaises(ParentNotFound):
-            lzc_clone(name, snapname, {})
+            lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
 
 
@@ -340,10 +340,10 @@ class ZFSTest(unittest.TestCase):
         snapname = ZFSTest.pool_name + "/fs2@origin3"
         name = ZFSTest.pool_name + "/fs1/nonexistent/clone3"
 
-        lzc_snapshot([snapname], {})
+        lzc_snapshot([snapname])
 
         with self.assertRaises(ParentNotFound):
-            lzc_clone(name, snapname, {})
+            lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
 
 

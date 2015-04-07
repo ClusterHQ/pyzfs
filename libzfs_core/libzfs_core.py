@@ -29,14 +29,14 @@ _ffi = libzfs_core.ffi
 _lib = _initialize()
 
 
-def lzc_create(name, is_zvol, props):
+def lzc_create(name, is_zvol = False, props = {}):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
     :param str name: A name of the dataset to be created.
-    :param bool is_zvol: Whether to create a zvol.
-    :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
-                       Each entry is a ``str`` to value mapping.
+    :param bool is_zvol: Whether to create a zvol (false by default).
+    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :type props: dict of str to Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
@@ -57,7 +57,7 @@ def lzc_create(name, is_zvol, props):
         }.get(ret, genericException(ret, name, "Failed to create filesystem"))
 
 
-def lzc_snapshot(snaps, props):
+def lzc_snapshot(snaps, props = {}):
     '''
     Create snapshots.
 
@@ -71,14 +71,14 @@ def lzc_snapshot(snaps, props):
 
     :param snaps: A list of names of snapshots to be created.
     :type snaps: list of str
-    :param props: A ``dict`` of ZFS dataset property name-value pairs.
+    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to str
 
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
     .. note::
-        `SnapshotFailure` is a compound exception that provides at least
-        one detailed error object in `SnapshotFailure.errors` ``list``.
+        :py:exc:`SnapshotFailure` is a compound exception that provides at least
+        one detailed error object in :py:attr:`SnapshotFailure.errors` ``list``.
 
     .. warning::
         There is an underlying C library bug that affects reporting of
@@ -105,7 +105,7 @@ def lzc_snapshot(snaps, props):
     _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
 
 
-def lzc_clone(name, origin, props):
+def lzc_clone(name, origin, props = {}):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
@@ -116,7 +116,8 @@ def lzc_clone(name, origin, props):
 
     :param str name: A name of the dataset to be created.
     :param str origin: A name of the origin snapshot.
-    :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
+    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :type props: dict of str to Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
