@@ -212,7 +212,7 @@ class ZFSTest(unittest.TestCase):
         snapname2 = ZFSTest.pool_name + "@snap2"
         snaps = [ snapname1, snapname2 ]
 
-        with self.assertRaises(MultipleSnapshots):
+        with self.assertRaises(DuplicateSnapshots):
             lzc_snapshot(snaps, {})
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))

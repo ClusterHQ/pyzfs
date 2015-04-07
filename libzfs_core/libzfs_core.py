@@ -77,7 +77,7 @@ def lzc_snapshot(snaps, props):
         return {
             errno.EEXIST: SnapshotExists(name),
             errno.ENOENT: FilesystemNotFound(name),
-            errno.EXDEV: MultipleSnapshots(name),
+            errno.EXDEV:  DuplicateSnapshots(name),
             errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create snapshot"))
 
