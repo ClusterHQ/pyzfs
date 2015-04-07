@@ -37,6 +37,7 @@ def lzc_create(name, is_zvol, props):
     :param bool is_zvol: Whether to create a zvol.
     :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
                        Each entry is a ``str`` to value mapping.
+
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
@@ -72,6 +73,21 @@ def lzc_snapshot(snaps, props):
     :type snaps: list of str
     :param props: A ``dict`` of ZFS dataset property name-value pairs.
     :type props: dict of str to str
+
+    :raises SnapshotFailure: if one or more snapshots could not be created.
+
+    .. note::
+        `SnapshotFailure` is a compound exception that provides at least
+        one detailed error object in `SnapshotFailure.errors` ``list``.
+
+    .. warning::
+        There is an underlying C library bug that affects reporting of
+        an error caused by one or more missing filesystems.
+        If any other errors are encountered then FilesystemNotFound is
+        not reported at all.
+        If FilesystemNotFound is reported it is impossible to tell how
+        many filesystems are missing and which they are, unless only
+        one snapshot has been requested.
     '''
     def _map(ret, name):
         return {
@@ -86,7 +102,7 @@ def lzc_snapshot(snaps, props):
     with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, snaps[0] if len(snaps) else None, MultiSnapshotFailure, _map)
+    _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
 
 
 def lzc_clone(name, origin, props):
@@ -101,6 +117,7 @@ def lzc_clone(name, origin, props):
     :param str name: A name of the dataset to be created.
     :param str origin: A name of the origin snapshot.
     :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
+
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises ParentNotFound: if the origin snapshot does not exist.
@@ -211,21 +228,19 @@ def lzc_exists(name):
     return bool(ret)
 
 
-def _handleErrList(ret, errlist, main_name, container_exception, mapper):
+def _handleErrList(ret, errlist, names, exception, mapper):
     if ret == 0:
         return
 
     if len(errlist) == 0:
-        raise mapper(ret, main_name)
-    elif len(errlist) == 1:
-        name = errlist.keys()[0]
-        assert errlist[name] == ret
-        raise mapper(errlist[name], name)
+        name = names[0] if len(names) == 1 else None
+        errors = [mapper(ret, name)]
     else:
-        exceptions = []
+        errors = []
         for name, err in errlist.iteritems():
-            exceptions.append(mapper(err, name))
-        raise container_exception(ret, exceptions)
+            errors.append(mapper(err, name))
+
+    raise exception(errors)
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

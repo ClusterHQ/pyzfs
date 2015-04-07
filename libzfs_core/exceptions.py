@@ -7,6 +7,14 @@ class ZFSError(OSError):
 class ZFSInitializationFailed(ZFSError):
     pass
 
+# Use first of the individual error codes
+# as an overall error code.  This is more consistent.
+class MultipleOperationsFailure(ZFSError):
+    def __init__(self, message, errors):
+        super(MultipleOperationsFailure, self).__init__(errors[0].errno, message)
+        #self.message = "Operation on more than one entity failed for one or more reasons"
+        self.errors = errors
+
 class FilesystemExists(ZFSError):
     def __init__(self, name):
         super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)
@@ -39,10 +47,9 @@ class DuplicateSnapshots(ZFSError):
     def __init__(self, name):
         super(DuplicateSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
 
-class MultiSnapshotFailure(ZFSError):
-    def __init__(self, err, details):
-        super(MultiSnapshotFailure, self).__init__(err, "Creation of multiple snapshots failed for multiple reasons")
-        self.details = details
+class SnapshotFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(SnapshotFailure, self).__init__("Creation of snapshots failed for one or more reasons", errors)
 
 class BookmarkExists(ZFSError):
     def __init__(self, name):
@@ -103,12 +110,6 @@ class PropertyNotSupported(ZFSError):
 class PropertyInvalid(ZFSError):
     def __init__(self, name):
         super(PropertyInvalid, self).__init__(errno.EINVAL, "Invalid property or property value", name)
-
-class MultipleErrors(ZFSError):
-    errors = None
-    def __init__(self, *args):
-        super(MultipleErrors, self).__init__()
-        errors = args[:]
 
 
 def genericException(err, name, message):
