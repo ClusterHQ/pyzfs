@@ -25,7 +25,7 @@ class ZFSTest(unittest.TestCase):
             subprocess.check_output(['zpool', 'create', cls.pool_name, cls.pool_file_path],
                                     stderr = subprocess.STDOUT)
             for fs in cls.FILESYSTEMS:
-                lzc_create(cls.pool_name + '/' + fs, False)
+                lzc_create(cls.pool_name + '/' + fs)
         except subprocess.CalledProcessError as e:
             cls._cleanUp()
             if 'permission denied' in e.output:
@@ -79,7 +79,7 @@ class ZFSTest(unittest.TestCase):
     def test_create_fs(self):
         name = ZFSTest.pool_name + "/fs1/fs/test1"
 
-        lzc_create(name, False)
+        lzc_create(name)
         self.assertTrue(lzc_exists(name))
 
 
@@ -87,24 +87,24 @@ class ZFSTest(unittest.TestCase):
         name = ZFSTest.pool_name + "/fs1/fs/test2"
         props = { "atime": 0 }
 
-        lzc_create(name, False, props)
+        lzc_create(name, props = props)
         self.assertTrue(lzc_exists(name))
 
 
     def test_create_fs_duplicate(self):
         name = ZFSTest.pool_name + "/fs1/fs/test6"
 
-        lzc_create(name, False)
+        lzc_create(name)
 
         with self.assertRaises(FilesystemExists):
-            lzc_create(name, False)
+            lzc_create(name)
 
 
     def test_create_fs_without_parent(self):
         name = ZFSTest.pool_name + "/fs1/nonexistent/test"
 
         with self.assertRaises(ParentNotFound):
-            lzc_create(name, False)
+            lzc_create(name)
         self.assertFalse(lzc_exists(name))
 
 
