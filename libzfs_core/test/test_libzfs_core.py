@@ -12,6 +12,7 @@ class ZFSTest(unittest.TestCase):
     pool_file_path = None
     pool_name = None
 
+
     @classmethod
     def setUpClass(cls):
         cls.pool_name = 'pool.' + bytes(uuid.uuid4())
@@ -34,12 +35,14 @@ class ZFSTest(unittest.TestCase):
             cls._cleanUp()
             raise
 
+
     @classmethod
     def tearDownClass(cls):
         try:
             subprocess.call(['zpool', 'destroy', '-f', cls.pool_name])
         finally:
             cls._cleanUp()
+
 
     @classmethod
     def _cleanUp(cls):
@@ -48,8 +51,10 @@ class ZFSTest(unittest.TestCase):
         except:
             pass
 
+
     def setUp(self):
         pass
+
 
     def tearDown(self):
         snaps = {}
@@ -62,11 +67,14 @@ class ZFSTest(unittest.TestCase):
                 snaps[fsname + '@' + snap] = None
         lzc_destroy_snaps(snaps, False, {})
 
+
     def test_exists(self):
         self.assertTrue(lzc_exists(ZFSTest.pool_name))
 
+
     def test_exists_failure(self):
         self.assertFalse(lzc_exists(ZFSTest.pool_name + '/nonexistent'))
+
 
     def test_create_fs(self):
         name = ZFSTest.pool_name + "/fs1/fs/test1"
@@ -74,12 +82,14 @@ class ZFSTest(unittest.TestCase):
         lzc_create(name, False, {})
         self.assertTrue(lzc_exists(name))
 
+
     def test_create_fs_with_prop(self):
         name = ZFSTest.pool_name + "/fs1/fs/test2"
         props = { "atime": 0 }
 
         lzc_create(name, False, props)
         self.assertTrue(lzc_exists(name))
+
 
     def test_create_fs_duplicate(self):
         name = ZFSTest.pool_name + "/fs1/fs/test6"
@@ -89,12 +99,14 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(FilesystemExists):
             lzc_create(name, False, {})
 
+
     def test_create_fs_without_parent(self):
         name = ZFSTest.pool_name + "/fs1/nonexistent/test"
 
         with self.assertRaises(ParentNotFound):
             lzc_create(name, False, {})
         self.assertFalse(lzc_exists(name))
+
 
     def test_create_fs_with_invalid_prop(self):
         name = ZFSTest.pool_name + "/fs1/fs/test3"
@@ -104,6 +116,7 @@ class ZFSTest(unittest.TestCase):
             lzc_create(name, False, props)
         self.assertFalse(lzc_exists(name))
 
+
     def test_create_fs_with_invalid_prop_type(self):
         name = ZFSTest.pool_name + "/fs1/fs/test4"
         props = { "atime": "off" }
@@ -111,6 +124,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(PropertyInvalid):
             lzc_create(name, False, props)
         self.assertFalse(lzc_exists(name))
+
 
     def test_create_fs_with_invalid_prop_val(self):
         name = ZFSTest.pool_name + "/fs1/fs/test5"
@@ -120,6 +134,7 @@ class ZFSTest(unittest.TestCase):
             lzc_create(name, False, props)
         self.assertFalse(lzc_exists(name))
 
+
     def test_snapshot(self):
         snapname = ZFSTest.pool_name + "@snap"
         snaps = [ snapname ]
@@ -127,8 +142,10 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot(snaps, {})
         self.assertTrue(lzc_exists(snapname))
 
+
     def test_snapshot_empty_list(self):
         lzc_snapshot([], {})
+
 
     def test_snapshot_user_props(self):
         snapname = ZFSTest.pool_name + "@snap"
@@ -137,6 +154,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc_snapshot(snaps, props)
         self.assertTrue(lzc_exists(snapname))
+
 
     def test_snapshot_invalid_props(self):
         snapname = ZFSTest.pool_name + "@snap"
@@ -151,6 +169,7 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, PropertyInvalid)
         self.assertFalse(lzc_exists(snapname))
 
+
     def test_snapshot_nonexistent_fs(self):
         snapname = ZFSTest.pool_name + "/nonexistent@snap"
         snaps = [ snapname ]
@@ -161,6 +180,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, FilesystemNotFound)
+
 
     def test_snapshot_nonexistent_fs2(self):
         snapname1 = ZFSTest.pool_name + "@snap"
@@ -176,6 +196,7 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
+
     def test_snapshot_nonexistent_fs3(self):
         snapname1 = ZFSTest.pool_name + "/nonexistent@snap1"
         snapname2 = ZFSTest.pool_name + "/nonexistent@snap2"
@@ -190,6 +211,7 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, FilesystemNotFound)
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
+
 
     def test_snapshot_multiple_errors(self):
         snapname1 = ZFSTest.pool_name + "@snap"
@@ -215,6 +237,7 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname2))
         self.assertFalse(lzc_exists(snapname3))
 
+
     def test_snapshot_already_exists(self):
         snapname = ZFSTest.pool_name + "@snap"
         snaps = [ snapname ]
@@ -227,6 +250,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, SnapshotExists)
+
 
     def test_multiple_snapshots_for_same_fs(self):
         snapname1 = ZFSTest.pool_name + "@snap1"
@@ -242,6 +266,7 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
+
     def test_multiple_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
         snapname2 = ZFSTest.pool_name + "/fs1@snap"
@@ -250,6 +275,7 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot(snaps, {})
         self.assertTrue(lzc_exists(snapname1))
         self.assertTrue(lzc_exists(snapname2))
+
 
     def test_multiple_existing_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
@@ -264,6 +290,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEqual(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, SnapshotExists)
+
 
     def test_multiple_new_and_existing_snapshots(self):
         snapname1 = ZFSTest.pool_name + "@snap"
@@ -282,6 +309,7 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, SnapshotExists)
         self.assertFalse(lzc_exists(snapname3))
 
+
     def test_clone(self):
         # XXX note the special name for the snapshot.
         # Since currently we can not destroy filesystems,
@@ -295,6 +323,7 @@ class ZFSTest(unittest.TestCase):
         lzc_clone(name, snapname, {})
         self.assertTrue(lzc_exists(name))
 
+
     def test_clone_nonexistent_snapshot(self):
         snapname = ZFSTest.pool_name + "/fs2@nonexistent"
         name = ZFSTest.pool_name + "/fs1/fs/clone2"
@@ -306,6 +335,7 @@ class ZFSTest(unittest.TestCase):
             lzc_clone(name, snapname, {})
         self.assertFalse(lzc_exists(name))
 
+
     def test_clone_nonexistent_parent_fs(self):
         snapname = ZFSTest.pool_name + "/fs2@origin3"
         name = ZFSTest.pool_name + "/fs1/nonexistent/clone3"
@@ -315,5 +345,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(ParentNotFound):
             lzc_clone(name, snapname, {})
         self.assertFalse(lzc_exists(name))
+
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
