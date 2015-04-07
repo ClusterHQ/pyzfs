@@ -36,11 +36,11 @@ def lzc_create(name, is_zvol, props):
     :param str name: A name of the dataset to be created.
     :param bool is_zvol: Whether to create a zvol.
     :param dict props: A ``dict`` of ZFS dataset property name-value pairs.
-    Each entry is a ``str`` to value mapping.
+                       Each entry is a ``str`` to value mapping.
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
-    or has an invalid type or value.
+                             or has an invalid type or value.
     '''
     if is_zvol:
         ds_type = _lib.DMU_OST_ZVOL
@@ -105,7 +105,7 @@ def lzc_clone(name, origin, props):
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises ParentNotFound: if the origin snapshot does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
-    or has an invalid type or value.
+                             or has an invalid type or value.
     '''
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_clone(name, origin, nvlist)
