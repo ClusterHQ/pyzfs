@@ -368,6 +368,9 @@ class _TempPool(object):
             subprocess.check_output(['zpool', 'create', '-o', 'cachefile=' + cachefile, self.pool_name, self.pool_file_path],
                                     stderr = subprocess.STDOUT)
 
+            for fs in filesystems:
+                lzc_create(self.makeName(fs))
+
             if readonly:
                 # To make a pool read-only it must exported and re-imported with readonly option.
                 # The most deterministic way to re-import the pool is by using a cache file.
@@ -376,11 +379,8 @@ class _TempPool(object):
                 shutil.copyfile(cachefile, cachefile + '.tmp')
                 subprocess.check_output(['zpool', 'export', '-f', self.pool_name], stderr = subprocess.STDOUT)
                 os.rename(cachefile + '.tmp', cachefile)
-                subprocess.check_output(['zpool', 'import', '-c', cachefile, '-o', 'readonly=on', self.pool_name],
+                subprocess.check_output(['zpool', 'import', '-N', '-c', cachefile, '-o', 'readonly=on', self.pool_name],
                                         stderr = subprocess.STDOUT)
-
-            for fs in filesystems:
-                lzc_create(self.pool_name + '/' + fs)
 
         except subprocess.CalledProcessError as e:
             self.cleanUp()
