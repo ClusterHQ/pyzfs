@@ -57,6 +57,45 @@ def lzc_create(name, is_zvol = False, props = {}):
         }.get(ret, genericException(ret, name, "Failed to create filesystem"))
 
 
+def lzc_clone(name, origin, props = {}):
+    '''
+    Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
+
+    Note that it is impossible to distinguish between `ParentNotFound` exception
+    caused by a missing origin snapshot or by a missing parent dataset.
+    `lzc_hold` can be used to check that the snapshot exists and ensure that
+    it is not destroyed before cloning.
+
+    :param str name: A name of the dataset to be created.
+    :param str origin: A name of the origin snapshot.
+    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :type props: dict of str to Any
+
+    :raises FilesystemExists: if a dataset with the given name already exists.
+    :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
+    :raises ParentNotFound: if the origin snapshot does not exist.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+                             or has an invalid type or value.
+    '''
+    with nvlist_in(props) as nvlist:
+        ret = _lib.lzc_clone(name, origin, nvlist)
+    if ret != 0:
+        # XXX Note a deficiency of the underlying C interface:
+        # ENOENT can mean that either a parent filesystem of the target
+        # or the origin snapshot does not exist.
+        raise {
+            errno.EEXIST: FilesystemExists(name),
+            errno.ENOENT: ParentNotFound(name),
+            errno.EINVAL: PropertyInvalid(name),
+        }.get(ret, genericException(ret, name, "Failed to create clone"))
+
+
+def lzc_rollback(name):
+    snapnamep = _ffi.new('char[]', 256)
+    ret = _lib.lzc_rollback(name, snapnamep, 256)
+    return (ret, _ffi.string(snapnamep))
+
+
 def lzc_snapshot(snaps, props = {}):
     '''
     Create snapshots.
@@ -103,45 +142,6 @@ def lzc_snapshot(snaps, props = {}):
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
     _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
-
-
-def lzc_clone(name, origin, props = {}):
-    '''
-    Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
-
-    Note that it is impossible to distinguish between `ParentNotFound` exception
-    caused by a missing origin snapshot or by a missing parent dataset.
-    `lzc_hold` can be used to check that the snapshot exists and ensure that
-    it is not destroyed before cloning.
-
-    :param str name: A name of the dataset to be created.
-    :param str origin: A name of the origin snapshot.
-    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str to Any
-
-    :raises FilesystemExists: if a dataset with the given name already exists.
-    :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
-    :raises ParentNotFound: if the origin snapshot does not exist.
-    :raises PropertyInvalid: if one or more of the specified properties is invalid
-                             or has an invalid type or value.
-    '''
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_clone(name, origin, nvlist)
-    if ret != 0:
-        # XXX Note a deficiency of the underlying C interface:
-        # ENOENT can mean that either a parent filesystem of the target
-        # or the origin snapshot does not exist.
-        raise {
-            errno.EEXIST: FilesystemExists(name),
-            errno.ENOENT: ParentNotFound(name),
-            errno.EINVAL: PropertyInvalid(name),
-        }.get(ret, genericException(ret, name, "Failed to create clone"))
-
-
-def lzc_rollback(name):
-    snapnamep = _ffi.new('char[]', 256)
-    ret = _lib.lzc_rollback(name, snapnamep, 256)
-    return (ret, _ffi.string(snapnamep))
 
 
 def lzc_destroy_snaps(snaps, defer, errlist):
