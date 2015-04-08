@@ -35,7 +35,7 @@ def lzc_create(name, is_zvol = False, props = {}):
 
     :param str name: a name of the dataset to be created.
     :param bool is_zvol: whether to create a zvol (false by default).
-    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
@@ -63,7 +63,7 @@ def lzc_clone(name, origin, props = {}):
 
     :param str name: a name of the dataset to be created.
     :param str origin: a name of the origin snapshot.
-    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
@@ -130,14 +130,14 @@ def lzc_snapshot(snaps, props = {}):
 
     :param snaps: a list of names of snapshots to be created.
     :type snaps: list of str
-    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to str
 
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
     .. note::
         :py:exc:`.SnapshotFailure` is a compound exception that provides at least
-        one detailed error object in :py:attr:`SnapshotFailure.errors` ``list``.
+        one detailed error object in :py:attr:`SnapshotFailure.errors` `list`.
 
     .. warning::
         There is an underlying C library bug that affects reporting of
