@@ -1,6 +1,7 @@
 
 import unittest
 import subprocess
+import shutil
 import tempfile
 import uuid
 from ..libzfs_core import *
@@ -9,28 +10,18 @@ class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
-    pool_file_path = None
-    pool_name = None
+
+    pool = None
+    misc_pool = None
+    readonly_pool = None
 
 
     @classmethod
     def setUpClass(cls):
-        cls.pool_name = 'pool.' + bytes(uuid.uuid4())
-        (pool_file_fd, cls.pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
-        #print "pool name = ", cls.pool_name
-        #print "pool file = ", cls.pool_file_path
-        os.ftruncate(pool_file_fd, cls.POOL_FILE_SIZE)
-        os.close(pool_file_fd)
         try:
-            subprocess.check_output(['zpool', 'create', cls.pool_name, cls.pool_file_path],
-                                    stderr = subprocess.STDOUT)
-            for fs in cls.FILESYSTEMS:
-                lzc_create(cls.pool_name + '/' + fs)
-        except subprocess.CalledProcessError as e:
-            cls._cleanUp()
-            if 'permission denied' in e.output:
-                raise unittest.SkipTest('insufficient privileges to run libzfs_core tests')
-            raise
+            cls.pool = _TempPool(filesystems = cls.FILESYSTEMS)
+            cls.misc_pool = _TempPool()
+            cls.readonly_pool = _TempPool(readonly = True)
         except:
             cls._cleanUp()
             raise
@@ -38,18 +29,14 @@ class ZFSTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        try:
-            subprocess.call(['zpool', 'destroy', '-f', cls.pool_name])
-        finally:
-            cls._cleanUp()
+        cls._cleanUp()
 
 
     @classmethod
     def _cleanUp(cls):
-        try:
-            os.remove(cls.pool_file_path)
-        except:
-            pass
+        for pool in [cls.pool, cls.misc_pool, cls.readonly_pool]:
+            if pool is not None:
+                pool.cleanUp()
 
 
     def setUp(self):
@@ -58,33 +45,29 @@ class ZFSTest(unittest.TestCase):
 
     def tearDown(self):
         snaps = []
-        for fs in [None] + ZFSTest.FILESYSTEMS:
-            if not fs:
-                fsname = ZFSTest.pool_name
-            else:
-                fsname = ZFSTest.pool_name + '/' + fs
+        for fs in [''] + ZFSTest.FILESYSTEMS:
             for snap in ZFSTest.SNAPSHOTS:
-                snaps.append(fsname + '@' + snap)
+                snaps.append(ZFSTest.pool.makeName(fs + '@' + snap))
         lzc_destroy_snaps(snaps, defer = False)
 
 
     def test_exists(self):
-        self.assertTrue(lzc_exists(ZFSTest.pool_name))
+        self.assertTrue(lzc_exists(ZFSTest.pool.makeName()))
 
 
     def test_exists_failure(self):
-        self.assertFalse(lzc_exists(ZFSTest.pool_name + '/nonexistent'))
+        self.assertFalse(lzc_exists(ZFSTest.pool.makeName('nonexistent')))
 
 
     def test_create_fs(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test1"
+        name = ZFSTest.pool.makeName("fs1/fs/test1")
 
         lzc_create(name)
         self.assertTrue(lzc_exists(name))
 
 
     def test_create_fs_with_prop(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test2"
+        name = ZFSTest.pool.makeName("fs1/fs/test2")
         props = { "atime": 0 }
 
         lzc_create(name, props = props)
@@ -92,7 +75,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_create_fs_duplicate(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test6"
+        name = ZFSTest.pool.makeName("fs1/fs/test6")
 
         lzc_create(name)
 
@@ -101,7 +84,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_create_fs_without_parent(self):
-        name = ZFSTest.pool_name + "/fs1/nonexistent/test"
+        name = ZFSTest.pool.makeName("fs1/nonexistent/test")
 
         with self.assertRaises(ParentNotFound):
             lzc_create(name)
@@ -109,7 +92,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_create_fs_with_invalid_prop(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test3"
+        name = ZFSTest.pool.makeName("fs1/fs/test3")
         props = { "BOGUS": 0 }
 
         with self.assertRaises(PropertyInvalid):
@@ -118,7 +101,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_create_fs_with_invalid_prop_type(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test4"
+        name = ZFSTest.pool.makeName("fs1/fs/test4")
         props = { "atime": "off" }
 
         with self.assertRaises(PropertyInvalid):
@@ -127,7 +110,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_create_fs_with_invalid_prop_val(self):
-        name = ZFSTest.pool_name + "/fs1/fs/test5"
+        name = ZFSTest.pool.makeName("fs1/fs/test5")
         props = { "atime": 20 }
 
         with self.assertRaises(PropertyInvalid):
@@ -136,7 +119,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot(self):
-        snapname = ZFSTest.pool_name + "@snap"
+        snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
 
         lzc_snapshot(snaps)
@@ -148,7 +131,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_user_props(self):
-        snapname = ZFSTest.pool_name + "@snap"
+        snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
         props = { "user:foo": "bar" }
 
@@ -157,7 +140,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_invalid_props(self):
-        snapname = ZFSTest.pool_name + "@snap"
+        snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
         props = { "foo": "bar" }
 
@@ -171,7 +154,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_nonexistent_fs(self):
-        snapname = ZFSTest.pool_name + "/nonexistent@snap"
+        snapname = ZFSTest.pool.makeName("nonexistent@snap")
         snaps = [ snapname ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
@@ -183,8 +166,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_nonexistent_fs2(self):
-        snapname1 = ZFSTest.pool_name + "@snap"
-        snapname2 = ZFSTest.pool_name + "/nonexistent@snap"
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("nonexistent@snap")
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
@@ -198,8 +181,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_nonexistent_fs3(self):
-        snapname1 = ZFSTest.pool_name + "/nonexistent@snap1"
-        snapname2 = ZFSTest.pool_name + "/nonexistent@snap2"
+        snapname1 = ZFSTest.pool.makeName("nonexistent@snap1")
+        snapname2 = ZFSTest.pool.makeName("nonexistent@snap2")
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
@@ -214,9 +197,9 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_multiple_errors(self):
-        snapname1 = ZFSTest.pool_name + "@snap"
-        snapname2 = ZFSTest.pool_name + "/nonexistent@snap"
-        snapname3 = ZFSTest.pool_name + "/fs1@snap"
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("nonexistent@snap")
+        snapname3 = ZFSTest.pool.makeName("fs1@snap")
         snaps = [ snapname1 ]
         more_snaps = [ snapname1, snapname2, snapname3 ]
 
@@ -239,7 +222,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_already_exists(self):
-        snapname = ZFSTest.pool_name + "@snap"
+        snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
 
         lzc_snapshot(snaps)
@@ -253,8 +236,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_multiple_snapshots_for_same_fs(self):
-        snapname1 = ZFSTest.pool_name + "@snap1"
-        snapname2 = ZFSTest.pool_name + "@snap2"
+        snapname1 = ZFSTest.pool.makeName("@snap1")
+        snapname2 = ZFSTest.pool.makeName("@snap2")
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
@@ -268,8 +251,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_multiple_snapshots(self):
-        snapname1 = ZFSTest.pool_name + "@snap"
-        snapname2 = ZFSTest.pool_name + "/fs1@snap"
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("fs1@snap")
         snaps = [ snapname1, snapname2 ]
 
         lzc_snapshot(snaps)
@@ -278,8 +261,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_multiple_existing_snapshots(self):
-        snapname1 = ZFSTest.pool_name + "@snap"
-        snapname2 = ZFSTest.pool_name + "/fs1@snap"
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("fs1@snap")
         snaps = [ snapname1, snapname2 ]
 
         lzc_snapshot(snaps)
@@ -293,9 +276,9 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_multiple_new_and_existing_snapshots(self):
-        snapname1 = ZFSTest.pool_name + "@snap"
-        snapname2 = ZFSTest.pool_name + "/fs1@snap"
-        snapname3 = ZFSTest.pool_name + "/fs2@snap"
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("fs1@snap")
+        snapname3 = ZFSTest.pool.makeName("fs2@snap")
         snaps = [ snapname1, snapname2 ]
         more_snaps = snaps + [ snapname3 ]
 
@@ -315,8 +298,8 @@ class ZFSTest(unittest.TestCase):
         # Since currently we can not destroy filesystems,
         # it would be impossible to destroy the snapshot,
         # so no point in attempting to clean it up.
-        snapname = ZFSTest.pool_name + "/fs2@origin1"
-        name = ZFSTest.pool_name + "/fs1/fs/clone1"
+        snapname = ZFSTest.pool.makeName("fs2@origin1")
+        name = ZFSTest.pool.makeName("fs1/fs/clone1")
 
         lzc_snapshot([snapname])
 
@@ -325,8 +308,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_clone_nonexistent_snapshot(self):
-        snapname = ZFSTest.pool_name + "/fs2@nonexistent"
-        name = ZFSTest.pool_name + "/fs1/fs/clone2"
+        snapname = ZFSTest.pool.makeName("fs2@nonexistent")
+        name = ZFSTest.pool.makeName("fs1/fs/clone2")
 
         # XXX The error should be SnapshotNotFound
         # but limitations of C interface do not allow
@@ -337,14 +320,83 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_clone_nonexistent_parent_fs(self):
-        snapname = ZFSTest.pool_name + "/fs2@origin3"
-        name = ZFSTest.pool_name + "/fs1/nonexistent/clone3"
+        snapname = ZFSTest.pool.makeName("fs2@origin3")
+        name = ZFSTest.pool.makeName("fs1/nonexistent/clone3")
 
         lzc_snapshot([snapname])
 
         with self.assertRaises(DatasetNotFound):
             lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
+
+
+class _TempPool(object):
+    _cachefile_suffix = ".cachefile"
+
+    def __init__(self, size = 128 * 1024 * 1024, readonly = False, filesystems = []):
+        self.pool_name = 'pool.' + bytes(uuid.uuid4())
+        (fd, self.pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
+        if readonly:
+            cachefile = self.pool_file_path + _TempPool._cachefile_suffix
+        else:
+            cachefile = 'none'
+
+        try:
+            os.ftruncate(fd, size)
+            os.close(fd)
+
+            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=' + cachefile, self.pool_name, self.pool_file_path],
+                                    stderr = subprocess.STDOUT)
+
+            if readonly:
+                # To make a pool read-only it must exported and re-imported with readonly option.
+                # The most deterministic way to re-import the pool is by using a cache file.
+                # But the cache file has to be stashed away before the pool is exported,
+                # because otherwise the pool is removed from the cache.
+                shutil.copyfile(cachefile, cachefile + '.tmp')
+                subprocess.check_output(['zpool', 'export', '-f', self.pool_name], stderr = subprocess.STDOUT)
+                os.rename(cachefile + '.tmp', cachefile)
+                subprocess.check_output(['zpool', 'import', '-c', cachefile, '-o', 'readonly=on', self.pool_name],
+                                        stderr = subprocess.STDOUT)
+
+            for fs in filesystems:
+                lzc_create(self.pool_name + '/' + fs)
+
+        except subprocess.CalledProcessError as e:
+            self.cleanUp()
+            if 'permission denied' in e.output:
+                raise unittest.SkipTest('insufficient privileges to run libzfs_core tests')
+            raise
+        except:
+            self.cleanUp()
+            raise
+
+
+    def cleanUp(self):
+        try:
+            subprocess.check_output(['zpool', 'destroy', '-f', self.pool_name], stderr = subprocess.STDOUT)
+        except:
+            pass
+        try:
+            os.remove(self.pool_file_path)
+        except:
+            pass
+        try:
+            os.remove(self.pool_file_path + _TempPool._cachefile_suffix)
+        except:
+            pass
+        try:
+            os.remove(self.pool_file_path + _TempPool._cachefile_suffix + '.tmp')
+        except:
+            pass
+
+
+    def makeName(self, relative = None):
+        if not relative:
+            return self.pool_name
+        if relative.startswith(('@', '#')):
+            return self.pool_name + relative
+        return self.pool_name + '/' + relative
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
