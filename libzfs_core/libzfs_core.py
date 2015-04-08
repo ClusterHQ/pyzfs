@@ -77,15 +77,15 @@ def lzc_snapshot(snaps, props = {}):
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
     .. note::
-        :py:exc:`SnapshotFailure` is a compound exception that provides at least
+        :py:exc:`.SnapshotFailure` is a compound exception that provides at least
         one detailed error object in :py:attr:`SnapshotFailure.errors` ``list``.
 
     .. warning::
         There is an underlying C library bug that affects reporting of
         an error caused by one or more missing filesystems.
-        If any other errors are encountered then FilesystemNotFound is
+        If any other errors are encountered then :py:exc:`.FilesystemNotFound` is
         not reported at all.
-        If FilesystemNotFound is reported it is impossible to tell how
+        If :py:exc:`.FilesystemNotFound` is reported it is impossible to tell how
         many filesystems are missing and which they are, unless only
         one snapshot has been requested.
     '''
