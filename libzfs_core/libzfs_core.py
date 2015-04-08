@@ -61,31 +61,31 @@ def lzc_clone(name, origin, props = {}):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
-    Note that it is impossible to distinguish between `ParentNotFound` exception
-    caused by a missing origin snapshot or by a missing parent dataset.
-    `lzc_hold` can be used to check that the snapshot exists and ensure that
-    it is not destroyed before cloning.
-
     :param str name: A name of the dataset to be created.
     :param str origin: A name of the origin snapshot.
     :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
-    :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
-    :raises ParentNotFound: if the origin snapshot does not exist.
+    :raises DatasetNotFound: if either a parent dataset of the requested dataset
+                             or the origin snapshot does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
+
+    .. note::
+        Because of a deficiency of the underlying C interface
+        :py:exc:`.DatasetNotFound` can mean that either a parent filesystem of the target
+        or the origin snapshot does not exist.
+        It is currently impossible to distinguish between the cases.
+        `lzc_hold` can be used to check that the snapshot exists and ensure that
+        it is not destroyed before cloning.
     '''
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_clone(name, origin, nvlist)
     if ret != 0:
-        # XXX Note a deficiency of the underlying C interface:
-        # ENOENT can mean that either a parent filesystem of the target
-        # or the origin snapshot does not exist.
         raise {
             errno.EEXIST: FilesystemExists(name),
-            errno.ENOENT: ParentNotFound(name),
+            errno.ENOENT: DatasetNotFound(name),
             errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create clone"))
 

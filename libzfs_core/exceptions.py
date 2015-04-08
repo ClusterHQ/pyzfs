@@ -15,6 +15,15 @@ class MultipleOperationsFailure(ZFSError):
         #self.message = "Operation on more than one entity failed for one or more reasons"
         self.errors = errors
 
+class DatasetNotFound(ZFSError):
+    """
+    This exception is raised when an operation failure can be caused by a missing
+    snapshot or a missing filesystem and it is impossible to distinguish between
+    the causes.
+    """
+    def __init__(self, name):
+        super(DatasetNotFound, self).__init__(errno.ENOENT, "Dataset not found", name)
+
 class FilesystemExists(ZFSError):
     def __init__(self, name):
         super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)

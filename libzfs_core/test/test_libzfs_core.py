@@ -331,7 +331,7 @@ class ZFSTest(unittest.TestCase):
         # XXX The error should be SnapshotNotFound
         # but limitations of C interface do not allow
         # to differentiate between the errors.
-        with self.assertRaises(ParentNotFound):
+        with self.assertRaises(DatasetNotFound):
             lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
 
@@ -342,7 +342,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc_snapshot([snapname])
 
-        with self.assertRaises(ParentNotFound):
+        with self.assertRaises(DatasetNotFound):
             lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
 
