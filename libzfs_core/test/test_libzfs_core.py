@@ -314,7 +314,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_clone(self):
-        # XXX note the special name for the snapshot.
+        # NB: note the special name for the snapshot.
         # Since currently we can not destroy filesystems,
         # it would be impossible to destroy the snapshot,
         # so no point in attempting to clean it up.
