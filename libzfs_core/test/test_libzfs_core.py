@@ -21,7 +21,7 @@ class ZFSTest(unittest.TestCase):
         try:
             cls.pool = _TempPool(filesystems = cls.FILESYSTEMS)
             cls.misc_pool = _TempPool()
-            cls.readonly_pool = _TempPool(readonly = True)
+            cls.readonly_pool = _TempPool(filesystems = cls.FILESYSTEMS, readonly = True)
         except:
             cls._cleanUp()
             raise
@@ -53,6 +53,10 @@ class ZFSTest(unittest.TestCase):
 
     def test_exists(self):
         self.assertTrue(lzc_exists(ZFSTest.pool.makeName()))
+
+
+    def test_exists_in_ro_pool(self):
+        self.assertTrue(lzc_exists(ZFSTest.readonly_pool.makeName()))
 
 
     def test_exists_failure(self):
@@ -161,16 +165,19 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_ro_pool(self):
-        snapname = ZFSTest.readonly_pool.makeName("@snap")
-        snaps = [ snapname ]
+        snapname1 = ZFSTest.readonly_pool.makeName("@snap")
+        snapname2 = ZFSTest.readonly_pool.makeName("fs1@snap")
+        snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
             lzc_snapshot(snaps)
 
-        self.assertEquals(len(ctx.exception.errors), len(snaps))
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, ReadOnlyPool)
-        self.assertFalse(lzc_exists(snapname))
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
 
 
     def test_snapshot_nonexistent_fs(self):
@@ -311,6 +318,43 @@ class ZFSTest(unittest.TestCase):
         for e in ctx.exception.errors:
             self.assertIsInstance(e, SnapshotExists)
         self.assertFalse(lzc_exists(snapname3))
+
+
+    def test_snapshot_different_pools(self):
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.misc_pool.makeName("@snap")
+        snaps = [ snapname1, snapname2 ]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            # XXX DuplicateSnapshots is reported instead of PoolsDiffer.
+            self.assertIsInstance(e, DuplicateSnapshots)
+            self.assertEqual(e.errno, PoolsDiffer('dummy').errno)
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
+
+
+    def test_snapshot_different_pools_ro_pool(self):
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.readonly_pool.makeName("@snap")
+        snaps = [ snapname1, snapname2 ]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            # NB: depending on whether the first attempted snapshot is
+            # for the read-only pool a different error is reported.
+            # XXX DuplicateSnapshots is reported instead of PoolsDiffer.
+            self.assertIsInstance(e, (DuplicateSnapshots, ReadOnlyPool))
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
 
 
     def test_clone(self):
