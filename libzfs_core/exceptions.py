@@ -108,9 +108,9 @@ class NameTooLong(ZFSError):
     def __init__(self, name):
         super(NameTooLong, self).__init__(errno.ENAMETOOLONG, "Dataset name is too long", name)
 
-class ReadOnlyDataset(ZFSError):
+class ReadOnlyPool(ZFSError):
     def __init__(self, name):
-        super(ReadOnlyDataset, self).__init__(errno.EROFS, "Dataset is read-only", name)
+        super(ReadOnlyPool, self).__init__(errno.EROFS, "Pool is read-only", name)
 
 class PoolsDiffer(ZFSError):
     def __init__(self, name):
@@ -137,7 +137,7 @@ _errToException = {
     errno.EDQUOT:       QuotaExceeded,
     errno.EBUSY:        DatasetBusy,
     errno.ENAMETOOLONG: NameTooLong,
-    errno.EROFS:        ReadOnlyDataset,
+    errno.EROFS:        ReadOnlyPool,
     errno.EXDEV:        PoolsDiffer,
 }
 

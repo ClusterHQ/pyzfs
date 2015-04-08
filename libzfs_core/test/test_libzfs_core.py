@@ -83,6 +83,13 @@ class ZFSTest(unittest.TestCase):
             lzc_create(name)
 
 
+    def test_create_fs_in_ro_pool(self):
+        name = ZFSTest.readonly_pool.makeName("fs")
+
+        with self.assertRaises(ReadOnlyPool):
+            lzc_create(name)
+
+
     def test_create_fs_without_parent(self):
         name = ZFSTest.pool.makeName("fs1/nonexistent/test")
 
@@ -150,6 +157,19 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), len(snaps))
         for e in ctx.exception.errors:
             self.assertIsInstance(e, PropertyInvalid)
+        self.assertFalse(lzc_exists(snapname))
+
+
+    def test_snapshot_ro_pool(self):
+        snapname = ZFSTest.readonly_pool.makeName("@snap")
+        snaps = [ snapname ]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        self.assertEquals(len(ctx.exception.errors), len(snaps))
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, ReadOnlyPool)
         self.assertFalse(lzc_exists(snapname))
 
 
