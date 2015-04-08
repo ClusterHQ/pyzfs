@@ -91,9 +91,29 @@ def lzc_clone(name, origin, props = {}):
 
 
 def lzc_rollback(name):
+    '''
+    Roll back a filesystem or volume to its most recent snapshot.
+
+    :param str name: a name of the dataset to be rolled back.
+    :return: a name of the most recent snapshot.
+    :rtype: str
+
+    :raises DatasetNotFound: if either the dataset does not exist
+                             or it does not have any snapshots.
+
+    .. note::
+        Because of a deficiency of the underlying C interface
+        :py:exc:`.DatasetNotFound` can mean that either the dataset does not exist
+        or it does not have any snapshots.
+        It is currently impossible to distinguish between the cases.
+    '''
     snapnamep = _ffi.new('char[]', 256)
     ret = _lib.lzc_rollback(name, snapnamep, 256)
-    return (ret, _ffi.string(snapnamep))
+    if ret != 0:
+        raise {
+            errno.ENOENT: DatasetNotFound(name),
+        }.get(ret, genericException(ret, name, "Failed to rollback"))
+    return _ffi.string(snapnamep)
 
 
 def lzc_snapshot(snaps, props = {}):
