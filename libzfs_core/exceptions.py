@@ -58,7 +58,7 @@ class DuplicateSnapshots(ZFSError):
 
 class SnapshotFailure(MultipleOperationsFailure):
     def __init__(self, errors):
-        super(SnapshotFailure, self).__init__("Creation of snapshots failed for one or more reasons", errors)
+        super(SnapshotFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors)
 
 class BookmarkExists(ZFSError):
     def __init__(self, name):
