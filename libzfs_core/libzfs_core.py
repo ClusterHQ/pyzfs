@@ -164,12 +164,47 @@ def lzc_snapshot(snaps, props = {}):
     _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
 
 
-def lzc_destroy_snaps(snaps, defer, errlist):
-    ret = 0
-    with nvlist_in(snaps) as snaps_nvlist:
+def lzc_destroy_snaps(snaps, defer):
+    '''
+    Destroy snapshots.
+
+    They must all be in the same pool.
+    Snapshots that do not exist will be silently ignored.
+
+    If 'defer' is not set, and a snapshot has user holds or clones, the
+    destroy operation will fail and none of the snapshots will be
+    destroyed.
+
+    If 'defer' is set, and a snapshot has user holds or clones, it will be
+    marked for deferred destruction, and will be destroyed when the last hold
+    or clone is removed/destroyed.
+
+    The operation succeeds if all snapshots were destroyed (or marked for
+    later destruction if 'defer' is set) or didn't exist to begin with.
+
+    :param snaps: a list of names of snapshots to be destroyed.
+    :type snaps: list of str
+    :param bool defer: whether to mark busy snapshots for deferred destruction
+                       rather than immediately failing.
+
+    :raises SnapshotDestructionFailure: if one or more snapshots could not be created.
+
+    .. note::
+        :py:exc:`.SnapshotDestructionFailure` is a compound exception that provides at least
+        one detailed error object in :py:attr:`SnapshotDestructionFailure.errors` `list`.
+    '''
+
+    def _map(ret, name):
+        return {
+            errno.EEXIST: SnapshotIsCloned(name),
+        }.get(ret, genericException(ret, name, "Failed to create snapshot"))
+
+    snaps_dict = { name: None for name in snaps }
+    errlist = {}
+    with nvlist_in(snaps_dict) as snaps_nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
-    return ret
+    _handleErrList(ret, errlist, snaps, SnapshotDestructionFailure, _map)
 
 
 def lzc_bookmark(bookmarks, errlist):

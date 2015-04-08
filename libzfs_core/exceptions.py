@@ -60,6 +60,10 @@ class SnapshotFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(SnapshotFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors)
 
+class SnapshotDestructionFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(SnapshotFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
+
 class BookmarkExists(ZFSError):
     def __init__(self, name):
         super(BookmarkExists, self).__init__(errno.EEXIST, "Bookmark already exists", name)

@@ -57,15 +57,15 @@ class ZFSTest(unittest.TestCase):
 
 
     def tearDown(self):
-        snaps = {}
+        snaps = []
         for fs in [None] + ZFSTest.FILESYSTEMS:
             if not fs:
                 fsname = ZFSTest.pool_name
             else:
                 fsname = ZFSTest.pool_name + '/' + fs
             for snap in ZFSTest.SNAPSHOTS:
-                snaps[fsname + '@' + snap] = None
-        lzc_destroy_snaps(snaps, False, {})
+                snaps.append(fsname + '@' + snap)
+        lzc_destroy_snaps(snaps, defer = False)
 
 
     def test_exists(self):
