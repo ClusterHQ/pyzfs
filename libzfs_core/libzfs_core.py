@@ -33,10 +33,10 @@ def lzc_create(name, is_zvol = False, props = {}):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
-    :param str name: A name of the dataset to be created.
-    :param bool is_zvol: Whether to create a zvol (false by default).
-    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str to Any
+    :param str name: a name of the dataset to be created.
+    :param bool is_zvol: whether to create a zvol (false by default).
+    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :type props: dict of str to any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
@@ -61,9 +61,9 @@ def lzc_clone(name, origin, props = {}):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
-    :param str name: A name of the dataset to be created.
-    :param str origin: A name of the origin snapshot.
-    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :param str name: a name of the dataset to be created.
+    :param str origin: a name of the origin snapshot.
+    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
@@ -108,9 +108,9 @@ def lzc_snapshot(snaps, props = {}):
     Either all snapshots are successfully created or none are created if
     an exception is raised.
 
-    :param snaps: A list of names of snapshots to be created.
+    :param snaps: a list of names of snapshots to be created.
     :type snaps: list of str
-    :param props: A ``dict`` of ZFS dataset property name-value pairs (empty by default).
+    :param props: a ``dict`` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of str to str
 
     :raises SnapshotFailure: if one or more snapshots could not be created.
