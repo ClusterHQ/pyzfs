@@ -386,6 +386,7 @@ class _TempPool(object):
             self.cleanUp()
             if 'permission denied' in e.output:
                 raise unittest.SkipTest('insufficient privileges to run libzfs_core tests')
+            print 'command failed: ', e.output
             raise
         except:
             self.cleanUp()
