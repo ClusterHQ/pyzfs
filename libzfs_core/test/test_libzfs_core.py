@@ -232,31 +232,6 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname2))
 
 
-    def test_snapshot_multiple_errors(self):
-        snapname1 = ZFSTest.pool.makeName("@snap")
-        snapname2 = ZFSTest.pool.makeName("nonexistent@snap")
-        snapname3 = ZFSTest.pool.makeName("fs1@snap")
-        snaps = [ snapname1 ]
-        more_snaps = [ snapname1, snapname2, snapname3 ]
-
-        # create 'snapname1' snapshot
-        lzc_snapshot(snaps)
-
-        # attempt to create 3 snapshots:
-        # 1. duplicate snapshot name
-        # 2. refers to filesystem that doesn't exist
-        # 3. could have succeeded if not for 1 and 2
-        with self.assertRaises(SnapshotFailure) as ctx:
-            lzc_snapshot(snaps)
-
-        # XXX FilesystemNotFound is not reported at all.
-        self.assertEquals(len(ctx.exception.errors), 1)
-        for e in ctx.exception.errors:
-            self.assertIsInstance(e, SnapshotExists)
-        self.assertFalse(lzc_exists(snapname2))
-        self.assertFalse(lzc_exists(snapname3))
-
-
     def test_snapshot_already_exists(self):
         snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
@@ -326,6 +301,31 @@ class ZFSTest(unittest.TestCase):
         self.assertEqual(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, SnapshotExists)
+        self.assertFalse(lzc_exists(snapname3))
+
+
+    def test_snapshot_multiple_errors(self):
+        snapname1 = ZFSTest.pool.makeName("@snap")
+        snapname2 = ZFSTest.pool.makeName("nonexistent@snap")
+        snapname3 = ZFSTest.pool.makeName("fs1@snap")
+        snaps = [ snapname1 ]
+        more_snaps = [ snapname1, snapname2, snapname3 ]
+
+        # create 'snapname1' snapshot
+        lzc_snapshot(snaps)
+
+        # attempt to create 3 snapshots:
+        # 1. duplicate snapshot name
+        # 2. refers to filesystem that doesn't exist
+        # 3. could have succeeded if not for 1 and 2
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # XXX FilesystemNotFound is not reported at all.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, SnapshotExists)
+        self.assertFalse(lzc_exists(snapname2))
         self.assertFalse(lzc_exists(snapname3))
 
 
