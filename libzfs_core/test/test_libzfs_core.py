@@ -15,6 +15,10 @@ class ZFSTest(unittest.TestCase):
     misc_pool = None
     readonly_pool = None
 
+    # XXX Whether to do a sloppy but much faster cleanup
+    # or a proper but slower one.
+    reset_pools = False
+
 
     @classmethod
     def setUpClass(cls):
@@ -22,6 +26,7 @@ class ZFSTest(unittest.TestCase):
             cls.pool = _TempPool(filesystems = cls.FILESYSTEMS)
             cls.misc_pool = _TempPool()
             cls.readonly_pool = _TempPool(filesystems = cls.FILESYSTEMS, readonly = True)
+            cls.pools = [cls.pool, cls.misc_pool, cls.readonly_pool]
         except:
             cls._cleanUp()
             raise
@@ -44,11 +49,15 @@ class ZFSTest(unittest.TestCase):
 
 
     def tearDown(self):
-        snaps = []
-        for fs in [''] + ZFSTest.FILESYSTEMS:
-            for snap in ZFSTest.SNAPSHOTS:
-                snaps.append(ZFSTest.pool.makeName(fs + '@' + snap))
-        lzc_destroy_snaps(snaps, defer = False)
+        if ZFSTest.reset_pools:
+            for pool in ZFSTest.pools:
+                pool.reset()
+        else:
+            snaps = []
+            for fs in [''] + ZFSTest.FILESYSTEMS:
+                for snap in ZFSTest.SNAPSHOTS:
+                    snaps.append(ZFSTest.pool.makeName(fs + '@' + snap))
+            lzc_destroy_snaps(snaps, defer = False)
 
 
     def test_exists(self):
