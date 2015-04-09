@@ -398,6 +398,8 @@ class _TempPool(object):
     _cachefile_suffix = ".cachefile"
 
     def __init__(self, size = 128 * 1024 * 1024, readonly = False, filesystems = []):
+        self._filesystems = filesystems
+        self._readonly = readonly
         self._pool_name = 'pool.' + bytes(uuid.uuid4())
         (fd, self._pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
         if readonly:
@@ -437,6 +439,19 @@ class _TempPool(object):
             self.cleanUp()
             raise
 
+
+    def reset(self):
+        if self._readonly:
+            return
+        try:
+            subprocess.check_output(['zpool', 'destroy', '-f', self._pool_name], stderr = subprocess.STDOUT)
+            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=none', self._pool_name, self._pool_file_path],
+                                    stderr = subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            print 'command failed: ', e.output
+            raise
+        for fs in self._filesystems:
+            lzc_create(self.makeName(fs))
 
     def cleanUp(self):
         try:
