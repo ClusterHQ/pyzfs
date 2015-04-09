@@ -112,6 +112,10 @@ class ReadOnlyPool(ZFSError):
     def __init__(self, name):
         super(ReadOnlyPool, self).__init__(errno.EROFS, "Pool is read-only", name)
 
+class SuspendedPool(ZFSError):
+    def __init__(self, name):
+        super(SuspendedPool, self).__init__(errno.EROFS, "Pool is suspended", name)
+
 class PoolsDiffer(ZFSError):
     def __init__(self, name):
         super(PoolsDiffer, self).__init__(errno.EXDEV, "Source and target belong to different pools", name)
@@ -138,6 +142,7 @@ _errToException = {
     errno.EBUSY:        DatasetBusy,
     errno.ENAMETOOLONG: NameTooLong,
     errno.EROFS:        ReadOnlyPool,
+    errno.EAGAIN:       SuspendedPool,
     errno.EXDEV:        PoolsDiffer,
 }
 
