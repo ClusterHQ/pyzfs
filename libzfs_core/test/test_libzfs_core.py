@@ -398,10 +398,10 @@ class _TempPool(object):
     _cachefile_suffix = ".cachefile"
 
     def __init__(self, size = 128 * 1024 * 1024, readonly = False, filesystems = []):
-        self.pool_name = 'pool.' + bytes(uuid.uuid4())
-        (fd, self.pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
+        self._pool_name = 'pool.' + bytes(uuid.uuid4())
+        (fd, self._pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
         if readonly:
-            cachefile = self.pool_file_path + _TempPool._cachefile_suffix
+            cachefile = self._pool_file_path + _TempPool._cachefile_suffix
         else:
             cachefile = 'none'
 
@@ -409,7 +409,7 @@ class _TempPool(object):
             os.ftruncate(fd, size)
             os.close(fd)
 
-            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=' + cachefile, self.pool_name, self.pool_file_path],
+            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=' + cachefile, self._pool_name, self._pool_file_path],
                                     stderr = subprocess.STDOUT)
 
             for fs in filesystems:
@@ -421,9 +421,9 @@ class _TempPool(object):
                 # But the cache file has to be stashed away before the pool is exported,
                 # because otherwise the pool is removed from the cache.
                 shutil.copyfile(cachefile, cachefile + '.tmp')
-                subprocess.check_output(['zpool', 'export', '-f', self.pool_name], stderr = subprocess.STDOUT)
+                subprocess.check_output(['zpool', 'export', '-f', self._pool_name], stderr = subprocess.STDOUT)
                 os.rename(cachefile + '.tmp', cachefile)
-                subprocess.check_output(['zpool', 'import', '-N', '-c', cachefile, '-o', 'readonly=on', self.pool_name],
+                subprocess.check_output(['zpool', 'import', '-N', '-c', cachefile, '-o', 'readonly=on', self._pool_name],
                                         stderr = subprocess.STDOUT)
 
         except subprocess.CalledProcessError as e:
@@ -439,29 +439,29 @@ class _TempPool(object):
 
     def cleanUp(self):
         try:
-            subprocess.check_output(['zpool', 'destroy', '-f', self.pool_name], stderr = subprocess.STDOUT)
+            subprocess.check_output(['zpool', 'destroy', '-f', self._pool_name], stderr = subprocess.STDOUT)
         except:
             pass
         try:
-            os.remove(self.pool_file_path)
+            os.remove(self._pool_file_path)
         except:
             pass
         try:
-            os.remove(self.pool_file_path + _TempPool._cachefile_suffix)
+            os.remove(self._pool_file_path + _TempPool._cachefile_suffix)
         except:
             pass
         try:
-            os.remove(self.pool_file_path + _TempPool._cachefile_suffix + '.tmp')
+            os.remove(self._pool_file_path + _TempPool._cachefile_suffix + '.tmp')
         except:
             pass
 
 
     def makeName(self, relative = None):
         if not relative:
-            return self.pool_name
+            return self._pool_name
         if relative.startswith(('@', '#')):
-            return self.pool_name + relative
-        return self.pool_name + '/' + relative
+            return self._pool_name + relative
+        return self._pool_name + '/' + relative
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
