@@ -1,3 +1,4 @@
+import re
 import threading
 from .exceptions import *
 from .bindings import libzfs_core
@@ -149,12 +150,19 @@ def lzc_snapshot(snaps, props = {}):
         one snapshot has been requested.
     '''
     def _map(ret, name):
-        return {
-            errno.EEXIST: SnapshotExists(name),
-            errno.ENOENT: FilesystemNotFound(name),
-            errno.EXDEV:  DuplicateSnapshots(name),
-            errno.EINVAL: PropertyInvalid(name),
-        }.get(ret, genericException(ret, name, "Failed to create snapshot"))
+        if ret == errno.EXDEV:
+            pool_names = map(_pool_name, snaps)
+            same_pool = all(x == pool_names[0] for x in pool_names)
+            if same_pool:
+                return DuplicateSnapshots(name)
+            else:
+                return PoolsDiffer(name)
+        else:
+            return {
+                errno.EEXIST: SnapshotExists(name),
+                errno.ENOENT: FilesystemNotFound(name),
+                errno.EINVAL: PropertyInvalid(name),
+            }.get(ret, genericException(ret, name, "Failed to create snapshot"))
 
     snaps_dict = { name: None for name in snaps }
     errlist = {}
@@ -297,6 +305,10 @@ def _handleErrList(ret, errlist, names, exception, mapper):
             errors.append(mapper(err, name))
 
     raise exception(errors)
+
+
+def _pool_name(name):
+    return re.split('[/@#]', name, 1)[0]
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

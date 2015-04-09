@@ -340,9 +340,7 @@ class ZFSTest(unittest.TestCase):
         # NB: one common error is reported.
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
-            # XXX DuplicateSnapshots is reported instead of PoolsDiffer.
-            self.assertIsInstance(e, DuplicateSnapshots)
-            self.assertEqual(e.errno, PoolsDiffer('dummy').errno)
+            self.assertIsInstance(e, PoolsDiffer)
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
@@ -360,8 +358,7 @@ class ZFSTest(unittest.TestCase):
         for e in ctx.exception.errors:
             # NB: depending on whether the first attempted snapshot is
             # for the read-only pool a different error is reported.
-            # XXX DuplicateSnapshots is reported instead of PoolsDiffer.
-            self.assertIsInstance(e, (DuplicateSnapshots, ReadOnlyPool))
+            self.assertIsInstance(e, (PoolsDiffer, ReadOnlyPool))
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
 
