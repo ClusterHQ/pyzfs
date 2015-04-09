@@ -36,7 +36,7 @@ def lzc_create(name, is_zvol = False, props = {}):
     :param str name: a name of the dataset to be created.
     :param bool is_zvol: whether to create a zvol (false by default).
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str to any
+    :type props: dict of str:Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
@@ -64,7 +64,7 @@ def lzc_clone(name, origin, props = {}):
     :param str name: a name of the dataset to be created.
     :param str origin: a name of the origin snapshot.
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str to Any
+    :type props: dict of str:Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises DatasetNotFound: if either a parent dataset of the requested dataset
@@ -131,7 +131,7 @@ def lzc_snapshot(snaps, props = {}):
     :param snaps: a list of names of snapshots to be created.
     :type snaps: list of str
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str to str
+    :type props: dict of str:str
 
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
