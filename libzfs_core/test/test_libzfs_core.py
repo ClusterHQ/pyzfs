@@ -425,6 +425,7 @@ class _TempPool(object):
                 os.rename(cachefile + '.tmp', cachefile)
                 subprocess.check_output(['zpool', 'import', '-N', '-c', cachefile, '-o', 'readonly=on', self._pool_name],
                                         stderr = subprocess.STDOUT)
+                os.remove(cachefile)
 
         except subprocess.CalledProcessError as e:
             self.cleanUp()
