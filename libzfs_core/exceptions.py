@@ -144,6 +144,7 @@ _errToException = {
     errno.EROFS:        ReadOnlyPool,
     errno.EAGAIN:       SuspendedPool,
     errno.EXDEV:        PoolsDiffer,
+    errno.ENOTSUP:      PropertyNotSupported,
 }
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
