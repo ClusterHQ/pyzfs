@@ -201,7 +201,7 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, FilesystemNotFound)
 
 
-    def test_snapshot_nonexistent_fs2(self):
+    def test_snapshot_nonexistent_and_existent_fs(self):
         snapname1 = ZFSTest.pool.makeName("@snap")
         snapname2 = ZFSTest.pool.makeName("nonexistent@snap")
         snaps = [ snapname1, snapname2 ]
@@ -216,9 +216,25 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname2))
 
 
-    def test_snapshot_nonexistent_fs3(self):
+    def test_multiple_snapshots_nonexistent_fs(self):
         snapname1 = ZFSTest.pool.makeName("nonexistent@snap1")
         snapname2 = ZFSTest.pool.makeName("nonexistent@snap2")
+        snaps = [ snapname1, snapname2 ]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # XXX two errors should be reported but alas
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, FilesystemNotFound)
+        self.assertFalse(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
+
+
+    def test_multiple_snapshots_multiple_nonexistent_fs(self):
+        snapname1 = ZFSTest.pool.makeName("nonexistent1@snap")
+        snapname2 = ZFSTest.pool.makeName("nonexistent2@snap")
         snaps = [ snapname1, snapname2 ]
 
         with self.assertRaises(SnapshotFailure) as ctx:
