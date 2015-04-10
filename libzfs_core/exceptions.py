@@ -62,7 +62,7 @@ class SnapshotFailure(MultipleOperationsFailure):
 
 class SnapshotDestructionFailure(MultipleOperationsFailure):
     def __init__(self, errors):
-        super(SnapshotFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
+        super(SnapshotDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
 
 class BookmarkExists(ZFSError):
     def __init__(self, name):
