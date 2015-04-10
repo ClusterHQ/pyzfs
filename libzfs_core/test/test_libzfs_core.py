@@ -111,6 +111,14 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(name))
 
 
+    def test_create_fs_in_nonexistent_pool(self):
+        name = "no-such-pool/fs"
+
+        with self.assertRaises(ParentNotFound):
+            lzc_create(name)
+        self.assertFalse(lzc_exists(name))
+
+
     def test_create_fs_with_invalid_prop(self):
         name = ZFSTest.pool.makeName("fs1/fs/test3")
         props = { "BOGUS": 0 }
@@ -135,6 +143,22 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(PropertyInvalid):
             lzc_create(name, False, props)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_create_fs_with_invalid_name(self):
+        name = ZFSTest.pool.makeName("@badname")
+
+        with self.assertRaises(NameInvalid):
+            lzc_create(name)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_create_fs_with_invalid_pool_name(self):
+        name = "bad!pool/fs"
+
+        with self.assertRaises(NameInvalid):
+            lzc_create(name)
         self.assertFalse(lzc_exists(name))
 
 
@@ -187,6 +211,18 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, ReadOnlyPool)
         self.assertFalse(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
+
+
+    def test_snapshot_nonexistent_pool(self):
+        snapname = "no-such-pool@snap"
+        snaps = [snapname]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, FilesystemNotFound)
 
 
     def test_snapshot_nonexistent_fs(self):
@@ -430,6 +466,14 @@ class ZFSTest(unittest.TestCase):
         lzc_destroy_snaps([ZFSTest.pool.makeName("@nonexistent")], False)
 
 
+    def test_destroy_snapshot_of_nonexistent_pool(self):
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(["no-such-pool@snap"], False)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, PoolNotFound)
+
+    # NB: note the difference from the nonexistent pool test.
     def test_destroy_snapshot_of_nonexistent_fs(self):
         lzc_destroy_snaps([ZFSTest.pool.makeName("nonexistent@snap")], False)
 
@@ -499,6 +543,39 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snapname])
 
         with self.assertRaises(DatasetNotFound):
+            lzc_clone(name, snapname)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_clone_to_nonexistent_pool(self):
+        snapname = ZFSTest.pool.makeName("fs2@snap")
+        name = "no-such-pool/fs"
+
+        lzc_snapshot([snapname])
+
+        with self.assertRaises(DatasetNotFound):
+            lzc_clone(name, snapname)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_clone_invalid_name(self):
+        snapname = ZFSTest.pool.makeName("fs2@snap")
+        name = ZFSTest.pool.makeName("fs1/bad#name")
+
+        lzc_snapshot([snapname])
+
+        with self.assertRaises(NameInvalid):
+            lzc_clone(name, snapname)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_clone_invalid_pool_name(self):
+        snapname = ZFSTest.pool.makeName("fs2@snap")
+        name = "bad!pool/fs1"
+
+        lzc_snapshot([snapname])
+
+        with self.assertRaises(NameInvalid):
             lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
 
