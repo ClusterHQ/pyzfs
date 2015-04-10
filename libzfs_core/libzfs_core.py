@@ -480,6 +480,14 @@ def lzc_receive(snapname, props, origin, force, fd):
 
 
 def lzc_exists(name):
+    '''
+    Check if a dataset (a filesystem, or a volume, or a snapshot)
+    with the given name exists.
+
+    :param str name: the dataset name to check.
+    :return: `True` if the dataset exists, `False` otherwise.
+    :rtype: bool
+    '''
     ret = _lib.lzc_exists(name)
     return bool(ret)
 
