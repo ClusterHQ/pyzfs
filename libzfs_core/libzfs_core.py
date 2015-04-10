@@ -363,10 +363,41 @@ def lzc_destroy_bookmarks(bookmarks):
 
 
 def lzc_snaprange_space(firstsnap, lastsnap):
+    '''
+    Calculate a size of data used by snapshots between
+    the firstsnap and lastsnap.
+
+    :param str firstsnap: the name of the first snapshot in the range.
+    :param str lastsnap: the name of the last snapshot in the range.
+    :return: the calculated stream size, in bytes.
+    :rtype: `int` or `long`
+
+    :raises SnapshotNotFound: if either of the snapshots does not exist.
+    :raises NameInvalid: if the name of either snapshot is invalid.
+    :raises NameTooLong: if the name of either snapshot is too long.
+    '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
-    return (ret, int(valp[0]))
+    if ret != 0:
+        if ret == errno.EXDEV:
+            if firstsnap is not _ffi.NULL and _pool_name(firstsnap) != _pool_name(lastsnap):
+                raise PoolsDiffer(lastsnap)
+            else:
+                raise WrongSnapshotOrder(lastsnap)
+        elif ret == errno.EINVAL:
+            if not _is_valid_snap_name(firstsnap):
+                raise NameInvalid(firstsnap)
+            elif not _is_valid_snap_name(lastsnap):
+                raise NameInvalid(lastsnap)
+            elif len(firstsnap) > 256:
+                raise NameTooLong(firstsnap)
+            elif len(lastsnap) > 256:
+                raise NameTooLong(lastsnap)
+        raise {
+            errno.ENOENT: SnapshotNotFound(lastsnap),
+        }.get(ret, genericException(ret, name, "Failed to calculate space used by range of snapshots"))
 
+    return int(valp[0])
 
 def lzc_hold(holds, fd, errlist):
     ret = 0
@@ -397,10 +428,48 @@ def lzc_send(snapname, fromsnap, fd, flags):
     return ret
 
 
-def lzc_send_space(snapname, fromsnap):
+def lzc_send_space(snapname, fromsnap = None):
+    '''
+    Estimate size of a full or incremental backup stream
+    given the optional starting snapshot and the ending snapshot.
+
+    :param str snapname: the name of the snapshot for which the estimate should be done.
+    :param fromsnap: the optional starting snapshot name.
+                     If not `None` then an incremental stream size is estimated,
+                     otherwise a full stream is esimated.
+    :type fromsnap: `str` or `None`
+    :return: the estimated stream size, in bytes.
+    :rtype: `int` or `long`
+
+    :raises SnapshotNotFound: if either the starting snapshot is not `None` and does not exist,
+                              or if the ending snapshot does not exist.
+    :raises NameInvalid: if the name of either snapshot is invalid.
+    :raises NameTooLong: if the name of either snapshot is too long.
+    '''
+    if fromsnap == None:
+        fromsnap = _ffi.NULL
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_send_space(snapname, fromsnap, valp)
-    return (ret, int(valp[0]))
+    if ret != 0:
+        if ret == errno.EXDEV:
+            if fromsnap is not _ffi.NULL and _pool_name(fromsnap) != _pool_name(snapname):
+                raise PoolsDiffer(snapname)
+            else:
+                raise WrongSnapshotOrder(snapname)
+        elif ret == errno.EINVAL:
+            if fromsnap is not _ffi.NULL and not _is_valid_snap_name(fromsnap):
+                raise NameInvalid(fromsnap)
+            elif not _is_valid_snap_name(snapname):
+                raise NameInvalid(snapname)
+            elif fromsnap is not _ffi.NULL and len(fromsnap) > 256:
+                raise NameTooLong(fromsnap)
+            elif len(snapname) > 256:
+                raise NameTooLong(snapname)
+        raise {
+            errno.ENOENT: SnapshotNotFound(snapname),
+        }.get(ret, genericException(ret, name, "Failed to estimate backup stream size"))
+
+    return int(valp[0])
 
 
 def lzc_receive(snapname, props, origin, force, fd):
