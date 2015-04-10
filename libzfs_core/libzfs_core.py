@@ -120,21 +120,26 @@ def lzc_rollback(name):
     :return: a name of the most recent snapshot.
     :rtype: str
 
-    :raises DatasetNotFound: if either the dataset does not exist
-                             or it does not have any snapshots.
-
-    .. note::
-        Because of a deficiency of the underlying C interface
-        :py:exc:`.DatasetNotFound` can mean that either the dataset does not exist
-        or it does not have any snapshots.
-        It is currently impossible to distinguish between the cases.
+    :raises FilesystemNotFound: if the dataset does not exist.
+    :raises SnapshotNotFound: if the dataset does not have any snapshots.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
     '''
     snapnamep = _ffi.new('char[]', 256)
     ret = _lib.lzc_rollback(name, snapnamep, 256)
     if ret != 0:
+        if ret == errno.EINVAL:
+            if not _is_valid_fs_name(name):
+                raise NameInvalid(name)
+            elif len(name) > 256:
+                raise NameTooLong(name)
+            else:
+                raise SnapshotNotFound(name)
+
         raise {
-            errno.ENOENT: DatasetNotFound(name),
+            errno.ENOENT: FilesystemNotFound(name),
         }.get(ret, genericException(ret, name, "Failed to rollback"))
+
     return _ffi.string(snapnamep)
 
 
