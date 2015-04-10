@@ -669,6 +669,64 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname2))
 
 
+    def test_rollback(self):
+        name = ZFSTest.pool.makeName("fs1")
+        snapname = name + "@snap"
+
+        lzc_snapshot([snapname])
+        ret = lzc_rollback(name)
+        self.assertEqual(ret, snapname)
+
+
+    def test_rollback_2(self):
+        name = ZFSTest.pool.makeName("fs1")
+        snapname1 = name + "@snap1"
+        snapname2 = name + "@snap2"
+
+        lzc_snapshot([snapname1])
+        lzc_snapshot([snapname2])
+        ret = lzc_rollback(name)
+        self.assertEqual(ret, snapname2)
+
+
+    def test_rollback_no_snaps(self):
+        name = ZFSTest.pool.makeName("fs1")
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            lzc_rollback(name)
+
+
+    def test_rollback_non_existent_fs(self):
+        name = ZFSTest.pool.makeName("nonexistent")
+
+        with self.assertRaises(FilesystemNotFound) as ctx:
+            lzc_rollback(name)
+
+
+    def test_rollback_invalid_fs_name(self):
+        name = ZFSTest.pool.makeName("bad~name")
+
+        with self.assertRaises(NameInvalid) as ctx:
+            lzc_rollback(name)
+
+
+    # A snapshot-like filesystem name is not recognized as
+    # an invalid name for a filesystem.
+    @unittest.expectedFailure
+    def test_rollback_invalid_fs_name_2(self):
+        name = ZFSTest.pool.makeName("fs1@snap")
+
+        with self.assertRaises(NameInvalid) as ctx:
+            lzc_rollback(name)
+
+
+    def test_rollback_too_long_fs_name(self):
+        name = ZFSTest.pool.makeName("x" * 256)
+
+        with self.assertRaises(NameTooLong) as ctx:
+            lzc_rollback(name)
+
+
     def skipUnlessBookmarksSupported(f):
         def _f(_self, *args, **kwargs):
             if _self.__class__.bmarks_suppored:
