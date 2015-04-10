@@ -108,6 +108,10 @@ class NameTooLong(ZFSError):
     def __init__(self, name):
         super(NameTooLong, self).__init__(errno.ENAMETOOLONG, "Dataset name is too long", name)
 
+class NameInvalid(ZFSError):
+    def __init__(self, name):
+        super(NameInvalid, self).__init__(errno.EINVAL, "Invalid name", name)
+
 class ReadOnlyPool(ZFSError):
     def __init__(self, name):
         super(ReadOnlyPool, self).__init__(errno.EROFS, "Pool is read-only", name)

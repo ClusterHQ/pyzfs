@@ -379,6 +379,53 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(snapname2))
 
 
+    def test_snapshot_invalid_name(self):
+        snapname1 = ZFSTest.pool.makeName("@bad&name")
+        snapname2 = ZFSTest.pool.makeName("fs1@bad*name")
+        snapname3 = ZFSTest.pool.makeName("fs2@snap")
+        snaps = [snapname1, snapname2, snapname3]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+            self.assertIsNone(e.filename)
+
+
+    def test_snapshot_too_long_complete_name(self):
+        snapname1 = ZFSTest.pool.makeName("fs1@" + "x" * 210)
+        snapname2 = ZFSTest.pool.makeName("fs2@" + "x" * 210)
+        snapname3 = ZFSTest.pool.makeName("@snap")
+        snaps = [snapname1, snapname2, snapname3]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        self.assertEquals(len(ctx.exception.errors), 2)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertIsNotNone(e.filename)
+
+
+    def test_snapshot_too_long_snap_name(self):
+        snapname1 = ZFSTest.pool.makeName("fs1@" + "x" * 256)
+        snapname2 = ZFSTest.pool.makeName("fs2@" + "x" * 256)
+        snapname3 = ZFSTest.pool.makeName("@snap")
+        snaps = [snapname1, snapname2, snapname3]
+
+        with self.assertRaises(SnapshotFailure) as ctx:
+            lzc_snapshot(snaps)
+
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertIsNone(e.filename)
+
+
     def test_clone(self):
         # NB: note the special name for the snapshot.
         # Since currently we can not destroy filesystems,

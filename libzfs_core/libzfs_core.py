@@ -1,4 +1,5 @@
 import re
+import string
 import threading
 from .exceptions import *
 from .bindings import libzfs_core
@@ -141,13 +142,29 @@ def lzc_snapshot(snaps, props = {}):
         one detailed error object in :py:attr:`SnapshotFailure.errors` `list`.
 
     .. warning::
-        There is an underlying C library bug that affects reporting of
-        an error caused by one or more missing filesystems.
-        If any other errors are encountered then :py:exc:`.FilesystemNotFound` is
-        not reported at all.
-        If :py:exc:`.FilesystemNotFound` is reported it is impossible to tell how
-        many filesystems are missing and which they are, unless only
-        one snapshot has been requested.
+        The underlying implementation reports an individual, per-snapshot error
+        only for :py:exc:`.SnapshotExists` condition and *sometimes* for
+        :py:exc:`.NameTooLong`.
+        In all other cases a single error is reported without connection to any
+        specific snapshot name(s).
+
+        This has the following implications:
+
+        * if multiple error conditions are encountered only one of them is reported
+
+        * unless only one snapshot is requested then it is impossible to tell
+          how many snapshots are problematic and what they are
+
+        * only if there are no other error conditions :py:exc:`.SnapshotExists`
+          is reported for all affected snapshots
+
+        * :py:exc:`.NameTooLong` can behave either in the same way as
+          :py:exc:`.SnapshotExists` or as all other exceptions.
+          The former is the case where the full snapshot name exceeds the maximum
+          allowed length but the short snapshot name (after '@') is within
+          the limit.
+          The latter is the case when the short name alone exceeds the maximum
+          allowed length.
     '''
     def _map(ret, name):
         if ret == errno.EXDEV:
@@ -157,11 +174,17 @@ def lzc_snapshot(snaps, props = {}):
                 return DuplicateSnapshots(name)
             else:
                 return PoolsDiffer(name)
+        elif ret == errno.EINVAL:
+            if any(not _is_valid_snap_name(s) for s in snaps):
+                return NameInvalid(name)
+            elif any(len(s) > 256 for s in snaps):
+                return NameTooLong(name)
+            else:
+                return PropertyInvalid(name)
         else:
             return {
                 errno.EEXIST: SnapshotExists(name),
                 errno.ENOENT: FilesystemNotFound(name),
-                errno.EINVAL: PropertyInvalid(name),
             }.get(ret, genericException(ret, name, "Failed to create snapshot"))
 
     snaps_dict = { name: None for name in snaps }
@@ -309,6 +332,27 @@ def _handleErrList(ret, errlist, names, exception, mapper):
 
 def _pool_name(name):
     return re.split('[/@#]', name, 1)[0]
+
+
+def _is_valid_name_component(component):
+    allowed = string.ascii_letters + string.digits + '-_.: '
+    return bool(component) and all(x in allowed for x in component)
+
+
+def _is_valid_fs_name(name):
+    return bool(name) and all(_is_valid_name_component(c) for c in name.split('/'))
+
+
+def _is_valid_snap_name(name):
+    parts = name.split('@')
+    return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
+           _is_valid_name_component(parts[1]))
+
+
+def _is_valid_bmark_name(name):
+    parts = name.split('#')
+    return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
+           _is_valid_name_component(parts[1]))
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
