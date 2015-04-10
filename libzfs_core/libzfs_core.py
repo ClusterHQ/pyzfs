@@ -228,7 +228,7 @@ def lzc_destroy_snaps(snaps, defer):
     def _map(ret, name):
         return {
             errno.EEXIST: SnapshotIsCloned(name),
-        }.get(ret, genericException(ret, name, "Failed to create snapshot"))
+        }.get(ret, genericException(ret, name, "Failed to destroy snapshot"))
 
     snaps_dict = { name: None for name in snaps }
     errlist = {}
