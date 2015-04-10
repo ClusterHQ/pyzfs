@@ -84,6 +84,14 @@ class BookmarkDestructionFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors)
 
+class HoldFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors)
+
+class HoldReleaseFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(HoldReleaseFailure, self).__init__("Release of hold(s) failed for one or more reasons", errors)
+
 class WrongSnapshotOrder(ZFSError):
     def __init__(self, name):
         super(WrongSnapshotOrder, self).__init__(errno.EXDEV, "Starting snapshot is newer than ending snapshot", name)
