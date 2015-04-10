@@ -484,6 +484,7 @@ class ZFSTest(unittest.TestCase):
 
     def test_destroy_nonexistent_snapshot(self):
         lzc_destroy_snaps([ZFSTest.pool.makeName("@nonexistent")], False)
+        lzc_destroy_snaps([ZFSTest.pool.makeName("@nonexistent")], True)
 
 
     def test_destroy_snapshot_of_nonexistent_pool(self):
@@ -493,9 +494,17 @@ class ZFSTest(unittest.TestCase):
         for e in ctx.exception.errors:
             self.assertIsInstance(e, PoolNotFound)
 
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(["no-such-pool@snap"], True)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, PoolNotFound)
+
+
     # NB: note the difference from the nonexistent pool test.
     def test_destroy_snapshot_of_nonexistent_fs(self):
         lzc_destroy_snaps([ZFSTest.pool.makeName("nonexistent@snap")], False)
+        lzc_destroy_snaps([ZFSTest.pool.makeName("nonexistent@snap")], True)
 
 
     # Apparently the name is not checked for validity.
@@ -503,6 +512,8 @@ class ZFSTest(unittest.TestCase):
     def test_destroy_invalid_snap_name(self):
         with self.assertRaises(SnapshotDestructionFailure) as ctx:
             lzc_destroy_snaps([ZFSTest.pool.makeName("@non$&*existent")], False)
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps([ZFSTest.pool.makeName("@non$&*existent")], True)
 
 
     # Apparently the full name is not checked for length.
@@ -513,6 +524,8 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(SnapshotDestructionFailure) as ctx:
             lzc_destroy_snaps(snaps, False)
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(snaps, True)
 
 
     def test_destroy_too_long_short_snap_name(self):
