@@ -223,11 +223,19 @@ def lzc_destroy_snaps(snaps, defer):
     .. note::
         :py:exc:`.SnapshotDestructionFailure` is a compound exception that provides at least
         one detailed error object in :py:attr:`SnapshotDestructionFailure.errors` `list`.
+
+        Typical error is py:exc:`SnapshotIsCloned` if `defer` is `False`.
+        The snapshot names are validated quite loosely and invalid names are typically
+        ignored as nonexisiting snapshots.
+
+        A snapshot name referring to a filesystem that doesn't exist is ignored.
+        However, non-existent pool name causes py:exc:`PoolNotFound`.
     '''
 
     def _map(ret, name):
         return {
             errno.EEXIST: SnapshotIsCloned(name),
+            errno.ENOENT: PoolNotFound(name),
         }.get(ret, genericException(ret, name, "Failed to destroy snapshot"))
 
     snaps_dict = { name: None for name in snaps }

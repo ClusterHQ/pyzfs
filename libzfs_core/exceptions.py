@@ -120,6 +120,10 @@ class SuspendedPool(ZFSError):
     def __init__(self, name):
         super(SuspendedPool, self).__init__(errno.EROFS, "Pool is suspended", name)
 
+class PoolNotFound(ZFSError):
+    def __init__(self, name):
+        super(PoolNotFound, self).__init__(errno.EXDEV, "No such pool", name)
+
 class PoolsDiffer(ZFSError):
     def __init__(self, name):
         super(PoolsDiffer, self).__init__(errno.EXDEV, "Source and target belong to different pools", name)
