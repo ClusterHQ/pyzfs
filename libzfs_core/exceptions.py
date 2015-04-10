@@ -78,11 +78,11 @@ class BookmarkNotSupported(ZFSError):
 
 class BookmarkFailure(MultipleOperationsFailure):
     def __init__(self, errors):
-        super(BookmarkFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors)
+        super(BookmarkFailure, self).__init__("Creation of bookmark(s) failed for one or more reasons", errors)
 
 class BookmarkDestructionFailure(MultipleOperationsFailure):
     def __init__(self, errors):
-        super(BookmarkDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
+        super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors)
 
 class UnrelatedSnapshot(ZFSError):
     def __init__(self, name):
