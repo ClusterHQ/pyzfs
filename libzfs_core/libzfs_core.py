@@ -86,7 +86,7 @@ def lzc_clone(name, origin, props = {}):
         :py:exc:`.DatasetNotFound` can mean that either a parent filesystem of the target
         or the origin snapshot does not exist.
         It is currently impossible to distinguish between the cases.
-        `lzc_hold` can be used to check that the snapshot exists and ensure that
+        :py:func:`lzc_hold` can be used to check that the snapshot exists and ensure that
         it is not destroyed before cloning.
     '''
     with nvlist_in(props) as nvlist:
@@ -249,12 +249,12 @@ def lzc_destroy_snaps(snaps, defer):
         :py:exc:`.SnapshotDestructionFailure` is a compound exception that provides at least
         one detailed error object in :py:attr:`SnapshotDestructionFailure.errors` `list`.
 
-        Typical error is py:exc:`SnapshotIsCloned` if `defer` is `False`.
+        Typical error is :py:exc:`SnapshotIsCloned` if `defer` is `False`.
         The snapshot names are validated quite loosely and invalid names are typically
         ignored as nonexisiting snapshots.
 
         A snapshot name referring to a filesystem that doesn't exist is ignored.
-        However, non-existent pool name causes py:exc:`PoolNotFound`.
+        However, non-existent pool name causes :py:exc:`PoolNotFound`.
     '''
 
     def _map(ret, name):
@@ -280,8 +280,8 @@ def lzc_bookmark(bookmarks):
 
     :raises BookmarkFailure: if any of the bookmarks can not be created for any reason.
 
-    The bookmarks `dict` maps from name of the bookmark (e.g. "pool/fs#bmark") to
-    the name of the snapshot (e.g. "pool/fs@snap").  All the bookmarks and
+    The bookmarks `dict` maps from name of the bookmark (e.g. :file:`{pool}/{fs}#{bmark}`) to
+    the name of the snapshot (e.g. :file:`{pool}/{fs}@{snap}`).  All the bookmarks and
     snapshots must be in the same pool.
     '''
     def _map(ret, name):
