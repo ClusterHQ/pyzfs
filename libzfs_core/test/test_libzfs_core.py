@@ -426,6 +426,46 @@ class ZFSTest(unittest.TestCase):
             self.assertIsNone(e.filename)
 
 
+    def test_destroy_nonexistent_snapshot(self):
+        lzc_destroy_snaps([ZFSTest.pool.makeName("@nonexistent")], False)
+
+
+    def test_destroy_snapshot_of_nonexistent_fs(self):
+        lzc_destroy_snaps([ZFSTest.pool.makeName("nonexistent@snap")], False)
+
+
+    # Apparently the name is not checked for validity.
+    @unittest.expectedFailure
+    def test_destroy_invalid_snap_name(self):
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps([ZFSTest.pool.makeName("@non$&*existent")], False)
+
+
+    # Apparently the full name is not checked for length.
+    @unittest.expectedFailure
+    def test_destroy_too_long_full_snap_name(self):
+        snapname1 = ZFSTest.pool.makeName("fs1@nonexistent" + "x" * 200)
+        snaps = [snapname1]
+
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(snaps, False)
+
+
+    def test_destroy_too_long_short_snap_name(self):
+        snapname1 = ZFSTest.pool.makeName("fs1@nonexistent" + "x" * 245)
+        snapname2 = ZFSTest.pool.makeName("fs2@nonexistent" + "x" * 245)
+        snapname3 = ZFSTest.pool.makeName("@snap")
+        snaps = [snapname1, snapname2, snapname3]
+
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(snaps, False)
+
+        # NB: one common error is reported.
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+
+
     def test_clone(self):
         # NB: note the special name for the snapshot.
         # Since currently we can not destroy filesystems,
@@ -461,6 +501,40 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(DatasetNotFound):
             lzc_clone(name, snapname)
         self.assertFalse(lzc_exists(name))
+
+
+    def test_destroy_cloned_fs(self):
+        snapname1 = ZFSTest.pool.makeName("fs2@origin4")
+        snapname2 = ZFSTest.pool.makeName("fs1@snap")
+        clonename = ZFSTest.pool.makeName("fs1/fs/clone4")
+        snaps = [snapname1, snapname2]
+
+        lzc_snapshot(snaps)
+        lzc_clone(clonename, snapname1)
+
+        with self.assertRaises(SnapshotDestructionFailure) as ctx:
+            lzc_destroy_snaps(snaps, False)
+
+        self.assertEquals(len(ctx.exception.errors), 1)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, SnapshotIsCloned)
+        for snap in snaps:
+            self.assertTrue(lzc_exists(snap))
+
+
+    def test_deferred_destroy_cloned_fs(self):
+        snapname1 = ZFSTest.pool.makeName("fs2@origin5")
+        snapname2 = ZFSTest.pool.makeName("fs1@snap")
+        clonename = ZFSTest.pool.makeName("fs1/fs/clone5")
+        snaps = [snapname1, snapname2]
+
+        lzc_snapshot(snaps)
+        lzc_clone(clonename, snapname1)
+
+        lzc_destroy_snaps(snaps, defer = True)
+
+        self.assertTrue(lzc_exists(snapname1))
+        self.assertFalse(lzc_exists(snapname2))
 
 
 class _TempPool(object):
