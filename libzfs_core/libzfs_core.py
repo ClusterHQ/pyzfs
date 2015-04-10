@@ -92,10 +92,23 @@ def lzc_clone(name, origin, props = {}):
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_clone(name, origin, nvlist)
     if ret != 0:
+        if ret == errno.EINVAL:
+            if not _is_valid_fs_name(name):
+                raise NameInvalid(name)
+            elif not _is_valid_snap_name(origin):
+                raise NameInvalid(origin)
+            elif len(name) > 256:
+                raise NameTooLong(name)
+            elif len(origin) > 256:
+                raise NameTooLong(origin)
+            elif _pool_name(name) != _pool_name(origin):
+                raise PoolsDiffer(name) # see https://www.illumos.org/issues/5824
+            else:
+                raise PropertyInvalid(name)
+
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: DatasetNotFound(name),
-            errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create clone"))
 
 
