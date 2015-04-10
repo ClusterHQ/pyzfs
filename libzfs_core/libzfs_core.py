@@ -266,28 +266,95 @@ def lzc_destroy_snaps(snaps, defer):
     _handleErrList(ret, errlist, snaps, SnapshotDestructionFailure, _map)
 
 
-def lzc_bookmark(bookmarks, errlist):
-    ret = 0
+def lzc_bookmark(bookmarks):
+    '''
+    Create bookmarks.
+
+    :param bookmarks: a dict that maps names of wanted bookmarks to names of existing snapshots.
+    :type bookmarks: dict of str to str
+
+    :raises BookmarkFailure: if any of the bookmarks can not be created for any reason.
+
+    The bookmarks `dict` maps from name of the bookmark (e.g. "pool/fs#bmark") to
+    the name of the snapshot (e.g. "pool/fs@snap").  All the bookmarks and
+    snapshots must be in the same pool.
+    '''
+    def _map(ret, name):
+        return {
+            errno.EEXIST: BookmarkExists(name),
+            errno.ENOENT: SnapshotNotFound(name),
+            errno.EINVAL: NameInvalid(name),
+            errno.ENOTSUP: BookmarkNotSupported(name),
+        }.get(ret, genericException(ret, name, "Failed to create bookmark"))
+
+    errlist = {}
     with nvlist_in(bookmarks) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
-    return ret
+    _handleErrList(ret, errlist, bookmarks.keys(), BookmarkFailure, _map)
 
 
-def lzc_get_bookmarks(fsname, props, bmarks):
-    ret = 0
-    with nvlist_in(props) as nvlist:
+def lzc_get_bookmarks(fsname, props):
+    '''
+    Retrieve a list of bookmarks for the given file system.
+
+    :param str fsname: a name of the filesystem.
+    :param props: a `list` of properties that will be returned for each bookmark.
+    :type props: list of str
+    :return: a `dict` that maps the bookmarks' short names to their properties.
+    :rtype: dict of str:dict
+
+    :raises FilesystemNotFound: if the filesystem is not found.
+
+    The following are valid properties on bookmarks:
+
+    guid : integer
+        globally unique identifier of the snapshot the bookmark refers to
+    createtxg : integer
+        txg when the snapshot the bookmark refers to was created
+    creation : integer
+        timestamp when the snapshot the bookmark refers to was created
+
+    '''
+    bmarks = {}
+    props_dict = { name: None for name in props }
+    with nvlist_in(props_dict) as nvlist:
         with nvlist_out(bmarks) as bmarks_nvlist:
             ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
-    return ret
+    if ret != 0:
+        raise {
+            errno.ENOENT: FilesystemNotFound(fsname),
+        }.get(ret, genericException(ret, name, "Failed to list bookmarks"))
+    return bmarks
 
 
-def lzc_destroy_bookmarks(bookmarks, errlist):
-    ret = 0
-    with nvlist_in(bookmarks) as nvlist:
+def lzc_destroy_bookmarks(bookmarks):
+    '''
+    Destroy bookmarks.
+
+    :param bookmarks: a list of the bookmarks to be destroyed.
+                      The bookmarks are specified as :file:`{fs}#{bmark}`.
+    :type bookmarks: list of str
+
+    :raises BookmarkDestructionFailure: if any of the bookmarks may not be destroyed.
+
+    The bookmarks must all be in the same pool.
+    Bookmarks that do not exist will be silently ignored.
+
+    Either all bookmarks that existed are destroyed or an exception is raised.
+    '''
+
+    def _map(ret, name):
+        return {
+            errno.EINVAL: NameInvalid(name),
+        }.get(ret, genericException(ret, name, "Failed to destroy bookmark"))
+
+    errlist = {}
+    bmarks_dict = { name: None for name in bookmarks }
+    with nvlist_in(bmarks_dict) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
-    return ret
+    _handleErrList(ret, errlist, bookmarks, BookmarkDestructionFailure, _map)
 
 
 def lzc_snaprange_space(firstsnap, lastsnap):

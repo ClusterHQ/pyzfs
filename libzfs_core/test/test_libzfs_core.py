@@ -10,6 +10,7 @@ class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
+    BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
 
     pool = None
     misc_pool = None
@@ -27,6 +28,7 @@ class ZFSTest(unittest.TestCase):
             cls.misc_pool = _TempPool()
             cls.readonly_pool = _TempPool(filesystems = cls.FILESYSTEMS, readonly = True)
             cls.pools = [cls.pool, cls.misc_pool, cls.readonly_pool]
+            cls.bmarks_suppored = cls._checkBookmarks()
         except:
             cls._cleanUp()
             raise
@@ -44,6 +46,16 @@ class ZFSTest(unittest.TestCase):
                 pool.cleanUp()
 
 
+    @classmethod
+    def _checkBookmarks(cls):
+        bmarks = {ZFSTest.pool.makeName('#bmark'): "dummy"}
+        try:
+            lzc_bookmark(bmarks)
+        except BookmarkFailure as e:
+            return not isinstance(e.errors[0], BookmarkNotSupported)
+        return True
+
+
     def setUp(self):
         pass
 
@@ -58,6 +70,14 @@ class ZFSTest(unittest.TestCase):
                 for snap in ZFSTest.SNAPSHOTS:
                     snaps.append(ZFSTest.pool.makeName(fs + '@' + snap))
             lzc_destroy_snaps(snaps, defer = False)
+
+            if not ZFSTest.bmarks_suppored:
+                return
+            bmarks = []
+            for fs in [''] + ZFSTest.FILESYSTEMS:
+                for bmark in ZFSTest.BOOKMARKS:
+                    bmarks.append(ZFSTest.pool.makeName(fs + '#' + bmark))
+            lzc_destroy_bookmarks(bmarks)
 
 
     def test_exists(self):
@@ -634,6 +654,20 @@ class ZFSTest(unittest.TestCase):
 
         self.assertTrue(lzc_exists(snapname1))
         self.assertFalse(lzc_exists(snapname2))
+
+
+    def skipUnlessBookmarksSupported(f):
+        def _f(_self, *args, **kwargs):
+            if _self.__class__.bmarks_suppored:
+                return f(_self, *args, **kwargs)
+            else:
+                return _self.skipTest("bookmarks are not supported")
+        return _f
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks(self):
+        pass
 
 
 class _TempPool(object):

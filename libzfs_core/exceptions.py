@@ -72,6 +72,18 @@ class BookmarkNotFound(ZFSError):
     def __init__(self, name):
         super(BookmarkNotFound, self).__init__(errno.ENOENT, "Bookmark not found", name)
 
+class BookmarkNotSupported(ZFSError):
+    def __init__(self, name):
+        super(BookmarkNotSupported, self).__init__(errno.ENOTSUP, "Bookmark feature is not supported", name)
+
+class BookmarkFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(BookmarkFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors)
+
+class BookmarkDestructionFailure(MultipleOperationsFailure):
+    def __init__(self, errors):
+        super(BookmarkDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
+
 class UnrelatedSnapshot(ZFSError):
     def __init__(self, name):
         super(UnrelatedSnapshot, self).__init__(errno.EXDEV, "Snapshot is not related to a filesystem", name)
