@@ -84,6 +84,10 @@ class BookmarkDestructionFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors)
 
+class WrongSnapshotOrder(ZFSError):
+    def __init__(self, name):
+        super(WrongSnapshotOrder, self).__init__(errno.EXDEV, "Starting snapshot is newer than ending snapshot", name)
+
 class UnrelatedSnapshot(ZFSError):
     def __init__(self, name):
         super(UnrelatedSnapshot, self).__init__(errno.EXDEV, "Snapshot is not related to a filesystem", name)
