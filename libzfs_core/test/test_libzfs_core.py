@@ -580,6 +580,28 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc_exists(name))
 
 
+    def test_clone_across_pools(self):
+        snapname = ZFSTest.pool.makeName("fs2@snap")
+        name = ZFSTest.misc_pool.makeName("clone1")
+
+        lzc_snapshot([snapname])
+
+        with self.assertRaises(PoolsDiffer):
+            lzc_clone(name, snapname)
+        self.assertFalse(lzc_exists(name))
+
+
+    def test_clone_across_pools_to_ro_pool(self):
+        snapname = ZFSTest.pool.makeName("fs2@snap")
+        name = ZFSTest.readonly_pool.makeName("fs1/clone1")
+
+        lzc_snapshot([snapname])
+
+        with self.assertRaises(ReadOnlyPool):
+            lzc_clone(name, snapname)
+        self.assertFalse(lzc_exists(name))
+
+
     def test_destroy_cloned_fs(self):
         snapname1 = ZFSTest.pool.makeName("fs2@origin4")
         snapname2 = ZFSTest.pool.makeName("fs1@snap")
