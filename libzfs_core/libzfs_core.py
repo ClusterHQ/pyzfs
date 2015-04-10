@@ -52,10 +52,17 @@ def lzc_create(name, is_zvol = False, props = {}):
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_create(name, ds_type, nvlist)
     if ret != 0:
+        if ret == errno.EINVAL:
+            if not _is_valid_fs_name(name):
+                raise NameInvalid(name)
+            elif len(name) > 256:
+                raise NameTooLong(name)
+            else:
+                raise PropertyInvalid(name)
+
         raise {
             errno.EEXIST: FilesystemExists(name),
             errno.ENOENT: ParentNotFound(name),
-            errno.EINVAL: PropertyInvalid(name),
         }.get(ret, genericException(ret, name, "Failed to create filesystem"))
 
 
