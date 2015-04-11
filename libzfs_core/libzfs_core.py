@@ -83,10 +83,10 @@ def lzc_clone(name, origin, props = {}):
 
     .. note::
         Because of a deficiency of the underlying C interface
-        :py:exc:`.DatasetNotFound` can mean that either a parent filesystem of the target
+        :exc:`.DatasetNotFound` can mean that either a parent filesystem of the target
         or the origin snapshot does not exist.
         It is currently impossible to distinguish between the cases.
-        :py:func:`lzc_hold` can be used to check that the snapshot exists and ensure that
+        :func:`lzc_hold` can be used to check that the snapshot exists and ensure that
         it is not destroyed before cloning.
     '''
     with nvlist_in(props) as nvlist:
@@ -163,13 +163,13 @@ def lzc_snapshot(snaps, props = {}):
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
     .. note::
-        :py:exc:`.SnapshotFailure` is a compound exception that provides at least
-        one detailed error object in :py:attr:`SnapshotFailure.errors` `list`.
+        :exc:`.SnapshotFailure` is a compound exception that provides at least
+        one detailed error object in :attr:`SnapshotFailure.errors` `list`.
 
     .. warning::
         The underlying implementation reports an individual, per-snapshot error
-        only for :py:exc:`.SnapshotExists` condition and *sometimes* for
-        :py:exc:`.NameTooLong`.
+        only for :exc:`.SnapshotExists` condition and *sometimes* for
+        :exc:`.NameTooLong`.
         In all other cases a single error is reported without connection to any
         specific snapshot name(s).
 
@@ -180,11 +180,11 @@ def lzc_snapshot(snaps, props = {}):
         * unless only one snapshot is requested then it is impossible to tell
           how many snapshots are problematic and what they are
 
-        * only if there are no other error conditions :py:exc:`.SnapshotExists`
+        * only if there are no other error conditions :exc:`.SnapshotExists`
           is reported for all affected snapshots
 
-        * :py:exc:`.NameTooLong` can behave either in the same way as
-          :py:exc:`.SnapshotExists` or as all other exceptions.
+        * :exc:`.NameTooLong` can behave either in the same way as
+          :exc:`.SnapshotExists` or as all other exceptions.
           The former is the case where the full snapshot name exceeds the maximum
           allowed length but the short snapshot name (after '@') is within
           the limit.
@@ -246,15 +246,15 @@ def lzc_destroy_snaps(snaps, defer):
     :raises SnapshotDestructionFailure: if one or more snapshots could not be created.
 
     .. note::
-        :py:exc:`.SnapshotDestructionFailure` is a compound exception that provides at least
-        one detailed error object in :py:attr:`SnapshotDestructionFailure.errors` `list`.
+        :exc:`.SnapshotDestructionFailure` is a compound exception that provides at least
+        one detailed error object in :attr:`SnapshotDestructionFailure.errors` `list`.
 
-        Typical error is :py:exc:`SnapshotIsCloned` if `defer` is `False`.
+        Typical error is :exc:`SnapshotIsCloned` if `defer` is `False`.
         The snapshot names are validated quite loosely and invalid names are typically
         ignored as nonexisiting snapshots.
 
         A snapshot name referring to a filesystem that doesn't exist is ignored.
-        However, non-existent pool name causes :py:exc:`PoolNotFound`.
+        However, non-existent pool name causes :exc:`PoolNotFound`.
     '''
 
     def _map(ret, name):
