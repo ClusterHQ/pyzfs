@@ -487,6 +487,9 @@ def lzc_exists(name):
     :param str name: the dataset name to check.
     :return: `True` if the dataset exists, `False` otherwise.
     :rtype: bool
+
+    .. note::
+        ``lzc_exists`` can not be used to check for existence of bookmarks.
     '''
     ret = _lib.lzc_exists(name)
     return bool(ret)
