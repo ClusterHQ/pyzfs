@@ -738,7 +738,125 @@ class ZFSTest(unittest.TestCase):
 
     @skipUnlessBookmarksSupported
     def test_bookmarks(self):
-        pass
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_2(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        lzc_bookmark(bmark_dict)
+        lzc_destroy_snaps(snaps, defer = False)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_mismatching_name(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_invalid_name(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark!')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_invalid_name_2(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1@bmark')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_mismatching_names(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs2#bmark1'), ZFSTest.pool.makeName('fs1#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    # XXX should this succeed?
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_partially_mismatching_name(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs2#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps)
+        lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_missing_snap(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps[0:1])
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_missing_snaps(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+    @unittest.skip("causes a kernel crash")
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_for_the_same_snap(self):
+        snap = ZFSTest.pool.makeName('fs1@snap1')
+        bmark1 = ZFSTest.pool.makeName('fs1#bmark1')
+        bmark2 = ZFSTest.pool.makeName('fs1#bmark2')
+        bmark_dict = {bmark1: snap, bmark2: snap}
+
+        lzc_snapshot([snap])
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+
+    @skipUnlessBookmarksSupported
+    def test_bookmarks_for_the_same_snap_2(self):
+        snap = ZFSTest.pool.makeName('fs1@snap1')
+        bmark1 = ZFSTest.pool.makeName('fs1#bmark1')
+        bmark2 = ZFSTest.pool.makeName('fs1#bmark2')
+        bmark_dict1 = {bmark1: snap}
+        bmark_dict2 = {bmark2: snap}
+
+        lzc_snapshot([snap])
+        lzc_bookmark(bmark_dict1)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
 
 
 class _TempPool(object):
