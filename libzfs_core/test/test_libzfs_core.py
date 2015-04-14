@@ -9,17 +9,10 @@ from ..libzfs_core import *
 class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
-    SNAPSHOTS = ['snap', 'snap1', 'snap2']
-    BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
 
     pool = None
     misc_pool = None
     readonly_pool = None
-
-    # XXX Whether to do a sloppy but much faster cleanup
-    # or a proper but slower one.
-    reset_pools = False
-
 
     @classmethod
     def setUpClass(cls):
@@ -61,23 +54,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def tearDown(self):
-        if ZFSTest.reset_pools:
-            for pool in ZFSTest.pools:
-                pool.reset()
-        else:
-            snaps = []
-            for fs in [''] + ZFSTest.FILESYSTEMS:
-                for snap in ZFSTest.SNAPSHOTS:
-                    snaps.append(ZFSTest.pool.makeName(fs + '@' + snap))
-            lzc_destroy_snaps(snaps, defer = False)
-
-            if not ZFSTest.bmarks_suppored:
-                return
-            bmarks = []
-            for fs in [''] + ZFSTest.FILESYSTEMS:
-                for bmark in ZFSTest.BOOKMARKS:
-                    bmarks.append(ZFSTest.pool.makeName(fs + '#' + bmark))
-            lzc_destroy_bookmarks(bmarks)
+        for pool in ZFSTest.pools:
+            pool.reset()
 
 
     def test_exists(self):
@@ -860,7 +838,15 @@ class ZFSTest(unittest.TestCase):
 
 
 class _TempPool(object):
+    SNAPSHOTS = ['snap', 'snap1', 'snap2']
+    BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
+
     _cachefile_suffix = ".cachefile"
+
+    # XXX Whether to do a sloppy but much faster cleanup
+    # or a proper but slower one.
+    _recreate_pools = False
+
 
     def __init__(self, size = 128 * 1024 * 1024, readonly = False, filesystems = []):
         self._filesystems = filesystems
@@ -908,6 +894,23 @@ class _TempPool(object):
     def reset(self):
         if self._readonly:
             return
+
+        if not self.__class__._recreate_pools:
+            snaps = []
+            for fs in [''] + self._filesystems:
+                for snap in self.__class__.SNAPSHOTS:
+                    snaps.append(self.makeName(fs + '@' + snap))
+            lzc_destroy_snaps(snaps, defer = False)
+
+            if not self._bmarks_supported:
+                return
+            bmarks = []
+            for fs in [''] + self._filesystems:
+                for bmark in self.__class__.BOOKMARKS:
+                    bmarks.append(self.makeName(fs + '#' + bmark))
+            lzc_destroy_bookmarks(bmarks)
+            return
+
         try:
             subprocess.check_output(['zpool', 'destroy', '-f', self._pool_name], stderr = subprocess.STDOUT)
             subprocess.check_output(['zpool', 'create', '-o', 'cachefile=none', self._pool_name, self._pool_file_path],
