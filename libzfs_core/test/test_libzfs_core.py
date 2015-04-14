@@ -811,6 +811,21 @@ class ZFSTest(unittest.TestCase):
 
 
     @skipUnlessBookmarksSupported
+    def test_bookmarks_cross_pool(self):
+        snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.misc_pool.makeName('@snap1')]
+        bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.misc_pool.makeName('#bmark1')]
+        bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
+
+        lzc_snapshot(snaps[0:1])
+        lzc_snapshot(snaps[1:2])
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, PoolsDiffer)
+
+
+    @skipUnlessBookmarksSupported
     def test_bookmarks_missing_snap(self):
         snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
         bmarks = [ZFSTest.pool.makeName('fs1#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
