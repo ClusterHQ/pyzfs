@@ -7,28 +7,6 @@ import uuid
 from ..libzfs_core import *
 
 
-def skipUnlessBookmarksSupported(f):
-    def _f(_self, *args, **kwargs):
-        if _self.__class__.pool.bookmarksSupported():
-            return f(_self, *args, **kwargs)
-        else:
-            return _self.skipTest("bookmarks are not supported")
-    _f.__name__ = f.__name__
-    return _f
-
-
-def skipIfFeatureSupported(feature, message):
-    def _decorator(f):
-        def _f(_self, *args, **kwargs):
-            if _self.__class__.pool.isFeatureSupported(feature):
-                return _self.skipTest(message)
-            else:
-                return f(_self, *args, **kwargs)
-        _f.__name__ = f.__name__
-        return _f
-    return _decorator
-
-
 def runtimeSkipIf(check_method, message):
     def _decorator(f):
         def _f(_self, *args, **kwargs):
@@ -43,6 +21,14 @@ def runtimeSkipIf(check_method, message):
 
 def skipIfFeatureAvailable(feature, message):
     return runtimeSkipIf(lambda _self: _self.__class__.pool.isPoolFeatureAvailable(feature), message)
+
+
+def skipUnlessFeatureEnabled(feature, message):
+    return runtimeSkipIf(lambda _self: not _self.__class__.pool.isPoolFeatureEnabled(feature), message)
+
+
+def skipUnlessBookmarksSupported(f):
+    return skipUnlessFeatureEnabled('bookmarks', 'bookmarks are not enabled')(f)
 
 
 class ZFSTest(unittest.TestCase):
@@ -887,7 +873,7 @@ class _TempPool(object):
             for fs in filesystems:
                 lzc_create(self.makeName(fs))
 
-            self._bmarks_supported = self._checkBookmarks()
+            self._bmarks_supported = self.isPoolFeatureEnabled('bookmarks')
 
             if readonly:
                 # To make a pool read-only it must exported and re-imported with readonly option.
@@ -970,10 +956,6 @@ class _TempPool(object):
         return self._pool_name + '/' + relative
 
 
-    def bookmarksSupported(self):
-        return self._bmarks_supported
-
-
     def isPoolFeatureAvailable(self, feature):
         output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
         output = output.strip()
@@ -984,15 +966,6 @@ class _TempPool(object):
         output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
         output = output.strip()
         return output in ['active', 'enabled']
-
-
-    def _checkBookmarks(self):
-        bmarks = {self.makeName('#bmark'): "dummy"}
-        try:
-            lzc_bookmark(bmarks)
-        except BookmarkFailure as e:
-            return not isinstance(e.errors[0], BookmarkNotSupported)
-        return True
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
