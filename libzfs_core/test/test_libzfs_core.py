@@ -21,7 +21,6 @@ class ZFSTest(unittest.TestCase):
             cls.misc_pool = _TempPool()
             cls.readonly_pool = _TempPool(filesystems = cls.FILESYSTEMS, readonly = True)
             cls.pools = [cls.pool, cls.misc_pool, cls.readonly_pool]
-            cls.bmarks_suppored = cls._checkBookmarks()
         except:
             cls._cleanUp()
             raise
@@ -37,16 +36,6 @@ class ZFSTest(unittest.TestCase):
         for pool in [cls.pool, cls.misc_pool, cls.readonly_pool]:
             if pool is not None:
                 pool.cleanUp()
-
-
-    @classmethod
-    def _checkBookmarks(cls):
-        bmarks = {ZFSTest.pool.makeName('#bmark'): "dummy"}
-        try:
-            lzc_bookmark(bmarks)
-        except BookmarkFailure as e:
-            return not isinstance(e.errors[0], BookmarkNotSupported)
-        return True
 
 
     def setUp(self):
@@ -705,15 +694,6 @@ class ZFSTest(unittest.TestCase):
             lzc_rollback(name)
 
 
-    def skipUnlessBookmarksSupported(f):
-        def _f(_self, *args, **kwargs):
-            if _self.__class__.bmarks_suppored:
-                return f(_self, *args, **kwargs)
-            else:
-                return _self.skipTest("bookmarks are not supported")
-        return _f
-
-
     @skipUnlessBookmarksSupported
     def test_bookmarks(self):
         snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
@@ -868,6 +848,8 @@ class _TempPool(object):
             for fs in filesystems:
                 lzc_create(self.makeName(fs))
 
+            self._bmarks_supported = self._checkBookmarks()
+
             if readonly:
                 # To make a pool read-only it must exported and re-imported with readonly option.
                 # The most deterministic way to re-import the pool is by using a cache file.
@@ -946,6 +928,19 @@ class _TempPool(object):
         if relative.startswith(('@', '#')):
             return self._pool_name + relative
         return self._pool_name + '/' + relative
+
+
+    def bookmarksSupported(self):
+        return self._bmarks_supported
+
+
+    def _checkBookmarks(self):
+        bmarks = {self.makeName('#bmark'): "dummy"}
+        try:
+            lzc_bookmark(bmarks)
+        except BookmarkFailure as e:
+            return not isinstance(e.errors[0], BookmarkNotSupported)
+        return True
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
