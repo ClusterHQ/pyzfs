@@ -950,6 +950,44 @@ class ZFSTest(unittest.TestCase):
             bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('nonexistent'))
 
 
+    @skipUnlessBookmarksSupported
+    def test_destroy_bookmarks(self):
+        snap = ZFSTest.pool.makeName('fs1@snap')
+        bmark = ZFSTest.pool.makeName('fs1#bmark')
+        bmark_dict = {bmark: snap}
+
+        lzc_snapshot([snap])
+        lzc_bookmark(bmark_dict)
+
+        lzc_destroy_bookmarks([bmark, ZFSTest.pool.makeName('fs1#nonexistent')])
+        bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
+        self.assertEquals(len(bmarks), 0)
+
+
+    @skipUnlessBookmarksSupported
+    def test_destroy_bookmarks_invalid_name(self):
+        snap = ZFSTest.pool.makeName('fs1@snap')
+        bmark = ZFSTest.pool.makeName('fs1#bmark')
+        bmark_dict = {bmark: snap}
+
+        lzc_snapshot([snap])
+        lzc_bookmark(bmark_dict)
+
+        with self.assertRaises(BookmarkDestructionFailure) as ctx:
+            lzc_destroy_bookmarks([bmark, ZFSTest.pool.makeName('fs1/nonexistent')])
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+
+        bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
+        self.assertEquals(len(bmarks), 1)
+        self.assertTrue('bmark' in bmarks)
+
+
+    @skipUnlessBookmarksSupported
+    def test_destroy_bookmark_nonexistent_fs(self):
+        lzc_destroy_bookmarks([ZFSTest.pool.makeName('nonexistent#bmark')])
+
+
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
     BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
