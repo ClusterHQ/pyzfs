@@ -335,6 +335,10 @@ def lzc_get_bookmarks(fsname, props):
     creation : integer
         timestamp when the snapshot the bookmark refers to was created
 
+    Any other properties passed in ``props`` are ignored without reporting
+    any error.
+    Values in the returned dictionary map the names of the requested properties
+    to their respective values.
     '''
     bmarks = {}
     props_dict = { name: None for name in props }
