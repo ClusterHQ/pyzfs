@@ -896,7 +896,7 @@ class _TempPool(object):
                 shutil.copyfile(cachefile, cachefile + '.tmp')
                 subprocess.check_output(['zpool', 'export', '-f', self._pool_name], stderr = subprocess.STDOUT)
                 os.rename(cachefile + '.tmp', cachefile)
-                subprocess.check_output(['zpool', 'import', '-N', '-c', cachefile, '-o', 'readonly=on', self._pool_name],
+                subprocess.check_output(['zpool', 'import', '-f', '-N', '-c', cachefile, '-o', 'readonly=on', self._pool_name],
                                         stderr = subprocess.STDOUT)
                 os.remove(cachefile)
 
