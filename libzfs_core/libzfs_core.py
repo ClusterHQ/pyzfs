@@ -314,7 +314,7 @@ def lzc_bookmark(bookmarks):
     _handleErrList(ret, errlist, bookmarks.keys(), BookmarkFailure, _map)
 
 
-def lzc_get_bookmarks(fsname, props):
+def lzc_get_bookmarks(fsname, props = []):
     '''
     Retrieve a list of bookmarks for the given file system.
 
