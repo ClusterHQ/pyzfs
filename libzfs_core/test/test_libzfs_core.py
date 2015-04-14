@@ -934,6 +934,18 @@ class _TempPool(object):
         return self._bmarks_supported
 
 
+    def isPoolFeatureAvailable(self, feature):
+        output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
+        output = output.strip()
+        return output != ''
+
+
+    def isPoolFeatureEnabled(self, feature):
+        output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
+        output = output.strip()
+        return output in ['active', 'enabled']
+
+
     def _checkBookmarks(self):
         bmarks = {self.makeName('#bmark'): "dummy"}
         try:
