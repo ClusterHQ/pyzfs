@@ -750,6 +750,9 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
 
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, BookmarkMismatch)
+
 
     @skipUnlessBookmarksSupported
     def test_bookmarks_invalid_name(self):
@@ -760,6 +763,9 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot(snaps)
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
 
 
     @skipUnlessBookmarksSupported
@@ -772,6 +778,9 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
 
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+
 
     @skipUnlessBookmarksSupported
     def test_bookmarks_mismatching_names(self):
@@ -782,6 +791,9 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot(snaps)
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, BookmarkMismatch)
 
 
     @skipUnlessBookmarksSupported
@@ -794,6 +806,9 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
 
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, BookmarkMismatch)
+
 
     @skipUnlessBookmarksSupported
     def test_bookmarks_missing_snap(self):
@@ -805,6 +820,9 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
 
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, SnapshotNotFound)
+
 
     @skipUnlessBookmarksSupported
     def test_bookmarks_missing_snaps(self):
@@ -814,6 +832,10 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, SnapshotNotFound)
+
 
     @skipIfFeatureAvailable('large_blocks', 'causes kernel panic if large_blocks feature is supported')
     @skipUnlessBookmarksSupported
@@ -854,6 +876,9 @@ class ZFSTest(unittest.TestCase):
         lzc_bookmark(bmark_dict1)
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict2)
+
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, BookmarkExists)
 
 
 class _TempPool(object):

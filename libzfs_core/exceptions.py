@@ -72,6 +72,10 @@ class BookmarkNotFound(ZFSError):
     def __init__(self, name):
         super(BookmarkNotFound, self).__init__(errno.ENOENT, "Bookmark not found", name)
 
+class BookmarkMismatch(ZFSError):
+    def __init__(self, name):
+        super(BookmarkMismatch, self).__init__(errno.EINVAL, "Bookmark is not in snapshot's filesystem", name)
+
 class BookmarkNotSupported(ZFSError):
     def __init__(self, name):
         super(BookmarkNotSupported, self).__init__(errno.ENOTSUP, "Bookmark feature is not supported", name)

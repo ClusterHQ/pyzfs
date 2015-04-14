@@ -285,10 +285,22 @@ def lzc_bookmark(bookmarks):
     snapshots must be in the same pool.
     '''
     def _map(ret, name):
+        if ret == errno.EINVAL:
+            if bool(name):
+                snap = bookmarks[name]
+                if not _is_valid_bmark_name(name):
+                    return NameInvalid(name)
+                elif not _is_valid_snap_name(snap):
+                    return NameInvalid(snap)
+                elif _fs_name(name) != _fs_name(snap):
+                    return BookmarkMismatch(name)
+            else:
+                invalid_names = [b for b in bookmarks.keys() if not _is_valid_bmark_name(b)]
+                if len(invalid_names) > 0:
+                    return NameInvalid(invalid_names[0])
         return {
             errno.EEXIST: BookmarkExists(name),
             errno.ENOENT: SnapshotNotFound(name),
-            errno.EINVAL: NameInvalid(name),
             errno.ENOTSUP: BookmarkNotSupported(name),
         }.get(ret, genericException(ret, name, "Failed to create bookmark"))
 
@@ -512,6 +524,10 @@ def _handleErrList(ret, errlist, names, exception, mapper):
 
 def _pool_name(name):
     return re.split('[/@#]', name, 1)[0]
+
+
+def _fs_name(name):
+    return re.split('[@#]', name, 1)[0]
 
 
 def _is_valid_name_component(component):
