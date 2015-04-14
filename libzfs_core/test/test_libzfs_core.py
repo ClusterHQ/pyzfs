@@ -829,7 +829,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(BookmarkFailure) as ctx:
             lzc_bookmark(bmark_dict)
 
-    @unittest.skip("causes a kernel crash")
+    @skipIfFeatureAvailable('large_blocks', 'causes kernel panic if large_blocks feature is supported')
     @skipUnlessBookmarksSupported
     def test_bookmarks_for_the_same_snap(self):
         snap = ZFSTest.pool.makeName('fs1@snap1')
@@ -842,6 +842,7 @@ class ZFSTest(unittest.TestCase):
             lzc_bookmark(bmark_dict)
 
 
+    @skipIfFeatureAvailable('large_blocks', 'incorrectly fails if large_blocks feature is supported')
     @skipUnlessBookmarksSupported
     def test_bookmarks_for_the_same_snap_2(self):
         snap = ZFSTest.pool.makeName('fs1@snap1')
