@@ -902,6 +902,7 @@ class _TempPool(object):
         for fs in self._filesystems:
             lzc_create(self.makeName(fs))
 
+
     def cleanUp(self):
         try:
             subprocess.check_output(['zpool', 'destroy', '-f', self._pool_name], stderr = subprocess.STDOUT)
