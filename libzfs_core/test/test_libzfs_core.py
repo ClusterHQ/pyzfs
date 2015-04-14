@@ -988,6 +988,219 @@ class ZFSTest(unittest.TestCase):
         lzc_destroy_bookmarks([ZFSTest.pool.makeName('nonexistent#bmark')])
 
 
+    def test_snaprange_space(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        snap3 = ZFSTest.pool.makeName("fs1@snap")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_snapshot([snap3])
+
+        space = lzc_snaprange_space(snap1, snap2)
+        space = lzc_snaprange_space(snap2, snap3)
+        space = lzc_snaprange_space(snap1, snap3)
+        self.assertIsInstance(space, (int, long))
+
+
+    def test_snaprange_space_wrong_order(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(WrongSnapshotOrder):
+            space = lzc_snaprange_space(snap2, snap1)
+
+
+    def test_snaprange_space_unrelated(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(UnrelatedSnapshot):
+            space = lzc_snaprange_space(snap1, snap2)
+
+
+    def test_snaprange_space_across_pools(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.misc_pool.makeName("@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(PoolsDiffer):
+            space = lzc_snaprange_space(snap1, snap2)
+
+
+    def test_snaprange_space_nonexistent(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            space = lzc_snaprange_space(snap1, snap2)
+        self.assertEquals(ctx.exception.filename, snap2)
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            space = lzc_snaprange_space(snap2, snap1)
+        self.assertEquals(ctx.exception.filename, snap1)
+
+
+    def test_snaprange_space_invalid_name(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@sn#p")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid):
+            space = lzc_snaprange_space(snap1, snap2)
+
+
+    def test_snaprange_space_not_snap(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid):
+            space = lzc_snaprange_space(snap1, snap2)
+        with self.assertRaises(NameInvalid):
+            space = lzc_snaprange_space(snap2, snap1)
+
+
+    def test_snaprange_space_not_snap_2(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1#bmark")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid):
+            space = lzc_snaprange_space(snap1, snap2)
+        with self.assertRaises(NameInvalid):
+            space = lzc_snaprange_space(snap2, snap1)
+
+
+    def test_send_space(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        snap3 = ZFSTest.pool.makeName("fs1@snap")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_snapshot([snap3])
+
+        space = lzc_send_space(snap2, snap1)
+        space = lzc_send_space(snap3, snap2)
+        space = lzc_send_space(snap3, snap1)
+        space = lzc_send_space(snap1)
+        space = lzc_send_space(snap2)
+        space = lzc_send_space(snap3)
+        self.assertIsInstance(space, (int, long))
+
+
+    def test_send_space_wrong_order(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(WrongSnapshotOrder):
+            space = lzc_send_space(snap1, snap2)
+
+
+    def test_send_space_unrelated(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(UnrelatedSnapshot):
+            space = lzc_send_space(snap1, snap2)
+
+
+    def test_send_space_across_pools(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.misc_pool.makeName("@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with self.assertRaises(PoolsDiffer):
+            space = lzc_send_space(snap1, snap2)
+
+
+    def test_send_space_nonexistent(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            space = lzc_send_space(snap1, snap2)
+        self.assertEquals(ctx.exception.filename, snap1)
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            space = lzc_send_space(snap2, snap1)
+        self.assertEquals(ctx.exception.filename, snap2)
+
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            space = lzc_send_space(snap2)
+        self.assertEquals(ctx.exception.filename, snap2)
+
+
+    def test_send_space_invalid_name(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@sn!p")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid) as ctx:
+            space = lzc_send_space(snap2, snap1)
+        self.assertEquals(ctx.exception.filename, snap2)
+        with self.assertRaises(NameInvalid) as ctx:
+            space = lzc_send_space(snap2)
+        self.assertEquals(ctx.exception.filename, snap2)
+        with self.assertRaises(NameInvalid) as ctx:
+            space = lzc_send_space(snap1, snap2)
+        self.assertEquals(ctx.exception.filename, snap2)
+
+
+    def test_send_space_not_snap(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap1, snap2)
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap2, snap1)
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap2)
+
+
+    def test_send_space_not_snap_2(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1#bmark")
+
+        lzc_snapshot([snap1])
+
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap1, snap2)
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap2, snap1)
+        with self.assertRaises(NameInvalid):
+            space = lzc_send_space(snap2)
+
+
+
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
     BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
