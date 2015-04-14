@@ -841,6 +841,20 @@ class ZFSTest(unittest.TestCase):
         lzc_bookmark(bmark_dict2)
 
 
+    @skipIfFeatureAvailable('large_blocks', 'incorrectly fails if large_blocks feature is supported')
+    def test_bookmarks_duplicate_name(self):
+        snap1 = ZFSTest.pool.makeName('fs1@snap1')
+        snap2 = ZFSTest.pool.makeName('fs1@snap2')
+        bmark = ZFSTest.pool.makeName('fs1#bmark')
+        bmark_dict1 = {bmark: snap1}
+        bmark_dict2 = {bmark: snap2}
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_bookmark(bmark_dict1)
+        lzc_bookmark(bmark_dict2)
+
+
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
     BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
