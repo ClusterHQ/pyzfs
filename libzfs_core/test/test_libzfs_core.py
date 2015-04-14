@@ -970,14 +970,14 @@ class _TempPool(object):
 
 
     def isPoolFeatureAvailable(self, feature):
-        output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
+        output = subprocess.check_output(['zpool', 'get', '-H', 'feature@' + feature, self._pool_name])
         output = output.strip()
         return output != ''
 
 
     def isPoolFeatureEnabled(self, feature):
-        output = subprocess.check_output(['zpool', 'get', '-H', '-o', 'value', 'feature@' + feature, self._pool_name])
-        output = output.strip()
+        output = subprocess.check_output(['zpool', 'get', '-H', 'feature@' + feature, self._pool_name])
+        output = output.split()[2]
         return output in ['active', 'enabled']
 
 
