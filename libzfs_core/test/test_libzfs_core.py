@@ -6,6 +6,45 @@ import tempfile
 import uuid
 from ..libzfs_core import *
 
+
+def skipUnlessBookmarksSupported(f):
+    def _f(_self, *args, **kwargs):
+        if _self.__class__.pool.bookmarksSupported():
+            return f(_self, *args, **kwargs)
+        else:
+            return _self.skipTest("bookmarks are not supported")
+    _f.__name__ = f.__name__
+    return _f
+
+
+def skipIfFeatureSupported(feature, message):
+    def _decorator(f):
+        def _f(_self, *args, **kwargs):
+            if _self.__class__.pool.isFeatureSupported(feature):
+                return _self.skipTest(message)
+            else:
+                return f(_self, *args, **kwargs)
+        _f.__name__ = f.__name__
+        return _f
+    return _decorator
+
+
+def runtimeSkipIf(check_method, message):
+    def _decorator(f):
+        def _f(_self, *args, **kwargs):
+            if check_method(_self):
+                return _self.skipTest(message)
+            else:
+                return f(_self, *args, **kwargs)
+        _f.__name__ = f.__name__
+        return _f
+    return _decorator
+
+
+def skipIfFeatureAvailable(feature, message):
+    return runtimeSkipIf(lambda _self: _self.__class__.pool.isPoolFeatureAvailable(feature), message)
+
+
 class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
