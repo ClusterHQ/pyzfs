@@ -896,6 +896,60 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, BookmarkExists)
 
 
+    @skipUnlessBookmarksSupported
+    def test_get_bookmarks(self):
+        snap1 = ZFSTest.pool.makeName('fs1@snap1')
+        snap2 = ZFSTest.pool.makeName('fs1@snap2')
+        bmark = ZFSTest.pool.makeName('fs1#bmark')
+        bmark1 = ZFSTest.pool.makeName('fs1#bmark1')
+        bmark2 = ZFSTest.pool.makeName('fs1#bmark2')
+        bmark_dict1 = {bmark1: snap1, bmark2: snap2}
+        bmark_dict2 = {bmark: snap2}
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_bookmark(bmark_dict1)
+        lzc_bookmark(bmark_dict2)
+        lzc_destroy_snaps([snap1, snap2], defer = False)
+
+        bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
+        self.assertEquals(len(bmarks), 3)
+        for b in 'bmark', 'bmark1', 'bmark2':
+            self.assertTrue(b in bmarks)
+            self.assertIsInstance(bmarks[b], dict)
+            self.assertEquals(len(bmarks[b]), 0)
+
+        bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['guid', 'createtxg', 'creation'])
+        self.assertEquals(len(bmarks), 3)
+        for b in 'bmark', 'bmark1', 'bmark2':
+            self.assertTrue(b in bmarks)
+            self.assertIsInstance(bmarks[b], dict)
+            self.assertEquals(len(bmarks[b]), 3)
+
+
+    @skipUnlessBookmarksSupported
+    def test_get_bookmarks_invalid_property(self):
+        snap = ZFSTest.pool.makeName('fs1@snap')
+        bmark = ZFSTest.pool.makeName('fs1#bmark')
+        bmark_dict = {bmark: snap}
+
+        lzc_snapshot([snap])
+        lzc_bookmark(bmark_dict)
+
+        bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['badprop'])
+        self.assertEquals(len(bmarks), 1)
+        for b in ('bmark', ):
+            self.assertTrue(b in bmarks)
+            self.assertIsInstance(bmarks[b], dict)
+            self.assertEquals(len(bmarks[b]), 0)
+
+
+    @skipUnlessBookmarksSupported
+    def test_get_bookmarks_nonexistent_fs(self):
+        with self.assertRaises(FilesystemNotFound):
+            bmarks = lzc_get_bookmarks(ZFSTest.pool.makeName('nonexistent'))
+
+
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
     BOOKMARKS = ['bmark', 'bmark1', 'bmark2']
