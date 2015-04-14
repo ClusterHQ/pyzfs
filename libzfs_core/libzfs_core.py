@@ -398,16 +398,14 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     :raises SnapshotNotFound: if either of the snapshots does not exist.
     :raises NameInvalid: if the name of either snapshot is invalid.
     :raises NameTooLong: if the name of either snapshot is too long.
+    :raises WrongSnapshotOrder: if ``firstsnap`` is not an earlier snapshot than ``lastsnap``.
+    :raises UnrelatedSnapshot: if the snapshots belong to different filesystems.
+    :raises PoolsDiffer: if the snapshots belong to different pools.
     '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
     if ret != 0:
-        if ret == errno.EXDEV:
-            if firstsnap is not _ffi.NULL and _pool_name(firstsnap) != _pool_name(lastsnap):
-                raise PoolsDiffer(lastsnap)
-            else:
-                raise WrongSnapshotOrder(lastsnap)
-        elif ret == errno.EINVAL:
+        if ret == errno.EINVAL:
             if not _is_valid_snap_name(firstsnap):
                 raise NameInvalid(firstsnap)
             elif not _is_valid_snap_name(lastsnap):
@@ -416,9 +414,15 @@ def lzc_snaprange_space(firstsnap, lastsnap):
                 raise NameTooLong(firstsnap)
             elif len(lastsnap) > 256:
                 raise NameTooLong(lastsnap)
+            elif _pool_name(firstsnap) != _pool_name(lastsnap):
+                raise PoolsDiffer(lastsnap)
+            elif _fs_name(firstsnap) != _fs_name(lastsnap):
+                raise UnrelatedSnapshot(lastsnap)
+            else:
+                raise WrongSnapshotOrder(lastsnap)
         raise {
             errno.ENOENT: SnapshotNotFound(lastsnap),
-        }.get(ret, genericException(ret, name, "Failed to calculate space used by range of snapshots"))
+        }.get(ret, genericException(ret, lastsnap, "Failed to calculate space used by range of snapshots"))
 
     return int(valp[0])
 
@@ -468,15 +472,20 @@ def lzc_send_space(snapname, fromsnap = None):
                               or if the ending snapshot does not exist.
     :raises NameInvalid: if the name of either snapshot is invalid.
     :raises NameTooLong: if the name of either snapshot is too long.
+    :raises WrongSnapshotOrder: if ``fromsnap`` is not an earlier snapshot than ``snapname``.
+    :raises UnrelatedSnapshot: if the snapshots belong to different filesystems.
+    :raises PoolsDiffer: if the snapshots belong to different pools.
     '''
     if fromsnap == None:
         fromsnap = _ffi.NULL
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_send_space(snapname, fromsnap, valp)
     if ret != 0:
-        if ret == errno.EXDEV:
-            if fromsnap is not _ffi.NULL and _pool_name(fromsnap) != _pool_name(snapname):
+        if ret == errno.EXDEV and fromsnap is not _ffi.NULL:
+            if _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
+            elif _fs_name(fromsnap) != _fs_name(snapname):
+                raise UnrelatedSnapshot(snapname)
             else:
                 raise WrongSnapshotOrder(snapname)
         elif ret == errno.EINVAL:
@@ -488,9 +497,14 @@ def lzc_send_space(snapname, fromsnap = None):
                 raise NameTooLong(fromsnap)
             elif len(snapname) > 256:
                 raise NameTooLong(snapname)
+            elif fromsnap is not _ffi.NULL and _pool_name(fromsnap) != _pool_name(snapname):
+                raise PoolsDiffer(snapname)
+        elif ret == errno.ENOENT and fromsnap is not _ffi.NULL:
+            if not _is_valid_snap_name(fromsnap):
+                raise NameInvalid(fromsnap)
         raise {
             errno.ENOENT: SnapshotNotFound(snapname),
-        }.get(ret, genericException(ret, name, "Failed to estimate backup stream size"))
+        }.get(ret, genericException(ret, snapname, "Failed to estimate backup stream size"))
 
     return int(valp[0])
 
