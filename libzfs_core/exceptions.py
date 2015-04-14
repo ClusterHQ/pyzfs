@@ -102,7 +102,7 @@ class WrongSnapshotOrder(ZFSError):
 
 class UnrelatedSnapshot(ZFSError):
     def __init__(self, name):
-        super(UnrelatedSnapshot, self).__init__(errno.EXDEV, "Snapshot is not related to a filesystem", name)
+        super(UnrelatedSnapshot, self).__init__(errno.EXDEV, "Snapshot is not related to filesystem or snapshot", name)
 
 class SnapshotMismatch(ZFSError):
     def __init__(self, name):
