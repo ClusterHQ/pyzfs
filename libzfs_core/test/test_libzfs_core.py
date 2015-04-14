@@ -784,15 +784,15 @@ class ZFSTest(unittest.TestCase):
             lzc_bookmark(bmark_dict)
 
 
-    # XXX should this succeed?
     @skipUnlessBookmarksSupported
-    def test_bookmarks_partially_mismatching_name(self):
+    def test_bookmarks_partially_mismatching_names(self):
         snaps = [ZFSTest.pool.makeName('fs1@snap1'), ZFSTest.pool.makeName('fs2@snap1')]
-        bmarks = [ZFSTest.pool.makeName('fs2#bmark1'), ZFSTest.pool.makeName('fs2#bmark1')]
+        bmarks = [ZFSTest.pool.makeName('fs2#bmark'), ZFSTest.pool.makeName('fs2#bmark1')]
         bmark_dict = {x: y for x, y in zip(bmarks, snaps)}
 
         lzc_snapshot(snaps)
-        lzc_bookmark(bmark_dict)
+        with self.assertRaises(BookmarkFailure) as ctx:
+            lzc_bookmark(bmark_dict)
 
 
     @skipUnlessBookmarksSupported
