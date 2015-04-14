@@ -813,8 +813,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc_snapshot([snap])
         lzc_bookmark(bmark_dict1)
-        with self.assertRaises(BookmarkFailure) as ctx:
-            lzc_bookmark(bmark_dict)
+        lzc_bookmark(bmark_dict2)
 
 
 class _TempPool(object):
