@@ -824,8 +824,7 @@ class ZFSTest(unittest.TestCase):
         bmark_dict = {bmark1: snap, bmark2: snap}
 
         lzc_snapshot([snap])
-        with self.assertRaises(BookmarkFailure) as ctx:
-            lzc_bookmark(bmark_dict)
+        lzc_bookmark(bmark_dict)
 
 
     @skipIfFeatureAvailable('large_blocks', 'incorrectly fails if large_blocks feature is supported')
