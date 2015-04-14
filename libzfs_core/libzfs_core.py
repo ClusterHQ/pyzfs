@@ -344,7 +344,7 @@ def lzc_get_bookmarks(fsname, props):
     if ret != 0:
         raise {
             errno.ENOENT: FilesystemNotFound(fsname),
-        }.get(ret, genericException(ret, name, "Failed to list bookmarks"))
+        }.get(ret, genericException(ret, fsname, "Failed to list bookmarks"))
     return bmarks
 
 
