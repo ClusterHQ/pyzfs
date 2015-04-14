@@ -364,6 +364,10 @@ def lzc_destroy_bookmarks(bookmarks):
 
     The bookmarks must all be in the same pool.
     Bookmarks that do not exist will be silently ignored.
+    This also includes the case where the filesystem component of the bookmark
+    name does not exist.
+    However, an invalid bookmark name will cause :exc:`.NameInvalid` error
+    reported in :attr:`SnapshotDestructionFailure.errors`.
 
     Either all bookmarks that existed are destroyed or an exception is raised.
     '''
