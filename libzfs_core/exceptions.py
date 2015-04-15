@@ -50,7 +50,7 @@ class SnapshotNotFound(ZFSError):
 
 class SnapshotIsCloned(ZFSError):
     def __init__(self, name):
-        super(SnapshotIsCloned, self).__init__(errno.ENOENT, "Snapshot is cloned", name)
+        super(SnapshotIsCloned, self).__init__(errno.EEXIST, "Snapshot is cloned", name)
 
 class DuplicateSnapshots(ZFSError):
     def __init__(self, name):
