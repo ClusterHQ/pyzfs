@@ -1418,4 +1418,76 @@ class _TempPool(object):
         return output in ['active', 'enabled']
 
 
+class _Filesystem(object):
+    def __init__(self, name):
+        self._name = name
+        self.reset()
+
+
+    def getName(self):
+        return self._name
+
+
+    def reset(self):
+        self._children = []
+        self._fs_id = 0
+        self._snap_id = 0
+        self._bmark_id = 0
+
+
+    def getFilesystem(self):
+        self._fs_id += 1
+        fsname = self._name + '/fs' + str(self._fs_id)
+        fs = _Filesystem(fsname)
+        self._children.append(fs)
+        return fs
+
+
+    def _makeSnapName(self, i):
+        return self._name + '@snap' + str(i)
+
+
+    def getSnap(self):
+        self._snap_id += 1
+        return self._makeSnapName(self._snap_id)
+
+
+    def _makeBookmarkName(self, i):
+        return self._name + '#bmark' + str(i)
+
+
+    def getBookmark(self):
+        self._bmark_id += 1
+        return self._makeBookmarkName(self._bmark_id)
+
+
+    def _visitFilesystems(self, visitor):
+        for child in self._children:
+            child._visitFilesystems(visitor)
+        visitor(self)
+
+
+    def visitFilesystems(self, visitor):
+        def _fsVisitor(fs):
+            visitor(fs._name)
+
+        self._visitFilesystems(_fsVisitor)
+
+
+    def visitSnaps(self, visitor):
+        def _snapVisitor(fs):
+            for i in range(1, fs._snap_id + 1):
+                visitor(fs._makeSnapName(i))
+
+        self._visitFilesystems(_snapVisitor)
+
+
+    def visitBookmarks(self, visitor):
+        def _bmarkVisitor(fs):
+            for i in range(1, fs._bmark_id + 1):
+                visitor(fs._makeBookmarkName(i))
+
+        self._visitFilesystems(_bmarkVisitor)
+
+
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
