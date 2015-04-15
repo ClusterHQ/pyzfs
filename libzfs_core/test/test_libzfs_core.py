@@ -1023,9 +1023,34 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap3])
 
         space = lzc_snaprange_space(snap1, snap2)
+        self.assertIsInstance(space, (int, long))
         space = lzc_snaprange_space(snap2, snap3)
+        self.assertIsInstance(space, (int, long))
         space = lzc_snaprange_space(snap1, snap3)
         self.assertIsInstance(space, (int, long))
+
+
+    def test_snaprange_space_2(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        snap3 = ZFSTest.pool.makeName("fs1@snap")
+
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            tmpfile = os.path.join(mntdir, 'tmpfile')
+            lzc_snapshot([snap1])
+            with open(tmpfile, "wb") as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+            lzc_snapshot([snap2])
+            os.unlink(tmpfile)
+            lzc_snapshot([snap3])
+
+        space = lzc_snaprange_space(snap1, snap2)
+        self.assertGreater(space, 1024 * 1024)
+        space = lzc_snaprange_space(snap2, snap3)
+        self.assertGreater(space, 1024 * 1024)
+        space = lzc_snaprange_space(snap1, snap3)
+        self.assertGreater(space, 1024 * 1024)
 
 
     def test_snaprange_space_wrong_order(self):
@@ -1120,12 +1145,48 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap3])
 
         space = lzc_send_space(snap2, snap1)
+        self.assertIsInstance(space, (int, long))
         space = lzc_send_space(snap3, snap2)
+        self.assertIsInstance(space, (int, long))
         space = lzc_send_space(snap3, snap1)
+        self.assertIsInstance(space, (int, long))
         space = lzc_send_space(snap1)
+        self.assertIsInstance(space, (int, long))
         space = lzc_send_space(snap2)
+        self.assertIsInstance(space, (int, long))
         space = lzc_send_space(snap3)
         self.assertIsInstance(space, (int, long))
+
+
+    def test_send_space_2(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        snap3 = ZFSTest.pool.makeName("fs1@snap")
+
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            tmpfile = os.path.join(mntdir, 'tmpfile')
+            lzc_snapshot([snap1])
+            with open(tmpfile, "wb") as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+            lzc_snapshot([snap2])
+            os.unlink(tmpfile)
+            lzc_snapshot([snap3])
+
+        space = lzc_send_space(snap2, snap1)
+        self.assertGreater(space, 1024 * 1024)
+
+        space = lzc_send_space(snap3, snap2)
+
+        space = lzc_send_space(snap3, snap1)
+
+        space_empty = lzc_send_space(snap1)
+
+        space = lzc_send_space(snap2)
+        self.assertGreater(space, 1024 * 1024)
+
+        space = lzc_send_space(snap3)
+        self.assertEquals(space, space_empty)
 
 
     def test_send_space_wrong_order(self):
