@@ -426,12 +426,77 @@ def lzc_snaprange_space(firstsnap, lastsnap):
 
     return int(valp[0])
 
-def lzc_hold(holds, fd, errlist):
-    ret = 0
+
+def lzc_hold(holds, fd = None):
+    '''
+    Create *user holds* on snapshots.  If there is a hold on a snapshot,
+    the snapshot can not be destroyed.  (However, it can be marked for deletion
+    by :func:`lzc_destroy_snaps` ( ``defer`` = `True` ).)
+
+    :param holds: the dictionary of names of the snapshots to hold mapped to the hold names.
+    :type holds: dict of str : str
+    :type fd: int or None
+    :param fd: if not None then it must be the result of :func:`os.open` called as ``os.open("/dev/zfs", O_EXCL)``.
+    :type fd: int or None
+    :return: a list of the snapshots that do not exist.
+    :rtype: list of str
+
+    :raises HoldFailure: if a hold was impossible on one or more of the snapshots.
+    :raises BadHoldCleanupFD: if ``fd`` is not a valid file descriptor associated with :file:`/dev/zfs`.
+
+    The snapshots must all be in the same pool.
+
+    If ``fd`` is not None, then when the ``fd`` is closed (including on process
+    termination), the holds will be released.  If the system is shut down
+    uncleanly, the holds will be released when the pool is next opened
+    or imported.
+
+    Holds for snapshots which don't exist will be skipped and have an entry
+    added to the return value, but will not cause an overall failure.
+    No exceptions is raised if all holds, for snapshots that existed, were succesfully created.
+    Otherwise :exc:`.HoldFailure` exception is raised and no holds will be created.
+    :attr:`.HoldFailure.errors` may contain a single element for an error that is not
+    specific to any hold / snapshot, or it may contain one or more elements
+    detailing specific error per each affected hold.
+    '''
+    def _map(ret, name):
+        if ret == errno.EXDEV:
+            return PoolsDiffer(name)
+        elif ret == errno.EINVAL:
+            if bool(name):
+                tag = holds[name]
+                pool_names = map(_pool_name, holds.keys())
+                if not _is_valid_snap_name(name):
+                    return NameInvalid(name)
+                elif len(name) > 256:
+                    return NameTooLong(name)
+                elif any(x != _pool_name(name) for x in pool_names):
+                    return PoolsDiffer(name)
+            else:
+                invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
+                if len(invalid_names) > 0:
+                    return NameInvalid(invalid_names[0])
+        return {
+            errno.EEXIST: HoldExists(name),
+            errno.E2BIG:  NameTooLong(holds[name]),
+        }.get(ret, genericException(ret, name, "Failed to hold snapshot"))
+
+    errlist = {}
+    if fd is None:
+        fd = -1
     with nvlist_in(holds) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
-    return ret
+
+    # XXX ENOENT seems like a FreeBSD quirk
+    if ret == errno.EBADF or ret == errno.ENOENT:
+        raise BadHoldCleanupFD()
+    _handleErrList(ret, errlist, holds.keys(), HoldFailure, _map)
+
+    # If there is no error (no exception raised by _handleErrList), but errlist
+    # is not empty, then it contains missing snapshots.
+    assert all(x == errno.ENOENT for x in errlist.itervalues())
+    return errlist.keys()
 
 
 def lzc_release(holds, errlist):

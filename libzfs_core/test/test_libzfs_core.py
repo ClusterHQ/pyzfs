@@ -1301,6 +1301,161 @@ class ZFSTest(unittest.TestCase):
             space = lzc_send_space(snap2)
 
 
+    def test_hold_bad_fd(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        tmp = tempfile.TemporaryFile()
+        bad_fd = tmp.fileno()
+        tmp.close()
+
+        with self.assertRaises(BadHoldCleanupFD):
+            lzc_hold({snap: 'tag'}, bad_fd)
+        with self.assertRaises(BadHoldCleanupFD):
+            lzc_hold({snap: 'tag'}, -2)
+
+
+    def test_hold_wrong_fd(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        tmp = tempfile.TemporaryFile()
+        fd = tmp.fileno()
+
+        with self.assertRaises(BadHoldCleanupFD):
+            lzc_hold({snap: 'tag'}, fd)
+
+        tmp.close()
+
+
+    def test_hold_fd(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag'}, fd)
+
+
+    def test_hold_many_tags(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag1'}, fd)
+            lzc_hold({snap: 'tag2'}, fd)
+
+
+    def test_hold_many_snaps(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap1: 'tag', snap2: 'tag'}, fd)
+
+
+    def test_hold_many_with_one_missing(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap1])
+
+        with cleanup_fd() as fd:
+            missing = lzc_hold({snap1: 'tag', snap2: 'tag'}, fd)
+        self.assertEqual(len(missing), 1)
+        self.assertEqual(missing[0], snap2)
+
+
+    def test_hold_many_with_all_missing(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.pool.getRoot().getSnap()
+
+        with cleanup_fd() as fd:
+            missing = lzc_hold({snap1: 'tag', snap2: 'tag'}, fd)
+        self.assertEqual(len(missing), 2)
+        self.assertEqual(sorted(missing), sorted([snap1, snap2]))
+
+
+    def test_hold_duplicate(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag'}, fd)
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, HoldExists)
+
+
+    def test_hold_across_pools(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.misc_pool.getRoot().getSnap()
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap1: 'tag', snap2: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, PoolsDiffer)
+
+
+    def test_hold_too_long_tag(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        tag = 't' * 256
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: tag}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertEquals(e.filename, tag)
+
+    # Apparently the full snapshot name is not checked for length
+    # and this snapshot is treated as simply missing.
+    @unittest.expectedFailure
+    def test_hold_too_long_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertEquals(e.filename, snap)
+
+
+    def test_hold_too_long_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertEquals(e.filename, snap)
+
+
+    def test_hold_invalid_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + '@bad'
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+            self.assertEquals(e.filename, snap)
+
+
+    def test_hold_invalid_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getFilesystem().getName()
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'}, fd)
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+            self.assertEquals(e.filename, snap)
+
+
 
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']

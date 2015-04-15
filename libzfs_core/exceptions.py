@@ -88,6 +88,14 @@ class BookmarkDestructionFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors)
 
+class BadHoldCleanupFD(ZFSError):
+    def __init__(self):
+        super(BadHoldCleanupFD, self).__init__(errno.EBADF, "Bad file descriptor as cleanup file descriptor")
+
+class HoldExists(ZFSError):
+    def __init__(self, name):
+        super(HoldExists, self).__init__(errno.EEXIST, "Hold with a given tag already exists on snapshot", name)
+
 class HoldFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors)
