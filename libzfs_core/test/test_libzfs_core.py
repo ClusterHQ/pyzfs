@@ -1308,6 +1308,7 @@ class _TempPool(object):
         self._filesystems = filesystems
         self._readonly = readonly
         self._pool_name = 'pool.' + bytes(uuid.uuid4())
+        self._root = _Filesystem(self._pool_name)
         (fd, self._pool_file_path) = tempfile.mkstemp(suffix = '.zpool', prefix = 'tmp-')
         if readonly:
             cachefile = self._pool_file_path + _TempPool._cachefile_suffix
@@ -1358,15 +1359,17 @@ class _TempPool(object):
             for fs in [''] + self._filesystems:
                 for snap in self.__class__.SNAPSHOTS:
                     snaps.append(self.makeName(fs + '@' + snap))
+            self.getRoot().visitSnaps(lambda snap: snaps.append(snap))
             lzc_destroy_snaps(snaps, defer = False)
 
-            if not self._bmarks_supported:
-                return
-            bmarks = []
-            for fs in [''] + self._filesystems:
-                for bmark in self.__class__.BOOKMARKS:
-                    bmarks.append(self.makeName(fs + '#' + bmark))
-            lzc_destroy_bookmarks(bmarks)
+            if self._bmarks_supported:
+                bmarks = []
+                for fs in [''] + self._filesystems:
+                    for bmark in self.__class__.BOOKMARKS:
+                        bmarks.append(self.makeName(fs + '#' + bmark))
+                self.getRoot().visitBookmarks(lambda bmark: bmarks.append(bmark))
+                lzc_destroy_bookmarks(bmarks)
+            self.getRoot().reset()
             return
 
         try:
@@ -1404,6 +1407,10 @@ class _TempPool(object):
         if relative.startswith(('@', '#')):
             return self._pool_name + relative
         return self._pool_name + '/' + relative
+
+
+    def getRoot(self):
+        return self._root
 
 
     def isPoolFeatureAvailable(self, feature):
