@@ -100,6 +100,10 @@ class HoldExists(ZFSError):
     def __init__(self, name):
         super(HoldExists, self).__init__(errno.EEXIST, "Hold with a given tag already exists on snapshot", name)
 
+class HoldNotFound(ZFSError):
+    def __init__(self, name):
+        super(HoldNotFound, self).__init__(errno.ENOENT, "Hold with a given tag does not exist on snapshot", name)
+
 class HoldFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors)
