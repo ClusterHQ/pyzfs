@@ -1,10 +1,35 @@
-
 import unittest
-import subprocess
+import contextlib
 import shutil
+import subprocess
 import tempfile
 import uuid
 from ..libzfs_core import *
+
+
+@contextlib.contextmanager
+def suppress(exceptions = None):
+    try:
+        yield
+    except BaseException as e:
+        if exceptions is None or isinstance(e, exceptions):
+            pass
+        else:
+            raise
+
+
+@contextlib.contextmanager
+def zfs_mount(fs):
+    mntdir = tempfile.mkdtemp()
+    try:
+        subprocess.check_output(['mount', '-t', 'zfs', fs, mntdir], stderr = subprocess.STDOUT)
+        try:
+            yield mntdir
+        finally:
+            with suppress():
+                subprocess.check_output(['umount', '-f', mntdir], stderr = subprocess.STDOUT)
+    finally:
+        os.rmdir(mntdir)
 
 
 def runtimeSkipIf(check_method, message):
