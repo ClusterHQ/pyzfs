@@ -38,6 +38,15 @@ def zfs_mount(fs):
         os.rmdir(mntdir)
 
 
+@contextlib.contextmanager
+def cleanup_fd():
+    fd = os.open('/dev/zfs', os.O_EXCL)
+    try:
+        yield fd
+    finally:
+        os.close(fd)
+
+
 def runtimeSkipIf(check_method, message):
     def _decorator(f):
         def _f(_self, *args, **kwargs):
