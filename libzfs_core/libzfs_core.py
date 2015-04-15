@@ -261,6 +261,7 @@ def lzc_destroy_snaps(snaps, defer):
         return {
             errno.EEXIST: SnapshotIsCloned(name),
             errno.ENOENT: PoolNotFound(name),
+            errno.EBUSY:  SnapshotIsHeld(name),
         }.get(ret, genericException(ret, name, "Failed to destroy snapshot"))
 
     snaps_dict = { name: None for name in snaps }

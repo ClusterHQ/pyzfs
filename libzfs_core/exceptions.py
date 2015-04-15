@@ -52,6 +52,10 @@ class SnapshotIsCloned(ZFSError):
     def __init__(self, name):
         super(SnapshotIsCloned, self).__init__(errno.EEXIST, "Snapshot is cloned", name)
 
+class SnapshotIsHeld(ZFSError):
+    def __init__(self, name):
+        super(SnapshotIsHeld, self).__init__(errno.EBUSY, "Snapshot is held", name)
+
 class DuplicateSnapshots(ZFSError):
     def __init__(self, name):
         super(DuplicateSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
