@@ -7,6 +7,12 @@ import uuid
 from ..libzfs_core import *
 
 
+def _print(*args):
+    for arg in args:
+        print arg,
+    print
+
+
 @contextlib.contextmanager
 def suppress(exceptions = None):
     try:
