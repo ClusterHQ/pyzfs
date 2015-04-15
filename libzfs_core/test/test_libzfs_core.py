@@ -1313,13 +1313,13 @@ class _TempPool(object):
             cachefile = self._pool_file_path + _TempPool._cachefile_suffix
         else:
             cachefile = 'none'
-
+        self._zpool_create = ['zpool', 'create', '-o', 'cachefile=' + cachefile, '-O', 'mountpoint=legacy',
+                              self._pool_name, self._pool_file_path]
         try:
             os.ftruncate(fd, size)
             os.close(fd)
 
-            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=' + cachefile, self._pool_name, self._pool_file_path],
-                                    stderr = subprocess.STDOUT)
+            subprocess.check_output(self._zpool_create, stderr = subprocess.STDOUT)
 
             for fs in filesystems:
                 lzc_create(self.makeName(fs))
@@ -1371,8 +1371,7 @@ class _TempPool(object):
 
         try:
             subprocess.check_output(['zpool', 'destroy', '-f', self._pool_name], stderr = subprocess.STDOUT)
-            subprocess.check_output(['zpool', 'create', '-o', 'cachefile=none', self._pool_name, self._pool_file_path],
-                                    stderr = subprocess.STDOUT)
+            subprocess.check_output(self._zpool_create, stderr = subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print 'command failed: ', e.output
             raise
