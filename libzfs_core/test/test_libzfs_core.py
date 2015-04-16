@@ -1317,6 +1317,48 @@ class ZFSTest(unittest.TestCase):
             space = lzc_send_space(snap2)
 
 
+    def test_send_full(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            tmpfile = os.path.join(mntdir, 'tmpfile')
+            with open(tmpfile, "wb") as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            estimate = lzc_send_space(snap)
+
+            fd = output.fileno()
+            lzc_send(snap, None, fd)
+            st = os.fstat(fd)
+            self.assertGreaterEqual(st.st_size, estimate)
+            self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
+
+
+    def test_send_incremental(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+
+        lzc_snapshot([snap1])
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            tmpfile = os.path.join(mntdir, 'tmpfile')
+            with open(tmpfile, "wb") as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+        lzc_snapshot([snap2])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            estimate = lzc_send_space(snap2, snap1)
+
+            fd = output.fileno()
+            lzc_send(snap2, snap1, fd)
+            st = os.fstat(fd)
+            self.assertGreaterEqual(st.st_size, estimate)
+            self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
