@@ -622,12 +622,11 @@ def lzc_send_space(snapname, fromsnap = None):
     :raises UnrelatedSnapshot: if the snapshots belong to different filesystems.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     '''
-    if fromsnap == None:
-        fromsnap = _ffi.NULL
+    c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
     valp = _ffi.new('uint64_t *')
-    ret = _lib.lzc_send_space(snapname, fromsnap, valp)
+    ret = _lib.lzc_send_space(snapname, c_fromsnap, valp)
     if ret != 0:
-        if ret == errno.EXDEV and fromsnap is not _ffi.NULL:
+        if ret == errno.EXDEV and fromsnap is not None:
             if _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
             elif _fs_name(fromsnap) != _fs_name(snapname):
@@ -635,17 +634,17 @@ def lzc_send_space(snapname, fromsnap = None):
             else:
                 raise WrongSnapshotOrder(snapname)
         elif ret == errno.EINVAL:
-            if fromsnap is not _ffi.NULL and not _is_valid_snap_name(fromsnap):
+            if fromsnap is not None and not _is_valid_snap_name(fromsnap):
                 raise NameInvalid(fromsnap)
             elif not _is_valid_snap_name(snapname):
                 raise NameInvalid(snapname)
-            elif fromsnap is not _ffi.NULL and len(fromsnap) > 256:
+            elif fromsnap is not None and len(fromsnap) > 256:
                 raise NameTooLong(fromsnap)
             elif len(snapname) > 256:
                 raise NameTooLong(snapname)
-            elif fromsnap is not _ffi.NULL and _pool_name(fromsnap) != _pool_name(snapname):
+            elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
-        elif ret == errno.ENOENT and fromsnap is not _ffi.NULL:
+        elif ret == errno.ENOENT and fromsnap is not None:
             if not _is_valid_snap_name(fromsnap):
                 raise NameInvalid(fromsnap)
         raise {
