@@ -1324,9 +1324,8 @@ class ZFSTest(unittest.TestCase):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
 
-        tmp = tempfile.TemporaryFile()
-        bad_fd = tmp.fileno()
-        tmp.close()
+        with tempfile.TemporaryFile() as tmp:
+            bad_fd = tmp.fileno()
 
         with self.assertRaises(BadHoldCleanupFD):
             lzc_hold({snap: 'tag'}, bad_fd)
@@ -1355,13 +1354,10 @@ class ZFSTest(unittest.TestCase):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
 
-        tmp = tempfile.TemporaryFile()
-        fd = tmp.fileno()
-
-        with self.assertRaises(BadHoldCleanupFD):
-            lzc_hold({snap: 'tag'}, fd)
-
-        tmp.close()
+        with tempfile.TemporaryFile() as tmp:
+            fd = tmp.fileno()
+            with self.assertRaises(BadHoldCleanupFD):
+                lzc_hold({snap: 'tag'}, fd)
 
 
     def test_hold_fd(self):
