@@ -1316,6 +1316,10 @@ class ZFSTest(unittest.TestCase):
             space = lzc_send_space(snap2)
 
 
+    # On ZoL this test succeeds but afterwards any successful holds
+    # with valid cleanup_fd are not automaticaly released when
+    # the file descriptor is closed.
+    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
@@ -1328,6 +1332,10 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, bad_fd)
 
 
+    # On ZoL this test succeeds but afterwards any successful holds
+    # with valid cleanup_fd are not automaticaly released when
+    # the file descriptor is closed.
+    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
     def test_hold_bad_fd_2(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
@@ -1336,6 +1344,13 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, -2)
 
 
+    # BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
+    # IP: [<ffffffffa0218aa0>] zfsdev_getminor+0x10/0x20 [zfs]
+    # Call Trace:
+    #  [<ffffffffa021b4b0>] zfs_onexit_fd_hold+0x20/0x40 [zfs]
+    #  [<ffffffffa0214043>] zfs_ioc_hold+0x93/0xd0 [zfs]
+    #  [<ffffffffa0215890>] zfsdev_ioctl+0x200/0x500 [zfs]
+    @unittest.skipIf(platform.system() == 'Linux', 'Gets killed')
     def test_hold_wrong_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
