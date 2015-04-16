@@ -1346,6 +1346,25 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, fd)
 
 
+    def test_hold_vs_snap_destroy(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag'}, fd)
+
+            with self.assertRaises(SnapshotDestructionFailure) as ctx:
+                lzc_destroy_snaps([snap], defer = False)
+            for e in ctx.exception.errors:
+                self.assertIsInstance(e, SnapshotIsHeld)
+
+            lzc_destroy_snaps([snap], defer = True)
+            self.assertTrue(lzc_exists(snap))
+
+        # after automatic hold cleanup and deferred destruction
+        self.assertFalse(lzc_exists(snap))
+
+
     def test_hold_many_tags(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
