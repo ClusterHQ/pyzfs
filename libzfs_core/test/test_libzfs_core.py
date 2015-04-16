@@ -1321,6 +1321,12 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(BadHoldCleanupFD):
             lzc_hold({snap: 'tag'}, bad_fd)
+
+
+    def test_hold_bad_fd_2(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
         with self.assertRaises(BadHoldCleanupFD):
             lzc_hold({snap: 'tag'}, -2)
 
