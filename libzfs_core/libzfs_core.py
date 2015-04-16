@@ -399,8 +399,7 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     :raises SnapshotNotFound: if either of the snapshots does not exist.
     :raises NameInvalid: if the name of either snapshot is invalid.
     :raises NameTooLong: if the name of either snapshot is too long.
-    :raises WrongSnapshotOrder: if ``firstsnap`` is not an earlier snapshot than ``lastsnap``.
-    :raises UnrelatedSnapshot: if the snapshots belong to different filesystems.
+    :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     '''
     valp = _ffi.new('uint64_t *')
@@ -417,10 +416,8 @@ def lzc_snaprange_space(firstsnap, lastsnap):
                 raise NameTooLong(lastsnap)
             elif _pool_name(firstsnap) != _pool_name(lastsnap):
                 raise PoolsDiffer(lastsnap)
-            elif _fs_name(firstsnap) != _fs_name(lastsnap):
-                raise UnrelatedSnapshot(lastsnap)
             else:
-                raise WrongSnapshotOrder(lastsnap)
+                raise SnapshotMismatch(lastsnap)
         raise {
             errno.ENOENT: SnapshotNotFound(lastsnap),
         }.get(ret, genericException(ret, lastsnap, "Failed to calculate space used by range of snapshots"))
@@ -618,8 +615,7 @@ def lzc_send_space(snapname, fromsnap = None):
                               or if the ending snapshot does not exist.
     :raises NameInvalid: if the name of either snapshot is invalid.
     :raises NameTooLong: if the name of either snapshot is too long.
-    :raises WrongSnapshotOrder: if ``fromsnap`` is not an earlier snapshot than ``snapname``.
-    :raises UnrelatedSnapshot: if the snapshots belong to different filesystems.
+    :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     '''
     c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
@@ -629,10 +625,8 @@ def lzc_send_space(snapname, fromsnap = None):
         if ret == errno.EXDEV and fromsnap is not None:
             if _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
-            elif _fs_name(fromsnap) != _fs_name(snapname):
-                raise UnrelatedSnapshot(snapname)
             else:
-                raise WrongSnapshotOrder(snapname)
+                raise SnapshotMismatch(snapname)
         elif ret == errno.EINVAL:
             if fromsnap is not None and not _is_valid_snap_name(fromsnap):
                 raise NameInvalid(fromsnap)

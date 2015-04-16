@@ -1090,7 +1090,7 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap1])
         lzc_snapshot([snap2])
 
-        with self.assertRaises(WrongSnapshotOrder):
+        with self.assertRaises(SnapshotMismatch):
             space = lzc_snaprange_space(snap2, snap1)
 
 
@@ -1101,7 +1101,7 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap1])
         lzc_snapshot([snap2])
 
-        with self.assertRaises(UnrelatedSnapshot):
+        with self.assertRaises(SnapshotMismatch):
             space = lzc_snaprange_space(snap1, snap2)
 
 
@@ -1226,7 +1226,7 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap1])
         lzc_snapshot([snap2])
 
-        with self.assertRaises(WrongSnapshotOrder):
+        with self.assertRaises(SnapshotMismatch):
             space = lzc_send_space(snap1, snap2)
 
 
@@ -1237,7 +1237,7 @@ class ZFSTest(unittest.TestCase):
         lzc_snapshot([snap1])
         lzc_snapshot([snap2])
 
-        with self.assertRaises(UnrelatedSnapshot):
+        with self.assertRaises(SnapshotMismatch):
             space = lzc_send_space(snap1, snap2)
 
 
