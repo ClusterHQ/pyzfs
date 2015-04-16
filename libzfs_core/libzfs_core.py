@@ -593,9 +593,71 @@ def lzc_get_holds(snapname):
     return holds
 
 
-def lzc_send(snapname, fromsnap, fd, flags):
-    ret = _lib.lzc_send(snapname, fromsnap, fd, flags)
-    return ret
+def lzc_send(snapname, fromsnap, fd, flags = 0):
+    '''
+    Generate a zfs send stream for the specified snapshot and write it to
+    the specified file descriptor.
+
+    :param str snapname: the name of the snapshot to send.
+    :param fromsnap: if not None the name of the starting snapshot
+                     for the incremental stream.
+    :type fromsnap: str or None
+    :param int fd: the file descriptor to write the send stream to.
+    :param flags: the flags that control what enhanced features can be used
+                  in the stream.
+
+    :raises SnapshotNotFound: if either the starting snapshot is not `None` and does not exist,
+                              or if the ending snapshot does not exist.
+    :raises NameInvalid: if the name of either snapshot is invalid.
+    :raises NameTooLong: if the name of either snapshot is too long.
+    :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
+    :raises PoolsDiffer: if the snapshots belong to different pools.
+
+    If ``fromsnap`` is None, a full (non-incremental) stream will be sent.
+    If ``fromsnap`` is not None, it must be the full name of a snapshot or
+    bookmark to send an incremental from, e.g. :file:`{pool}/{fs}@{earlier_snap}`
+    or :file:`{pool}/{fs}#{earlier_bmark}`.
+
+    The specified snapshot or bookmark must represent an earlier point in the history
+    of ``snapname``.
+    It can be an earlier snapshot in the same filesystem or zvol as ``snapname``,
+    or it can be the origin of ``snapname``'s filesystem, or an earlier
+    snapshot in the origin, etc.
+
+    If ``flags`` contains LZC_SEND_FLAG_LARGE_BLOCK, the stream is permitted
+    to contain DRR_WRITE records with drr_length > 128K, and DRR_OBJECT
+    records with drr_blksz > 128K.
+
+    If ``flags`` contains LZC_SEND_FLAG_EMBED_DATA, the stream is permitted
+    to contain DRR_WRITE_EMBEDDED records with drr_etype==BP_EMBEDDED_TYPE_DATA,
+    which the receiving system must support (as indicated by support
+    for the *embedded_data* feature).
+    '''
+    c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
+    ret = _lib.lzc_send(snapname, c_fromsnap, fd, flags)
+    if ret != 0:
+        if ret == errno.EXDEV and fromsnap is not None:
+            if _pool_name(fromsnap) != _pool_name(snapname):
+                raise PoolsDiffer(snapname)
+            else:
+                raise SnapshotMismatch(snapname)
+        elif ret == errno.EINVAL:
+            if fromsnap is not None and not _is_valid_snap_name(fromsnap):
+                raise NameInvalid(fromsnap)
+            elif not _is_valid_snap_name(snapname):
+                raise NameInvalid(snapname)
+            elif fromsnap is not None and len(fromsnap) > 256:
+                raise NameTooLong(fromsnap)
+            elif len(snapname) > 256:
+                raise NameTooLong(snapname)
+            elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
+                raise PoolsDiffer(snapname)
+        elif ret == errno.ENOENT and fromsnap is not None:
+            if not _is_valid_snap_name(fromsnap):
+                raise NameInvalid(fromsnap)
+        raise {
+            errno.ENOENT: SnapshotNotFound(snapname),
+        }.get(ret, genericException(ret, snapname, "Failed to estimate backup stream size"))
 
 
 def lzc_send_space(snapname, fromsnap = None):
