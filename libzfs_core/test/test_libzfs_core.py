@@ -1,6 +1,7 @@
 import unittest
 import contextlib
 import platform
+import resource
 import shutil
 import subprocess
 import tempfile
@@ -1341,6 +1342,17 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(BadHoldCleanupFD):
             lzc_hold({snap: 'tag'}, -2)
+
+
+    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
+    def test_hold_bad_fd_3(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
+        bad_fd = hard + 1
+        with self.assertRaises(BadHoldCleanupFD):
+            lzc_hold({snap: 'tag'}, bad_fd)
 
 
     # BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
