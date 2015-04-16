@@ -1485,6 +1485,251 @@ class ZFSTest(unittest.TestCase):
             self.assertEquals(e.filename, snap)
 
 
+    def test_get_holds(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag1'}, fd)
+            lzc_hold({snap: 'tag2'}, fd)
+
+            holds = lzc_get_holds(snap)
+            self.assertEquals(len(holds), 2)
+            self.assertTrue('tag1' in holds)
+            self.assertTrue('tag2' in holds)
+            self.assertIsInstance(holds['tag1'], (int, long))
+
+
+    def test_get_holds_after_auto_cleanup(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag1'}, fd)
+            lzc_hold({snap: 'tag2'}, fd)
+
+        holds = lzc_get_holds(snap)
+        self.assertEquals(len(holds), 0)
+        self.assertIsInstance(holds, dict)
+
+
+    def test_get_holds_nonexistent_snap(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        with self.assertRaises(SnapshotNotFound) as ctx:
+            lzc_get_holds(snap)
+
+
+    def test_get_holds_too_long_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+        with self.assertRaises(NameTooLong) as ctx:
+            lzc_get_holds(snap)
+
+
+    def test_get_holds_too_long_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        with self.assertRaises(NameTooLong) as ctx:
+            lzc_get_holds(snap)
+
+
+    def test_get_holds_invalid_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + '@bad'
+        with self.assertRaises(NameInvalid) as ctx:
+            lzc_get_holds(snap)
+
+
+    # A filesystem-like snapshot name is not recognized as
+    # an invalid name for a filesystem.
+    @unittest.expectedFailure
+    def test_get_holds_invalid_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getFilesystem().getName()
+        with self.assertRaises(NameInvalid) as ctx:
+            lzc_get_holds(snap)
+
+
+    def test_release_hold(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        lzc_hold({snap: 'tag'})
+        ret = lzc_release({snap: ['tag']})
+        self.assertEquals(len(ret), 0)
+
+
+    def test_release_hold_complex(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.pool.getRoot().getSnap()
+        snap3 = ZFSTest.pool.getRoot().getFilesystem().getSnap()
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2, snap3])
+
+        lzc_hold({snap1: 'tag1'})
+        lzc_hold({snap1: 'tag2'})
+        lzc_hold({snap2: 'tag'})
+        lzc_hold({snap3: 'tag1'})
+        lzc_hold({snap3: 'tag2'})
+
+        holds = lzc_get_holds(snap1)
+        self.assertEquals(len(holds), 2)
+        holds = lzc_get_holds(snap2)
+        self.assertEquals(len(holds), 1)
+        holds = lzc_get_holds(snap3)
+        self.assertEquals(len(holds), 2)
+
+        release = {
+            snap1: ['tag1', 'tag2'],
+            snap2: ['tag'],
+            snap3: ['tag2'],
+        }
+        ret = lzc_release(release)
+        self.assertEquals(len(ret), 0)
+
+        holds = lzc_get_holds(snap1)
+        self.assertEquals(len(holds), 0)
+        holds = lzc_get_holds(snap2)
+        self.assertEquals(len(holds), 0)
+        holds = lzc_get_holds(snap3)
+        self.assertEquals(len(holds), 1)
+
+        ret = lzc_release({snap3: ['tag1']})
+        self.assertEquals(len(ret), 0)
+        holds = lzc_get_holds(snap3)
+        self.assertEquals(len(holds), 0)
+
+
+    def test_release_hold_before_auto_cleanup(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag'}, fd)
+            ret = lzc_release({snap: ['tag']})
+            self.assertEquals(len(ret), 0)
+
+
+    def test_release_hold_and_snap_destruction(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag1'}, fd)
+            lzc_hold({snap: 'tag2'}, fd)
+
+            lzc_destroy_snaps([snap], defer = True)
+            self.assertTrue(lzc_exists(snap))
+
+            lzc_release({snap: ['tag1']})
+            self.assertTrue(lzc_exists(snap))
+
+            lzc_release({snap: ['tag2']})
+            self.assertFalse(lzc_exists(snap))
+
+
+    def test_release_hold_and_multiple_snap_destruction(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap: 'tag'}, fd)
+
+            lzc_destroy_snaps([snap], defer = True)
+            self.assertTrue(lzc_exists(snap))
+
+            lzc_destroy_snaps([snap], defer = True)
+            self.assertTrue(lzc_exists(snap))
+
+            lzc_release({snap: ['tag']})
+            self.assertFalse(lzc_exists(snap))
+
+
+    def test_release_hold_missing_tag(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        lzc_snapshot([snap])
+
+        ret = lzc_release({snap: ['tag']})
+        self.assertEquals(len(ret), 1)
+        self.assertEquals(ret[0], snap + '#tag')
+
+
+    def test_release_hold_missing_snap(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+
+        ret = lzc_release({snap: ['tag']})
+        self.assertEquals(len(ret), 1)
+        self.assertEquals(ret[0], snap)
+
+
+    def test_release_hold_missing_snap_2(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+
+        ret = lzc_release({snap: ['tag', 'another']})
+        self.assertEquals(len(ret), 1)
+        self.assertEquals(ret[0], snap)
+
+
+    def test_release_hold_across_pools(self):
+        snap1 = ZFSTest.pool.getRoot().getSnap()
+        snap2 = ZFSTest.misc_pool.getRoot().getSnap()
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with cleanup_fd() as fd:
+            lzc_hold({snap1: 'tag'}, fd)
+            lzc_hold({snap2: 'tag'}, fd)
+            with self.assertRaises(HoldReleaseFailure) as ctx:
+                lzc_release({snap1: ['tag'], snap2: ['tag']})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, PoolsDiffer)
+
+
+    # Apparently the tag name is not verified,
+    # only its existence is checked.
+    @unittest.expectedFailure
+    def test_release_hold_too_long_tag(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+        tag = 't' * 256
+        lzc_snapshot([snap])
+
+        with self.assertRaises(HoldReleaseFailure) as ctx:
+            ret = lzc_release({snap: [tag]})
+
+
+    # Apparently the full snapshot name is not checked for length
+    # and this snapshot is treated as simply missing.
+    @unittest.expectedFailure
+    def test_release_hold_too_long_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+
+        with self.assertRaises(HoldReleaseFailure) as ctx:
+            ret = lzc_release({snap: ['tag']})
+
+
+    def test_release_hold_too_long_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        with self.assertRaises(HoldReleaseFailure) as ctx:
+            lzc_release({snap: ['tag']})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameTooLong)
+            self.assertEquals(e.filename, snap)
+
+
+    def test_release_hold_invalid_snap_name(self):
+        snap = ZFSTest.pool.getRoot().getSnap() + '@bad'
+        with self.assertRaises(HoldReleaseFailure) as ctx:
+            lzc_release({snap: ['tag']})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+            self.assertEquals(e.filename, snap)
+
+
+    def test_release_hold_invalid_snap_name_2(self):
+        snap = ZFSTest.pool.getRoot().getFilesystem().getName()
+        with self.assertRaises(HoldReleaseFailure) as ctx:
+            lzc_release({snap: ['tag']})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, NameInvalid)
+            self.assertEquals(e.filename, snap)
+
+
 
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']

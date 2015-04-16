@@ -500,20 +500,100 @@ def lzc_hold(holds, fd = None):
     return errlist.keys()
 
 
-def lzc_release(holds, errlist):
-    ret = 0
-    with nvlist_in(holds) as nvlist:
+def lzc_release(holds):
+    '''
+    Release *user holds* on snapshots.
+
+    If the snapshot has been marked for
+    deferred destroy (by lzc_destroy_snaps(defer=B_TRUE)), it does not have
+    any clones, and all the user holds are removed, then the snapshot will be
+    destroyed.
+
+    The snapshots must all be in the same pool.
+
+    :param holds: a ``dict`` where keys are snapshot names and values are
+                  lists of hold tags to remove.
+    :type holds: dict of str : list of str
+    :return: a list of any snapshots that do not exist and of any tags that do not
+             exist for existing snapshots.
+             Such tags are qualified with a corresponding snapshot name
+             using the following format :file:`{pool}/{fs}@{snap}#{tag}`
+    :rtype: list of str
+
+    :raises HoldReleaseFailure: if one or more existing holds could not be released.
+
+    Holds which failed to release because they didn't exist will have an entry
+    added to errlist, but will not cause an overall failure.
+
+    This call is success if ``holds`` was empty or all holds that
+    existed, were successfully removed.
+    Otherwise an exception will be raised.
+    '''
+    def _map(ret, name):
+        if ret == errno.EXDEV:
+            return PoolsDiffer(name)
+        elif ret == errno.EINVAL:
+            if bool(name):
+                pool_names = map(_pool_name, holds.keys())
+                if not _is_valid_snap_name(name):
+                    return NameInvalid(name)
+                elif len(name) > 256:
+                    return NameTooLong(name)
+                elif any(x != _pool_name(name) for x in pool_names):
+                    return PoolsDiffer(name)
+            else:
+                invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
+                if len(invalid_names) > 0:
+                    return NameInvalid(invalid_names[0])
+        elif ret == errno.ENOENT:
+            return HoldNotFound(name)
+        elif ret == errno.E2BIG:
+            tag_list = holds[name]
+            too_long_tags = [t for t in tag_list if len(t) > 256]
+            return NameTooLong(too_long_tags[0])
+        else:
+            return genericException(ret, name, "Failed to release snapshot hold")
+
+    errlist = {}
+    holds_dict = {}
+    for snap, hold_list in holds.iteritems():
+        if not isinstance(hold_list, list):
+            raise TypeError('holds must be in a list')
+        holds_dict[snap] = {hold: None for hold in hold_list}
+    #holds_dict = {snap: {hold: None for hold in hold_list}
+    #                for snap, hold_list in holds.iteritems()}
+    with nvlist_in(holds_dict) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_release(nvlist, errlist_nvlist)
-    return ret
+    _handleErrList(ret, errlist, holds.keys(), HoldReleaseFailure, _map)
+    # If there is no error (no exception raised by _handleErrList), but errlist
+    # is not empty, then it contains missing snapshots and tags.
+    assert all(x == errno.ENOENT for x in errlist.itervalues())
+    return errlist.keys()
 
 
-def lzc_get_holds(snapname, holds):
-    ret = 0
+def lzc_get_holds(snapname):
+    '''
+    Retrieve list of *user holds* on the specified snapshot.
+
+    :param str snapname: the name of the snapshot.
+    :return: holds on the snapshot along with their creation times
+             in seconds since the epoch
+    :rtype: dict of str : int
+    '''
+    holds = {}
     with nvlist_out(holds) as nvlist:
         ret = _lib.lzc_get_holds(snapname, nvlist)
-    return ret
-
+    if ret != 0:
+        if ret == errno.EINVAL:
+            if not _is_valid_snap_name(snapname):
+                raise NameInvalid(snapname)
+            elif len(snapname) > 256:
+                raise NameTooLong(snapname)
+        raise {
+            errno.ENOENT: SnapshotNotFound(snapname),
+        }.get(ret, genericException(ret, snapname, "Failed to get holds on snapshot"))
+    return holds
 
 
 def lzc_send(snapname, fromsnap, fd, flags):
