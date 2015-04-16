@@ -575,6 +575,16 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, NameTooLong)
 
 
+    def test_destroy_mounted_snap(self):
+        snap = ZFSTest.pool.getRoot().getSnap()
+
+        lzc_snapshot([snap])
+        with zfs_mount(snap):
+            # the snapshot should be force-unmounted
+            lzc_destroy_snaps([snap], defer = False)
+            self.assertFalse(lzc_exists(snap))
+
+
     def test_clone(self):
         # NB: note the special name for the snapshot.
         # Since currently we can not destroy filesystems,
