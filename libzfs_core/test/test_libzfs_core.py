@@ -1,5 +1,6 @@
 import unittest
 import contextlib
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -575,6 +576,10 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, NameTooLong)
 
 
+    # Apparently ZoL automatically unmounts the snapshot
+    # only if it is mounted at its default .zfs/snapshot
+    # mountpoint.
+    @unittest.skipIf(platform.system() == 'Linux', 'snapshot is not auto-unmounted')
     def test_destroy_mounted_snap(self):
         snap = ZFSTest.pool.getRoot().getSnap()
 
