@@ -1,6 +1,10 @@
 
 CDEF = """
-    enum lzc_send_flags { ... };
+    enum lzc_send_flags {
+        LZC_SEND_FLAG_EMBED_DATA =  1,
+        LZC_SEND_FLAG_LARGE_BLOCK = 2
+    };
+
     typedef enum {
         DMU_OST_NONE,
         DMU_OST_META,
