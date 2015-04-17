@@ -1389,7 +1389,7 @@ class ZFSTest(unittest.TestCase):
         with tempfile.TemporaryFile(suffix = '.ztream') as output:
             fd = output.fileno()
             with self.assertRaises(SnapshotMismatch):
-                space = lzc_send(snap1, snap1, fd)
+                lzc_send(snap1, snap1, fd)
 
 
     # On ZoL this test succeeds but afterwards any successful holds
