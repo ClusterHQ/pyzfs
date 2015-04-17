@@ -1211,15 +1211,15 @@ class ZFSTest(unittest.TestCase):
         snap2 = ZFSTest.pool.makeName("fs1@snap2")
         snap3 = ZFSTest.pool.makeName("fs1@snap")
 
+        lzc_snapshot([snap1])
         with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
             tmpfile = os.path.join(mntdir, 'tmpfile')
-            lzc_snapshot([snap1])
             with open(tmpfile, "wb") as f:
                 for i in range(1024):
                     f.write('x' * 1024)
             lzc_snapshot([snap2])
             os.unlink(tmpfile)
-            lzc_snapshot([snap3])
+        lzc_snapshot([snap3])
 
         space = lzc_send_space(snap2, snap1)
         self.assertGreater(space, 1024 * 1024)
