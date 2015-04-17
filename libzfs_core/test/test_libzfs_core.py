@@ -1471,6 +1471,34 @@ class ZFSTest(unittest.TestCase):
             self.assertEquals(ctx.exception.filename, snap2)
 
 
+    # XXX Although undocumented the API allows to create an incremental
+    # or full stream for a filesystem as if a temporary unnamed snapshot
+    # is taken at some time after the call is made and before the stream
+    # starts being produced.
+    def test_send_filesystem(self):
+        snap = ZFSTest.pool.makeName("fs1@snap1")
+        fs = ZFSTest.pool.makeName("fs1")
+
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            lzc_send(fs, snap, fd)
+            lzc_send(fs, None, fd)
+
+
+    def test_send_from_filesystem(self):
+        snap = ZFSTest.pool.makeName("fs1@snap1")
+        fs = ZFSTest.pool.makeName("fs1")
+
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(NameInvalid):
+                lzc_send(snap, fs, fd)
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
