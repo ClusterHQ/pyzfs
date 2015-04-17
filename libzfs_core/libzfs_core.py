@@ -663,7 +663,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
                 raise NameInvalid(fromsnap)
         raise {
             errno.ENOENT: SnapshotNotFound(snapname),
-        }.get(ret, genericException(ret, snapname, "Failed to estimate backup stream size"))
+        }.get(ret, genericException(ret, snapname, "Failed to create backup stream"))
 
 
 def lzc_send_space(snapname, fromsnap = None):
