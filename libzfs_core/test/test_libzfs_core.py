@@ -797,6 +797,11 @@ class ZFSTest(unittest.TestCase):
 
 
     @skipUnlessBookmarksSupported
+    def test_bookmarks_empty(self):
+        lzc_bookmark({})
+
+
+    @skipUnlessBookmarksSupported
     def test_bookmarks_mismatching_name(self):
         snaps = [ZFSTest.pool.makeName('fs1@snap1')]
         bmarks = [ZFSTest.pool.makeName('fs2#bmark1')]
@@ -1044,6 +1049,11 @@ class ZFSTest(unittest.TestCase):
         lzc_destroy_bookmarks([ZFSTest.pool.makeName('nonexistent#bmark')])
 
 
+    @skipUnlessBookmarksSupported
+    def test_destroy_bookmarks_empty(self):
+        lzc_bookmark({})
+
+
     def test_snaprange_space(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
         snap2 = ZFSTest.pool.makeName("fs1@snap2")
@@ -1082,6 +1092,13 @@ class ZFSTest(unittest.TestCase):
         self.assertGreater(space, 1024 * 1024)
         space = lzc_snaprange_space(snap1, snap3)
         self.assertGreater(space, 1024 * 1024)
+
+
+    def test_snaprange_space_same_snap(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        lzc_snapshot([snap1])
+        space = lzc_snaprange_space(snap1, snap1)
+        self.assertEquals(space, 0)
 
 
     def test_snaprange_space_wrong_order(self):
@@ -1218,6 +1235,13 @@ class ZFSTest(unittest.TestCase):
 
         space = lzc_send_space(snap3)
         self.assertEquals(space, space_empty)
+
+
+    def test_send_space_same_snap(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        lzc_snapshot([snap1])
+        with self.assertRaises(SnapshotMismatch):
+            space = lzc_send_space(snap1, snap1)
 
 
     def test_send_space_wrong_order(self):
@@ -1359,6 +1383,15 @@ class ZFSTest(unittest.TestCase):
             self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
 
 
+    def test_send_same_snap(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        lzc_snapshot([snap1])
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(SnapshotMismatch):
+                space = lzc_send(snap1, snap1, fd)
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
@@ -1420,6 +1453,15 @@ class ZFSTest(unittest.TestCase):
 
         with cleanup_fd() as fd:
             lzc_hold({snap: 'tag'}, fd)
+
+
+    def test_hold_empty(self):
+        with cleanup_fd() as fd:
+            lzc_hold({}, fd)
+
+
+    def test_hold_empty_2(self):
+        lzc_hold({})
 
 
     def test_hold_vs_snap_destroy(self):
@@ -1628,6 +1670,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc_hold({snap: 'tag'})
         ret = lzc_release({snap: ['tag']})
+        self.assertEquals(len(ret), 0)
+
+
+    def test_release_hold_empty(self):
+        ret = lzc_release({})
         self.assertEquals(len(ret), 0)
 
 
