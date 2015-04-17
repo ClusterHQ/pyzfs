@@ -1392,6 +1392,85 @@ class ZFSTest(unittest.TestCase):
                 lzc_send(snap1, snap1, fd)
 
 
+    def test_send_wrong_order(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(SnapshotMismatch):
+                lzc_send(snap1, snap2, fd)
+
+
+    def test_send_unrelated(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(SnapshotMismatch):
+                lzc_send(snap1, snap2, fd)
+
+
+    def test_send_across_pools(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.misc_pool.makeName("@snap2")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(PoolsDiffer):
+                lzc_send(snap1, snap2, fd)
+
+
+    def test_send_nonexistent(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([snap1])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(SnapshotNotFound) as ctx:
+                lzc_send(snap1, snap2, fd)
+            self.assertEquals(ctx.exception.filename, snap1)
+
+            with self.assertRaises(SnapshotNotFound) as ctx:
+                lzc_send(snap2, snap1, fd)
+            self.assertEquals(ctx.exception.filename, snap2)
+
+            with self.assertRaises(SnapshotNotFound) as ctx:
+                lzc_send(snap2, None, fd)
+            self.assertEquals(ctx.exception.filename, snap2)
+
+
+    def test_send_invalid_name(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@sn!p")
+
+        lzc_snapshot([snap1])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(NameInvalid) as ctx:
+                lzc_send(snap2, snap1, fd)
+            self.assertEquals(ctx.exception.filename, snap2)
+            with self.assertRaises(NameInvalid) as ctx:
+                lzc_send(snap2, None, fd)
+            self.assertEquals(ctx.exception.filename, snap2)
+            with self.assertRaises(NameInvalid) as ctx:
+                lzc_send(snap1, snap2, fd)
+            self.assertEquals(ctx.exception.filename, snap2)
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
