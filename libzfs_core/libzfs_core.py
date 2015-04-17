@@ -401,6 +401,9 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     :raises NameTooLong: if the name of either snapshot is too long.
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
+
+    It is not an error to specify the same snapshot as both ``firstsnap``
+    and ``lastsnap``, but a result is always zero.
     '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
@@ -623,6 +626,8 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     It can be an earlier snapshot in the same filesystem or zvol as ``snapname``,
     or it can be the origin of ``snapname``'s filesystem, or an earlier
     snapshot in the origin, etc.
+    ``fromsnap`` must be strictly an earlier snapshot, specifying the same snapshot
+    as both ``fromsnap`` and ``snapname`` is an error.
 
     If ``flags`` contains LZC_SEND_FLAG_LARGE_BLOCK, the stream is permitted
     to contain DRR_WRITE records with drr_length > 128K, and DRR_OBJECT
@@ -679,6 +684,9 @@ def lzc_send_space(snapname, fromsnap = None):
     :raises NameTooLong: if the name of either snapshot is too long.
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
+
+    ``fromsnap``, if not ``None``,  must be strictly an earlier snapshot,
+    specifying the same snapshot as both ``fromsnap`` and ``snapname`` is an error.
     '''
     c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
     valp = _ffi.new('uint64_t *')
