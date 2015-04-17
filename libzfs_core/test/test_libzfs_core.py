@@ -1357,7 +1357,6 @@ class ZFSTest(unittest.TestCase):
             fd = output.fileno()
             lzc_send(snap, None, fd)
             st = os.fstat(fd)
-            self.assertGreaterEqual(st.st_size, estimate)
             self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
 
 
@@ -1379,7 +1378,6 @@ class ZFSTest(unittest.TestCase):
             fd = output.fileno()
             lzc_send(snap2, snap1, fd)
             st = os.fstat(fd)
-            self.assertGreaterEqual(st.st_size, estimate)
             self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
 
 
