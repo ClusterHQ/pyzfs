@@ -374,7 +374,6 @@ def lzc_destroy_bookmarks(bookmarks):
 
     Either all bookmarks that existed are destroyed or an exception is raised.
     '''
-
     def _map(ret, name):
         return {
             errno.EINVAL: NameInvalid(name),
