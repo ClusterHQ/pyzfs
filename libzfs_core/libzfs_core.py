@@ -44,6 +44,8 @@ def lzc_create(name, is_zvol = False, props = {}):
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
+
+    Wraps ``int lzc_create(const char *fsname, dmu_objset_type_t type, nvlist_t *props)``.
     '''
     if is_zvol:
         ds_type = _lib.DMU_OST_ZVOL
