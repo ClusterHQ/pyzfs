@@ -1539,6 +1539,7 @@ class ZFSTest(unittest.TestCase):
             lzc_send(snap2, bmark, fd)
 
 
+    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
     def test_send_bad_fd(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1551,6 +1552,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
+    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
     def test_send_bad_fd_2(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1563,6 +1565,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
+    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
     def test_send_bad_fd_3(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
