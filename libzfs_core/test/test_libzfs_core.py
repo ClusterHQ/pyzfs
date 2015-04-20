@@ -1538,6 +1538,70 @@ class ZFSTest(unittest.TestCase):
             lzc_send(snap2, bmark, fd)
 
 
+    def test_send_bad_fd(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile() as tmp:
+            bad_fd = tmp.fileno()
+
+        with self.assertRaises(IOError) as ctx:
+            lzc_send(snap, None, bad_fd)
+        self.assertEquals(ctx.exception.errno, errno.EBADF)
+
+
+    def test_send_bad_fd_2(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile() as tmp:
+            bad_fd = tmp.fileno()
+
+        with self.assertRaises(IOError) as ctx:
+            lzc_send(snap, None, -2)
+        self.assertEquals(ctx.exception.errno, errno.EBADF)
+
+
+    def test_send_bad_fd_3(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+
+        with tempfile.TemporaryFile() as tmp:
+            bad_fd = tmp.fileno()
+
+        (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
+        bad_fd = hard + 1
+        with self.assertRaises(IOError) as ctx:
+            lzc_send(snap, None, bad_fd)
+        self.assertEquals(ctx.exception.errno, errno.EBADF)
+
+
+    def test_send_to_broken_pipe(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+
+        proc = subprocess.Popen(['true'], stdin = subprocess.PIPE)
+        proc.wait()
+        with self.assertRaises(IOError) as ctx:
+            lzc_send(snap, None, proc.stdin.fileno())
+        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+
+
+    def test_send_to_broken_pipe_2(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+                f.flush()
+                lzc_snapshot([snap])
+
+        proc = subprocess.Popen(['sleep', '2'], stdin = subprocess.PIPE)
+        with self.assertRaises(IOError) as ctx:
+            lzc_send(snap, None, proc.stdin.fileno())
+        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
