@@ -1076,15 +1076,14 @@ class ZFSTest(unittest.TestCase):
         snap2 = ZFSTest.pool.makeName("fs1@snap2")
         snap3 = ZFSTest.pool.makeName("fs1@snap")
 
+        lzc_snapshot([snap1])
         with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
-            tmpfile = os.path.join(mntdir, 'tmpfile')
-            lzc_snapshot([snap1])
-            with open(tmpfile, "wb") as f:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
                 for i in range(1024):
                     f.write('x' * 1024)
-            lzc_snapshot([snap2])
-            os.unlink(tmpfile)
-            lzc_snapshot([snap3])
+                f.flush()
+                lzc_snapshot([snap2])
+        lzc_snapshot([snap3])
 
         space = lzc_snaprange_space(snap1, snap2)
         self.assertGreater(space, 1024 * 1024)
@@ -1213,12 +1212,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc_snapshot([snap1])
         with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
-            tmpfile = os.path.join(mntdir, 'tmpfile')
-            with open(tmpfile, "wb") as f:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
                 for i in range(1024):
                     f.write('x' * 1024)
-            lzc_snapshot([snap2])
-            os.unlink(tmpfile)
+                f.flush()
+                lzc_snapshot([snap2])
         lzc_snapshot([snap3])
 
         space = lzc_send_space(snap2, snap1)
@@ -1345,11 +1343,11 @@ class ZFSTest(unittest.TestCase):
         snap = ZFSTest.pool.makeName("fs1@snap")
 
         with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
-            tmpfile = os.path.join(mntdir, 'tmpfile')
-            with open(tmpfile, "wb") as f:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
                 for i in range(1024):
                     f.write('x' * 1024)
-        lzc_snapshot([snap])
+                f.flush()
+                lzc_snapshot([snap])
 
         with tempfile.TemporaryFile(suffix = '.ztream') as output:
             estimate = lzc_send_space(snap)
@@ -1367,11 +1365,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc_snapshot([snap1])
         with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
-            tmpfile = os.path.join(mntdir, 'tmpfile')
-            with open(tmpfile, "wb") as f:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
                 for i in range(1024):
                     f.write('x' * 1024)
-        lzc_snapshot([snap2])
+                f.flush()
+                lzc_snapshot([snap2])
 
         with tempfile.TemporaryFile(suffix = '.ztream') as output:
             estimate = lzc_send_space(snap2, snap1)
