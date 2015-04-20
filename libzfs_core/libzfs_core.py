@@ -646,6 +646,11 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     to contain DRR_WRITE_EMBEDDED records with drr_etype==BP_EMBEDDED_TYPE_DATA,
     which the receiving system must support (as indicated by support
     for the *embedded_data* feature).
+
+    .. note::
+        ``lzc_send`` can actually accept a filesystem name as the ``snapname``.
+        In that case ``lzc_send`` acts as if a temporary snapshot was created
+        after the start of the call and before the stream starts being produced.
     '''
     c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
     ret = _lib.lzc_send(snapname, c_fromsnap, fd, flags)
