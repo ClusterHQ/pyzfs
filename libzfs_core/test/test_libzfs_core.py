@@ -1094,10 +1094,18 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snaprange_space_same_snap(self):
-        snap1 = ZFSTest.pool.makeName("fs1@snap1")
-        lzc_snapshot([snap1])
-        space = lzc_snaprange_space(snap1, snap1)
-        self.assertEquals(space, 0)
+        snap = ZFSTest.pool.makeName("fs1@snap")
+
+        with zfs_mount(ZFSTest.pool.makeName("fs1")) as mntdir:
+            with tempfile.NamedTemporaryFile(dir = mntdir) as f:
+                for i in range(1024):
+                    f.write('x' * 1024)
+                f.flush()
+                lzc_snapshot([snap])
+
+        space = lzc_snaprange_space(snap, snap)
+        self.assertGreater(space, 1024 * 1024)
+        self.assertAlmostEqual(space, 1024 * 1024, delta = 1024 * 1024 / 20)
 
 
     def test_snaprange_space_wrong_order(self):
