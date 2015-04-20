@@ -389,8 +389,8 @@ def lzc_destroy_bookmarks(bookmarks):
 
 def lzc_snaprange_space(firstsnap, lastsnap):
     '''
-    Calculate a size of data used by snapshots between
-    the firstsnap and lastsnap.
+    Calculate a size of data referenced by snapshots in the inclusive range between
+    the ``firstsnap`` and the ``lastsnap`` and not shared with any other datasets.
 
     :param str firstsnap: the name of the first snapshot in the range.
     :param str lastsnap: the name of the last snapshot in the range.
@@ -403,8 +403,16 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
 
-    It is not an error to specify the same snapshot as both ``firstsnap``
-    and ``lastsnap``, but a result is always zero.
+    ``lzc_snaprange_space`` calculates total size of blocks that exist
+    because they are referenced only by one or more snapshots in the given range
+    but no other dataset.
+    In other words, this is the set of blocks that were born after the snap before
+    firstsnap, and died before the snap after the last snap.
+    Yet another interpretation is that the result of ``lzc_snaprange_space`` is the size
+    of the space that would be freed if the snapshots in the range are destroyed.
+
+    If the same snapshot is given as both the ``firstsnap`` and the ``lastsnap``.
+    In that case ``lzc_snaprange_space`` calculates space used by the snapshot.
     '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
