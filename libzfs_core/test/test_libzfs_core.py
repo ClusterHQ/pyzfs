@@ -3,6 +3,7 @@ import contextlib
 import platform
 import resource
 import shutil
+import stat
 import subprocess
 import tempfile
 import uuid
@@ -1599,6 +1600,24 @@ class ZFSTest(unittest.TestCase):
         proc = subprocess.Popen(['sleep', '2'], stdin = subprocess.PIPE)
         with self.assertRaises(IOError) as ctx:
             lzc_send(snap, None, proc.stdin.fileno())
+        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+
+
+    # Apparently there are not enough checks in the kernel code
+    # to refuse to write via a file descriptor opened in read-only mode.
+    @unittest.expectedFailure
+    def test_send_to_ro_file(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+
+        with tempfile.NamedTemporaryFile(suffix = '.ztream', delete = False) as output:
+            # tempfile always opens a temporary file in read-write mode
+            # regardless of the specified mode, so we have to open it again.
+            os.chmod(output.name, stat.S_IRUSR)
+            fd = os.open(output.name, os.O_RDONLY)
+            with self.assertRaises(IOError) as ctx:
+                lzc_send(snap, None, fd)
+            os.close(fd)
         self.assertEquals(ctx.exception.errno, errno.EPIPE)
 
 
