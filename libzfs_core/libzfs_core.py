@@ -624,6 +624,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     :raises NameTooLong: if the name of either snapshot is too long.
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
+    :raises IOError: if an input / output error occurs while writing to ``fd``.
 
     If ``fromsnap`` is None, a full (non-incremental) stream will be sent.
     If ``fromsnap`` is not None, it must be the full name of a snapshot or
@@ -672,12 +673,17 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
                 raise NameTooLong(snapname)
             elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
-        elif ret == errno.ENOENT and fromsnap is not None:
-            if not _is_valid_snap_name(fromsnap) and not _is_valid_bmark_name(fromsnap):
+        elif ret == errno.ENOENT:
+            if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
+                not _is_valid_bmark_name(fromsnap)):
                 raise NameInvalid(fromsnap)
-        raise {
-            errno.ENOENT: SnapshotNotFound(snapname),
-        }.get(ret, genericException(ret, snapname, "Failed to create backup stream"))
+            raise SnapshotNotFound(snapname)
+        elif ret == errno.ENAMETOOLONG:
+            if fromsnap is not None and len(fromsnap) > 256:
+                raise NameTooLong(fromsnap)
+            else:
+                raise NameTooLong(snapname)
+        raise IOError(ret, os.strerror(ret))
 
 
 def lzc_send_space(snapname, fromsnap = None):
