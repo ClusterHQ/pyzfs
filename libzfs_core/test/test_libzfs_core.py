@@ -1499,6 +1499,41 @@ class ZFSTest(unittest.TestCase):
                 lzc_send(snap, fs, fd)
 
 
+    def test_send_bookmark(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        bmark = ZFSTest.pool.makeName("fs1#bmark")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_bookmark({bmark: snap2})
+        lzc_destroy_snaps([snap2], defer = False)
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            with self.assertRaises(NameInvalid):
+                lzc_send(bmark, snap1, fd)
+            with self.assertRaises(NameInvalid):
+                lzc_send(bmark, None, fd)
+
+
+    def test_send_from_bookmark(self):
+        snap1 = ZFSTest.pool.makeName("fs1@snap1")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
+        bmark = ZFSTest.pool.makeName("fs1#bmark")
+
+        lzc_snapshot([snap1])
+        lzc_snapshot([snap2])
+        lzc_bookmark({bmark: snap1})
+        lzc_destroy_snaps([snap1], defer = False)
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as output:
+            fd = output.fileno()
+            lzc_send(snap2, bmark, fd)
+
+
+
+
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
