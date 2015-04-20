@@ -1440,7 +1440,7 @@ class ZFSTest(unittest.TestCase):
 
     def test_send_nonexistent(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
-        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
 
         lzc_snapshot([snap1])
 
