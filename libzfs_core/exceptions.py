@@ -132,9 +132,9 @@ class BadStream(ZFSError):
     def __init__(self):
         super(BadStream, self).__init__(errno.EINVAL, "Bad backup stream")
 
-class IOError(ZFSError):
+class ZIOError(ZFSError):
     def __init__(self, name):
-        super(IOError, self).__init__(errno.EIO, "I/O error", name)
+        super(ZIOError, self).__init__(errno.EIO, "I/O error", name)
 
 class NoSpace(ZFSError):
     def __init__(self, name):
@@ -188,7 +188,7 @@ def genericException(err, name, message):
         return ZFSError(err, message, name)
 
 _errToException = {
-    errno.EIO:          IOError,
+    errno.EIO:          ZIOError,
     errno.ENOSPC:       NoSpace,
     errno.EDQUOT:       QuotaExceeded,
     errno.EBUSY:        DatasetBusy,
