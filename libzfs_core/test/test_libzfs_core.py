@@ -1532,8 +1532,6 @@ class ZFSTest(unittest.TestCase):
             lzc_send(snap2, bmark, fd)
 
 
-
-
     # On ZoL this test succeeds but afterwards any successful holds
     # with valid cleanup_fd are not automaticaly released when
     # the file descriptor is closed.
