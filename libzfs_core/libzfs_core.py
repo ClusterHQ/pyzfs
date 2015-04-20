@@ -661,9 +661,10 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
             else:
                 raise SnapshotMismatch(snapname)
         elif ret == errno.EINVAL:
-            if fromsnap is not None and not _is_valid_snap_name(fromsnap):
+            if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
+                not _is_valid_bmark_name(fromsnap)):
                 raise NameInvalid(fromsnap)
-            elif not _is_valid_snap_name(snapname):
+            elif not _is_valid_snap_name(snapname) and not _is_valid_fs_name(snapname):
                 raise NameInvalid(snapname)
             elif fromsnap is not None and len(fromsnap) > 256:
                 raise NameTooLong(fromsnap)
@@ -672,7 +673,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
             elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
         elif ret == errno.ENOENT and fromsnap is not None:
-            if not _is_valid_snap_name(fromsnap):
+            if not _is_valid_snap_name(fromsnap) and not _is_valid_bmark_name(fromsnap):
                 raise NameInvalid(fromsnap)
         raise {
             errno.ENOENT: SnapshotNotFound(snapname),
