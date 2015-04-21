@@ -517,8 +517,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_too_long_complete_name(self):
-        snapname1 = ZFSTest.pool.makeName("fs1@" + "x" * 210)
-        snapname2 = ZFSTest.pool.makeName("fs2@" + "x" * 210)
+        snapname1 = ZFSTest.pool.makeTooLongName("fs1@")
+        snapname2 = ZFSTest.pool.makeTooLongName("fs2@")
         snapname3 = ZFSTest.pool.makeName("@snap")
         snaps = [snapname1, snapname2, snapname3]
 
@@ -532,8 +532,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_snapshot_too_long_snap_name(self):
-        snapname1 = ZFSTest.pool.makeName("fs1@" + "x" * 256)
-        snapname2 = ZFSTest.pool.makeName("fs2@" + "x" * 256)
+        snapname1 = ZFSTest.pool.makeTooLongComponent("fs1@")
+        snapname2 = ZFSTest.pool.makeTooLongComponent("fs2@")
         snapname3 = ZFSTest.pool.makeName("@snap")
         snaps = [snapname1, snapname2, snapname3]
 
@@ -584,7 +584,7 @@ class ZFSTest(unittest.TestCase):
     # Apparently the full name is not checked for length.
     @unittest.expectedFailure
     def test_destroy_too_long_full_snap_name(self):
-        snapname1 = ZFSTest.pool.makeName("fs1@nonexistent" + "x" * 200)
+        snapname1 = ZFSTest.pool.makeTooLongName("fs1@")
         snaps = [snapname1]
 
         with self.assertRaises(SnapshotDestructionFailure) as ctx:
@@ -594,8 +594,8 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_destroy_too_long_short_snap_name(self):
-        snapname1 = ZFSTest.pool.makeName("fs1@nonexistent" + "x" * 245)
-        snapname2 = ZFSTest.pool.makeName("fs2@nonexistent" + "x" * 245)
+        snapname1 = ZFSTest.pool.makeTooLongComponent("fs1@")
+        snapname2 = ZFSTest.pool.makeTooLongComponent("fs2@")
         snapname3 = ZFSTest.pool.makeName("@snap")
         snaps = [snapname1, snapname2, snapname3]
 
@@ -802,7 +802,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_rollback_too_long_fs_name(self):
-        name = ZFSTest.pool.makeName("x" * 256)
+        name = ZFSTest.pool.makeTooLongName()
 
         with self.assertRaises(NameTooLong) as ctx:
             lzc_rollback(name)
@@ -1814,7 +1814,7 @@ class ZFSTest(unittest.TestCase):
     # and this snapshot is treated as simply missing.
     @unittest.expectedFailure
     def test_hold_too_long_snap_name(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(False)
         with cleanup_fd() as fd:
             with self.assertRaises(HoldFailure) as ctx:
                 lzc_hold({snap: 'tag'}, fd)
@@ -1824,7 +1824,7 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_hold_too_long_snap_name_2(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(True)
         with cleanup_fd() as fd:
             with self.assertRaises(HoldFailure) as ctx:
                 lzc_hold({snap: 'tag'}, fd)
@@ -1888,13 +1888,13 @@ class ZFSTest(unittest.TestCase):
 
 
     def test_get_holds_too_long_snap_name(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(False)
         with self.assertRaises(NameTooLong) as ctx:
             lzc_get_holds(snap)
 
 
     def test_get_holds_too_long_snap_name_2(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(True)
         with self.assertRaises(NameTooLong) as ctx:
             lzc_get_holds(snap)
 
@@ -1906,7 +1906,7 @@ class ZFSTest(unittest.TestCase):
 
 
     # A filesystem-like snapshot name is not recognized as
-    # an invalid name for a filesystem.
+    # an invalid name.
     @unittest.expectedFailure
     def test_get_holds_invalid_snap_name_2(self):
         snap = ZFSTest.pool.getRoot().getFilesystem().getName()
@@ -2070,14 +2070,14 @@ class ZFSTest(unittest.TestCase):
     # and this snapshot is treated as simply missing.
     @unittest.expectedFailure
     def test_release_hold_too_long_snap_name(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 210
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(False)
 
         with self.assertRaises(HoldReleaseFailure) as ctx:
             ret = lzc_release({snap: ['tag']})
 
 
     def test_release_hold_too_long_snap_name_2(self):
-        snap = ZFSTest.pool.getRoot().getSnap() + 'x' * 252
+        snap = ZFSTest.pool.getRoot().getTooLongSnap(True)
         with self.assertRaises(HoldReleaseFailure) as ctx:
             lzc_release({snap: ['tag']})
         for e in ctx.exception.errors:
@@ -2220,6 +2220,26 @@ class _TempPool(object):
         return self._pool_name + '/' + relative
 
 
+    def makeTooLongName(self, prefix = None):
+        if not prefix:
+            prefix = 'x'
+        prefix = self.makeName(prefix)
+        pad_len = MAXNAMELEN + 1 - len(prefix)
+        if pad_len > 0:
+            return prefix + 'x' * pad_len
+        else:
+            return prefix
+
+
+    def makeTooLongComponent(self, prefix = None):
+        padding = 'x' * (MAXNAMELEN + 1)
+        if not prefix:
+            prefix = padding
+        else:
+            prefix = prefix + padding
+        return self.makeName(prefix)
+
+
     def getRoot(self):
         return self._root
 
@@ -2277,6 +2297,30 @@ class _Filesystem(object):
     def getBookmark(self):
         self._bmark_id += 1
         return self._makeBookmarkName(self._bmark_id)
+
+
+    def _makeTooLongName(self, too_long_component):
+        if too_long_component:
+            return 'x' * (MAXNAMELEN + 1)
+
+        # Note that another character is used for one of '/', '@', '#'.
+        comp_len = MAXNAMELEN - len(self._name)
+        if comp_len > 0:
+            return 'x' * comp_len
+        else:
+            return 'x'
+
+
+    def getTooLongFilesystemName(self, too_long_component):
+        return self._name + '/' + self._makeTooLongName(too_long_component)
+
+
+    def getTooLongSnap(self, too_long_component):
+        return self._name + '@' + self._makeTooLongName(too_long_component)
+
+
+    def getTooLongBookmark(self, too_long_component):
+        return self._name + '#' + self._makeTooLongName(too_long_component)
 
 
     def _visitFilesystems(self, visitor):
