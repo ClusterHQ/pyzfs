@@ -1608,7 +1608,7 @@ class ZFSTest(unittest.TestCase):
 
     # Apparently there are not enough checks in the kernel code
     # to refuse to write via a file descriptor opened in read-only mode.
-    @unittest.expectedFailure
+    @unittest.skipUnless(platform.system() == 'Linux', 'File mode is not checked')
     def test_send_to_ro_file(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
