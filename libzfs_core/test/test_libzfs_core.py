@@ -50,6 +50,15 @@ def cleanup_fd():
         os.close(fd)
 
 
+@contextlib.contextmanager
+def dev_null():
+    fd = os.open('/dev/null', os.O_WRONLY)
+    try:
+        yield fd
+    finally:
+        os.close(fd)
+
+
 def runtimeSkipIf(check_method, message):
     def _decorator(f):
         def _f(_self, *args, **kwargs):
