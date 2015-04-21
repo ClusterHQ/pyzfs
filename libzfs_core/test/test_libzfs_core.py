@@ -1459,6 +1459,23 @@ class ZFSTest(unittest.TestCase):
             self.assertAlmostEqual(st.st_size, estimate, delta = estimate / 20)
 
 
+    def test_send_flags(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+        with dev_null() as fd:
+            lzc_send(snap, None, fd, ['large_blocks'])
+            lzc_send(snap, None, fd, ['embedded_data'])
+            lzc_send(snap, None, fd, ['embedded_data', 'large_blocks'])
+
+
+    def test_send_unknown_flags(self):
+        snap = ZFSTest.pool.makeName("fs1@snap")
+        lzc_snapshot([snap])
+        with dev_null() as fd:
+            with self.assertRaises(ValueError):
+                lzc_send(snap, None, fd, ['embedded_data', 'UNKNOWN'])
+
+
     def test_send_same_snap(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
         lzc_snapshot([snap1])

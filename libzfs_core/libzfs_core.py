@@ -587,7 +587,7 @@ def lzc_get_holds(snapname):
     return holds
 
 
-def lzc_send(snapname, fromsnap, fd, flags = 0):
+def lzc_send(snapname, fromsnap, fd, flags = []):
     '''
     Generate a zfs send stream for the specified snapshot and write it to
     the specified file descriptor.
@@ -599,6 +599,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     :param int fd: the file descriptor to write the send stream to.
     :param flags: the flags that control what enhanced features can be used
                   in the stream.
+    :type flags: list of str
 
     :raises SnapshotNotFound: if either the starting snapshot is not `None` and does not exist,
                               or if the ending snapshot does not exist.
@@ -607,6 +608,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     :raises IOError: if an input / output error occurs while writing to ``fd``.
+    :raises ValueError: if the ``flags`` contain an invalid flag name.
 
     If ``fromsnap`` is None, a full (non-incremental) stream will be sent.
     If ``fromsnap`` is not None, it must be the full name of a snapshot or
@@ -621,12 +623,13 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
     ``fromsnap`` must be strictly an earlier snapshot, specifying the same snapshot
     as both ``fromsnap`` and ``snapname`` is an error.
 
-    If ``flags`` contains LZC_SEND_FLAG_LARGE_BLOCK, the stream is permitted
-    to contain DRR_WRITE records with drr_length > 128K, and DRR_OBJECT
-    records with drr_blksz > 128K.
+    If ``flags`` contains *"large_blocks"*, the stream is permitted
+    to contain ``DRR_WRITE`` records with ``drr_length`` > 128K, and ``DRR_OBJECT``
+    records with ``drr_blksz`` > 128K.
 
-    If ``flags`` contains LZC_SEND_FLAG_EMBED_DATA, the stream is permitted
-    to contain DRR_WRITE_EMBEDDED records with drr_etype==BP_EMBEDDED_TYPE_DATA,
+    If ``flags`` contains *"embedded_data"*, the stream is permitted
+    to contain ``DRR_WRITE_EMBEDDED`` records with
+    ``drr_etype`` == ``BP_EMBEDDED_TYPE_DATA``,
     which the receiving system must support (as indicated by support
     for the *embedded_data* feature).
 
@@ -636,7 +639,17 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
         after the start of the call and before the stream starts being produced.
     '''
     c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
-    ret = _lib.lzc_send(snapname, c_fromsnap, fd, flags)
+    c_flags = 0
+    for flag in flags:
+        c_flag = {
+            'embedded_data':    _lib.LZC_SEND_FLAG_EMBED_DATA,
+            'large_blocks':     _lib.LZC_SEND_FLAG_LARGE_BLOCK,
+        }.get(flag)
+        if c_flag is None:
+            raise ValueError('Unknown flag value ' + flag)
+        c_flags |= c_flag
+
+    ret = _lib.lzc_send(snapname, c_fromsnap, fd, c_flags)
     if ret != 0:
         if ret == errno.EXDEV and fromsnap is not None:
             if _pool_name(fromsnap) != _pool_name(snapname):
