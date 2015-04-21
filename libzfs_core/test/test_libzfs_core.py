@@ -1621,7 +1621,7 @@ class ZFSTest(unittest.TestCase):
             with self.assertRaises(IOError) as ctx:
                 lzc_send(snap, None, fd)
             os.close(fd)
-        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+        self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
     # On ZoL this test succeeds but afterwards any successful holds
