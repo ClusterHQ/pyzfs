@@ -6,6 +6,10 @@ from .bindings import libzfs_core
 from ._nvlist import nvlist_in, nvlist_out
 
 
+MAXNAMELEN = 255
+'''Maximum ZFS name length.'''
+
+
 def lzc_create(name, is_zvol = False, props = {}):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
@@ -32,7 +36,7 @@ def lzc_create(name, is_zvol = False, props = {}):
         if ret == errno.EINVAL:
             if not _is_valid_fs_name(name):
                 raise NameInvalid(name)
-            elif len(name) > 256:
+            elif len(name) > MAXNAMELEN:
                 raise NameTooLong(name)
             else:
                 raise PropertyInvalid(name)
@@ -74,9 +78,9 @@ def lzc_clone(name, origin, props = {}):
                 raise NameInvalid(name)
             elif not _is_valid_snap_name(origin):
                 raise NameInvalid(origin)
-            elif len(name) > 256:
+            elif len(name) > MAXNAMELEN:
                 raise NameTooLong(name)
-            elif len(origin) > 256:
+            elif len(origin) > MAXNAMELEN:
                 raise NameTooLong(origin)
             elif _pool_name(name) != _pool_name(origin):
                 raise PoolsDiffer(name) # see https://www.illumos.org/issues/5824
@@ -102,13 +106,14 @@ def lzc_rollback(name):
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
     '''
-    snapnamep = _ffi.new('char[]', 256)
-    ret = _lib.lzc_rollback(name, snapnamep, 256)
+    # Account for terminating NUL in C strings.
+    snapnamep = _ffi.new('char[]', MAXNAMELEN + 1)
+    ret = _lib.lzc_rollback(name, snapnamep, MAXNAMELEN + 1)
     if ret != 0:
         if ret == errno.EINVAL:
             if not _is_valid_fs_name(name):
                 raise NameInvalid(name)
-            elif len(name) > 256:
+            elif len(name) > MAXNAMELEN:
                 raise NameTooLong(name)
             else:
                 raise SnapshotNotFound(name)
@@ -181,7 +186,7 @@ def lzc_snapshot(snaps, props = {}):
         elif ret == errno.EINVAL:
             if any(not _is_valid_snap_name(s) for s in snaps):
                 return NameInvalid(name)
-            elif any(len(s) > 256 for s in snaps):
+            elif any(len(s) > MAXNAMELEN for s in snaps):
                 return NameTooLong(name)
             else:
                 return PropertyInvalid(name)
@@ -399,9 +404,9 @@ def lzc_snaprange_space(firstsnap, lastsnap):
                 raise NameInvalid(firstsnap)
             elif not _is_valid_snap_name(lastsnap):
                 raise NameInvalid(lastsnap)
-            elif len(firstsnap) > 256:
+            elif len(firstsnap) > MAXNAMELEN:
                 raise NameTooLong(firstsnap)
-            elif len(lastsnap) > 256:
+            elif len(lastsnap) > MAXNAMELEN:
                 raise NameTooLong(lastsnap)
             elif _pool_name(firstsnap) != _pool_name(lastsnap):
                 raise PoolsDiffer(lastsnap)
@@ -455,7 +460,7 @@ def lzc_hold(holds, fd = None):
                 pool_names = map(_pool_name, holds.keys())
                 if not _is_valid_snap_name(name):
                     return NameInvalid(name)
-                elif len(name) > 256:
+                elif len(name) > MAXNAMELEN:
                     return NameTooLong(name)
                 elif any(x != _pool_name(name) for x in pool_names):
                     return PoolsDiffer(name)
@@ -523,7 +528,7 @@ def lzc_release(holds):
                 pool_names = map(_pool_name, holds.keys())
                 if not _is_valid_snap_name(name):
                     return NameInvalid(name)
-                elif len(name) > 256:
+                elif len(name) > MAXNAMELEN:
                     return NameTooLong(name)
                 elif any(x != _pool_name(name) for x in pool_names):
                     return PoolsDiffer(name)
@@ -535,7 +540,7 @@ def lzc_release(holds):
             return HoldNotFound(name)
         elif ret == errno.E2BIG:
             tag_list = holds[name]
-            too_long_tags = [t for t in tag_list if len(t) > 256]
+            too_long_tags = [t for t in tag_list if len(t) > MAXNAMELEN]
             return NameTooLong(too_long_tags[0])
         else:
             return genericException(ret, name, "Failed to release snapshot hold")
@@ -574,7 +579,7 @@ def lzc_get_holds(snapname):
         if ret == errno.EINVAL:
             if not _is_valid_snap_name(snapname):
                 raise NameInvalid(snapname)
-            elif len(snapname) > 256:
+            elif len(snapname) > MAXNAMELEN:
                 raise NameTooLong(snapname)
         raise {
             errno.ENOENT: SnapshotNotFound(snapname),
@@ -644,9 +649,9 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
                 raise NameInvalid(fromsnap)
             elif not _is_valid_snap_name(snapname) and not _is_valid_fs_name(snapname):
                 raise NameInvalid(snapname)
-            elif fromsnap is not None and len(fromsnap) > 256:
+            elif fromsnap is not None and len(fromsnap) > MAXNAMELEN:
                 raise NameTooLong(fromsnap)
-            elif len(snapname) > 256:
+            elif len(snapname) > MAXNAMELEN:
                 raise NameTooLong(snapname)
             elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
@@ -656,7 +661,7 @@ def lzc_send(snapname, fromsnap, fd, flags = 0):
                 raise NameInvalid(fromsnap)
             raise SnapshotNotFound(snapname)
         elif ret == errno.ENAMETOOLONG:
-            if fromsnap is not None and len(fromsnap) > 256:
+            if fromsnap is not None and len(fromsnap) > MAXNAMELEN:
                 raise NameTooLong(fromsnap)
             else:
                 raise NameTooLong(snapname)
@@ -700,9 +705,9 @@ def lzc_send_space(snapname, fromsnap = None):
                 raise NameInvalid(fromsnap)
             elif not _is_valid_snap_name(snapname):
                 raise NameInvalid(snapname)
-            elif fromsnap is not None and len(fromsnap) > 256:
+            elif fromsnap is not None and len(fromsnap) > MAXNAMELEN:
                 raise NameTooLong(fromsnap)
-            elif len(snapname) > 256:
+            elif len(snapname) > MAXNAMELEN:
                 raise NameTooLong(snapname)
             elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
                 raise PoolsDiffer(snapname)
