@@ -6,31 +6,6 @@ from .bindings import libzfs_core
 from ._nvlist import nvlist_in, nvlist_out
 
 
-# TODO: a better way to init and uninit the library
-def _initialize():
-    class LazyInit(object):
-
-        def __init__(self, lib):
-            self._lib = lib
-            self._inited = False
-            self._lock = threading.Lock()
-
-        def __getattr__(self, name):
-            if not self._inited:
-                with self._lock:
-                    if not self._inited:
-                        ret = self._lib.libzfs_core_init()
-                        if ret != 0:
-                            raise ZFSInitializationFailed(ret)
-                        self._inited = True
-            return getattr(self._lib, name)
-
-    return LazyInit(libzfs_core.lib)
-
-_ffi = libzfs_core.ffi
-_lib = _initialize()
-
-
 def lzc_create(name, is_zvol = False, props = {}):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
@@ -806,6 +781,31 @@ def _is_valid_bmark_name(name):
     parts = name.split('#')
     return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
            _is_valid_name_component(parts[1]))
+
+
+# TODO: a better way to init and uninit the library
+def _initialize():
+    class LazyInit(object):
+
+        def __init__(self, lib):
+            self._lib = lib
+            self._inited = False
+            self._lock = threading.Lock()
+
+        def __getattr__(self, name):
+            if not self._inited:
+                with self._lock:
+                    if not self._inited:
+                        ret = self._lib.libzfs_core_init()
+                        if ret != 0:
+                            raise ZFSInitializationFailed(ret)
+                        self._inited = True
+            return getattr(self._lib, name)
+
+    return LazyInit(libzfs_core.lib)
+
+_ffi = libzfs_core.ffi
+_lib = _initialize()
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
