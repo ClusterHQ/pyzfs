@@ -74,6 +74,36 @@ def skipUnlessBookmarksSupported(f):
     return skipUnlessFeatureEnabled('bookmarks', 'bookmarks are not enabled')(f)
 
 
+def snap_always_unmounted_before_destruction():
+    # Apparently ZoL automatically unmounts the snapshot
+    # only if it is mounted at its default .zfs/snapshot
+    # mountpoint.
+    return (platform.system() != 'Linux', 'snapshot is not auto-unmounted')
+
+
+def ebadf_confuses_dev_zfs_state():
+    # For an unknown reason tests that are executed after a test
+    # where a bad file descriptor is used are unexpectedly failing
+    # on Linux.
+    return (platform.system() == 'Linux', 'EBADF confuses /dev/zfs state')
+
+
+def bug_with_random_file_as_cleanup_fd():
+    # BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
+    # IP: [<ffffffffa0218aa0>] zfsdev_getminor+0x10/0x20 [zfs]
+    # Call Trace:
+    #  [<ffffffffa021b4b0>] zfs_onexit_fd_hold+0x20/0x40 [zfs]
+    #  [<ffffffffa0214043>] zfs_ioc_hold+0x93/0xd0 [zfs]
+    #  [<ffffffffa0215890>] zfsdev_ioctl+0x200/0x500 [zfs]
+    return (platform.system() == 'Linux', 'Gets killed')
+
+
+def lzc_send_honors_file_mode():
+    # Apparently there are not enough checks in the kernel code
+    # to refuse to write via a file descriptor opened in read-only mode.
+    return (platform.system() == 'Linux', 'File mode is not checked')
+
+
 class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
@@ -578,10 +608,7 @@ class ZFSTest(unittest.TestCase):
             self.assertIsInstance(e, NameTooLong)
 
 
-    # Apparently ZoL automatically unmounts the snapshot
-    # only if it is mounted at its default .zfs/snapshot
-    # mountpoint.
-    @unittest.skipIf(platform.system() == 'Linux', 'snapshot is not auto-unmounted')
+    @unittest.skipUnless(*snap_always_unmounted_before_destruction())
     def test_destroy_mounted_snap(self):
         snap = ZFSTest.pool.getRoot().getSnap()
 
@@ -1539,7 +1566,7 @@ class ZFSTest(unittest.TestCase):
             lzc_send(snap2, bmark, fd)
 
 
-    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1552,7 +1579,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
-    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd_2(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1565,7 +1592,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
-    @unittest.skipIf(platform.system() == 'Linux', 'EBADF confuses kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd_3(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1606,9 +1633,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EPIPE)
 
 
-    # Apparently there are not enough checks in the kernel code
-    # to refuse to write via a file descriptor opened in read-only mode.
-    @unittest.skipUnless(platform.system() == 'Linux', 'File mode is not checked')
+    @unittest.skipUnless(*lzc_send_honors_file_mode())
     def test_send_to_ro_file(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc_snapshot([snap])
@@ -1624,10 +1649,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
 
-    # On ZoL this test succeeds but afterwards any successful holds
-    # with valid cleanup_fd are not automaticaly released when
-    # the file descriptor is closed.
-    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
@@ -1639,10 +1661,7 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, bad_fd)
 
 
-    # On ZoL this test succeeds but afterwards any successful holds
-    # with valid cleanup_fd are not automaticaly released when
-    # the file descriptor is closed.
-    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd_2(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
@@ -1651,7 +1670,7 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, -2)
 
 
-    @unittest.skipIf(platform.system() == 'Linux', 'Confuses auto-cleanup in kernel')
+    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd_3(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
@@ -1662,13 +1681,7 @@ class ZFSTest(unittest.TestCase):
             lzc_hold({snap: 'tag'}, bad_fd)
 
 
-    # BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
-    # IP: [<ffffffffa0218aa0>] zfsdev_getminor+0x10/0x20 [zfs]
-    # Call Trace:
-    #  [<ffffffffa021b4b0>] zfs_onexit_fd_hold+0x20/0x40 [zfs]
-    #  [<ffffffffa0214043>] zfs_ioc_hold+0x93/0xd0 [zfs]
-    #  [<ffffffffa0215890>] zfsdev_ioctl+0x200/0x500 [zfs]
-    @unittest.skipIf(platform.system() == 'Linux', 'Gets killed')
+    @unittest.skipIf(*bug_with_random_file_as_cleanup_fd())
     def test_hold_wrong_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])
