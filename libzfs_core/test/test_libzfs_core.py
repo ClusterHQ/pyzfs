@@ -786,12 +786,17 @@ class ZFSTest(unittest.TestCase):
             lzc_rollback(name)
 
 
-    # A snapshot-like filesystem name is not recognized as
-    # an invalid name for a filesystem.
-    @unittest.expectedFailure
-    def test_rollback_invalid_fs_name_2(self):
+    def test_rollback_snap_name(self):
         name = ZFSTest.pool.makeName("fs1@snap")
 
+        with self.assertRaises(NameInvalid) as ctx:
+            lzc_rollback(name)
+
+
+    def test_rollback_snap_name_2(self):
+        name = ZFSTest.pool.makeName("fs1@snap")
+
+        lzc_snapshot([name])
         with self.assertRaises(NameInvalid) as ctx:
             lzc_rollback(name)
 

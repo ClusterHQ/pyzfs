@@ -137,10 +137,12 @@ def lzc_rollback(name):
                 raise NameTooLong(name)
             else:
                 raise SnapshotNotFound(name)
-
-        raise {
-            errno.ENOENT: FilesystemNotFound(name),
-        }.get(ret, genericException(ret, name, "Failed to rollback"))
+        if ret == errno.ENOENT:
+            if not _is_valid_fs_name(name):
+                raise NameInvalid(name)
+            else:
+                raise FilesystemNotFound(name)
+        raise genericException(ret, name, "Failed to rollback")
 
     return _ffi.string(snapnamep)
 
