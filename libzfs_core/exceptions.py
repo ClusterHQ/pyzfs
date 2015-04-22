@@ -124,6 +124,10 @@ class SnapshotMismatch(ZFSError):
     def __init__(self, name):
         super(SnapshotMismatch, self).__init__(errno.ENODEV, "Snapshot is not descendant of source snapshot", name)
 
+class StreamMismatch(ZFSError):
+    def __init__(self, name):
+        super(StreamMismatch, self).__init__(errno.ENODEV, "Most recent snapshot does not match incremental stream source", name)
+
 class DestinationModified(ZFSError):
     def __init__(self, name):
         super(DestinationModified, self).__init__(errno.ETXTBSY, "Destination modified", name)
@@ -131,6 +135,10 @@ class DestinationModified(ZFSError):
 class BadStream(ZFSError):
     def __init__(self):
         super(BadStream, self).__init__(errno.EINVAL, "Bad backup stream")
+
+class StreamFeatureNotSupported(ZFSError):
+    def __init__(self):
+        super(StreamFeatureNotSupported, self).__init__(errno.ENOTSUP, "Stream contains unsupported feature")
 
 class ZIOError(ZFSError):
     def __init__(self, name):
