@@ -59,6 +59,16 @@ def dev_null():
         os.close(fd)
 
 
+@contextlib.contextmanager
+def temp_file_in_fs(fs):
+    with zfs_mount(fs) as mntdir:
+        with tempfile.NamedTemporaryFile(dir = mntdir) as f:
+            for i in range(1024):
+                f.write('x' * 1024)
+            f.flush()
+            yield f.name
+
+
 def runtimeSkipIf(check_method, message):
     def _decorator(f):
         def _f(_self, *args, **kwargs):
