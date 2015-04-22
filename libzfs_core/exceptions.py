@@ -126,11 +126,11 @@ class SnapshotMismatch(ZFSError):
 
 class StreamMismatch(ZFSError):
     def __init__(self, name):
-        super(StreamMismatch, self).__init__(errno.ENODEV, "Most recent snapshot does not match incremental stream source", name)
+        super(StreamMismatch, self).__init__(errno.ENODEV, "Stream is not applicable to destination dataset", name)
 
 class DestinationModified(ZFSError):
     def __init__(self, name):
-        super(DestinationModified, self).__init__(errno.ETXTBSY, "Destination modified", name)
+        super(DestinationModified, self).__init__(errno.ETXTBSY, "Destination dataset has modifications that can not be undone", name)
 
 class BadStream(ZFSError):
     def __init__(self):
