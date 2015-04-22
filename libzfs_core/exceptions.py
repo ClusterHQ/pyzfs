@@ -112,14 +112,6 @@ class HoldReleaseFailure(MultipleOperationsFailure):
     def __init__(self, errors):
         super(HoldReleaseFailure, self).__init__("Release of hold(s) failed for one or more reasons", errors)
 
-#class WrongSnapshotOrder(ZFSError):
-#    def __init__(self, name):
-#        super(WrongSnapshotOrder, self).__init__(errno.EXDEV, "Starting snapshot is newer than ending snapshot", name)
-#
-#class UnrelatedSnapshot(ZFSError):
-#    def __init__(self, name):
-#        super(UnrelatedSnapshot, self).__init__(errno.EXDEV, "Snapshot is not related to filesystem or snapshot", name)
-
 class SnapshotMismatch(ZFSError):
     def __init__(self, name):
         super(SnapshotMismatch, self).__init__(errno.ENODEV, "Snapshot is not descendant of source snapshot", name)
