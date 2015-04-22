@@ -734,11 +734,65 @@ def lzc_send_space(snapname, fromsnap = None):
     return int(valp[0])
 
 
-def lzc_receive(snapname, props, origin, force, fd):
-    ret = 0
+def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
+    '''
+    Receive from the specified ``fd``, creating the specified snapshot.
+
+    :param str snapname: the name of the snapshot to create.
+    :param int fd: the file descriptor from which to read the stream.
+    :param bool force: whether to roll back or destroy the target filesystem
+                       if that is required to receive the stream.
+    :param origin: the optional origin snapshot name if the stream is for a clone.
+    :type origin: str or None
+    :param props: the properties to set on the snapshot as *received* properties.
+    :type props: dict of str : Any
+
+    :raises IOError: if an input / output error occurs while reading from the ``fd``.
+    :raises DatasetExists: if the snapshot or the filesystem already exists.
+    :raises DatasetNotFound: if the target filesystem and its parent do not exist,
+                                or the ``origin`` is not `None` and does not exists.
+    :raises BadStream: if the stream is corrupt or it is not recognized or it is
+                       a compound stream or it is a clone stream, but ``origin``
+                       is `None`.
+    :raises StreamFeatureNotSupported: if the stream has a feature that is not
+                                       supported on the receiving side.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+                             or has an invalid type or value.
+    :raises NameInvalid: if the name of either snapshot is invalid.
+    :raises NameTooLong: if the name of either snapshot is too long.
+
+    .. note::
+    This interface does not work on dedup'd streams
+    (those with ``DMU_BACKUP_FEATURE_DEDUP``).
+    '''
+
+    c_origin = origin if origin is not None else _ffi.NULL
     with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_receive(snapname, nvlist, origin, force, fd)
-    return ret
+        ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
+    if ret != 0:
+        if ret == errno.EINVAL:
+            if not _is_valid_snap_name(snapname):
+                raise NameInvalid(snapname)
+            elif len(snapname) > MAXNAMELEN:
+                raise NameTooLong(snapname)
+            elif origin is not None and not _is_valid_snap_name(origin):
+                raise NameInvalid(origin)
+            else:
+                raise BadStream()
+        if ret == errno.ENOENT:
+            if not _is_valid_snap_name(snapname):
+                raise NameInvalid(snapname)
+            else:
+                raise DatasetNotFound(snapname)
+        if ret == errno.EEXIST:
+            raise DatasetExists(snapname)
+        if ret == errno.ENOTSUP:
+            raise StreamFeatureNotSupported()
+        if ret == errno.ENODEV:
+            raise StreamMismatch(_fs_name(snapname))
+        if ret == errno.ETXTBSY:
+            raise DestinationModified(_fs_name(snapname))
+        raise IOError(ret, os.strerror(ret))
 
 
 def lzc_exists(name):

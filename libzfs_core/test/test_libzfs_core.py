@@ -1,5 +1,6 @@
 import unittest
 import contextlib
+import filecmp
 import platform
 import resource
 import shutil
@@ -1716,6 +1717,68 @@ class ZFSTest(unittest.TestCase):
                 lzc_send(snap, None, fd)
             os.close(fd)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
+
+
+    def test_recv_full(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dst = ZFSTest.pool.makeName("fs2/received-1@snap")
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(dst, stream.fileno())
+
+        name = os.path.basename(name)
+        with zfs_mount(src) as mnt1, zfs_mount(dst) as mnt2:
+            self.assertTrue(filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
+
+
+    def test_recv_incremental(self):
+        src1 = ZFSTest.pool.makeName("fs1@snap1")
+        src2 = ZFSTest.pool.makeName("fs1@snap2")
+        dst1 = ZFSTest.pool.makeName("fs2/received-2@snap1")
+        dst2 = ZFSTest.pool.makeName("fs2/received-2@snap2")
+
+        lzc_snapshot([src1])
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src2])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src1, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(dst1, stream.fileno())
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src2, src1, stream.fileno())
+            stream.seek(0)
+            lzc_receive(dst2, stream.fileno())
+
+        name = os.path.basename(name)
+        with zfs_mount(src2) as mnt1, zfs_mount(dst2) as mnt2:
+            self.assertTrue(filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
+
+
+    def test_recv_clone(self):
+        orig_src = ZFSTest.pool.makeName("fs2@send-origin")
+        clone = ZFSTest.pool.makeName("fs1/fs/send-clone")
+        clone_snap = clone + "@snap"
+        orig_dst = ZFSTest.pool.makeName("fs1/fs/recv-origin@snap")
+        clone_dst = ZFSTest.pool.makeName("fs1/fs/recv-clone@snap")
+
+        lzc_snapshot([orig_src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(orig_src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(orig_dst, stream.fileno())
+
+        lzc_clone(clone, orig_src)
+        lzc_snapshot([clone_snap])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(clone_snap, orig_src, stream.fileno())
+            stream.seek(0)
+            lzc_receive(clone_dst, stream.fileno(), origin = orig_dst)
 
 
     @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
