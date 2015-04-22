@@ -52,12 +52,24 @@ def cleanup_fd():
 
 
 @contextlib.contextmanager
-def dev_null():
-    fd = os.open('/dev/null', os.O_WRONLY)
+def os_open(name, mode):
+    fd = os.open(name, mode)
     try:
         yield fd
     finally:
         os.close(fd)
+
+
+@contextlib.contextmanager
+def dev_null():
+    with os_open('/dev/null', os.O_WRONLY) as fd:
+        yield fd
+
+
+@contextlib.contextmanager
+def dev_zero():
+    with os_open('/dev/zero', os.O_RDONLY) as fd:
+        yield fd
 
 
 @contextlib.contextmanager
@@ -68,6 +80,37 @@ def temp_file_in_fs(fs):
                 f.write('x' * 1024)
             f.flush()
             yield f.name
+
+
+def make_snapshots(fs, before, modified, after):
+    def _maybe_snap(snap):
+        if snap is not None:
+            if not snap.startswith(fs):
+                snap = fs + '@' + snap
+            lzc_snapshot([snap])
+        return snap
+
+    before = _maybe_snap(before)
+    with temp_file_in_fs(fs) as name:
+        modified = _maybe_snap(modified)
+    after = _maybe_snap(after)
+
+    return (name, (before, modified, after))
+
+
+@contextlib.contextmanager
+def streams(fs, first, second):
+    (filename, snaps) = make_snapshots(fs, None, first, second)
+    with tempfile.TemporaryFile(suffix = '.ztream') as full:
+        lzc_send(snaps[1], None, full.fileno())
+        full.seek(0)
+        if snaps[2] is not None:
+            with tempfile.TemporaryFile(suffix = '.ztream') as incremental:
+                lzc_send(snaps[2], snaps[1], incremental.fileno())
+                incremental.seek(0)
+                yield (filename, (full, incremental))
+        else:
+            yield (filename, (full, None))
 
 
 def runtimeSkipIf(check_method, message):
