@@ -748,12 +748,33 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
     :type props: dict of str : Any
 
     :raises IOError: if an input / output error occurs while reading from the ``fd``.
-    :raises DatasetExists: if the snapshot or the filesystem already exists.
-    :raises DatasetNotFound: if the target filesystem and its parent do not exist,
-                                or the ``origin`` is not `None` and does not exists.
+    :raises SnapshotExists: if the snapshot named ``snapname`` already exists.
+    :raises StreamMismatch: if an incremental stream is received and the latest
+                            snapshot of the destination filesystem does not match
+                            the source snapshot of the stream.
+    :raises StreamMismatch: if a full stream is received and the destination
+                            filesystem already exists and it has at least one snapshot,
+                            and ``force`` is `False`.
+    :raises StreamMismatch: if an incremental clone stream is received but the specified
+                            ``origin`` is not the actual received origin.
+    :raises DestinationModified: if an incremental stream is received and the destination
+                                 filesystem has been modified since the last snapshot
+                                 and ``force`` is `False`.
+    :raises DestinationModified: if a full stream is received and the destination
+                                 filesystem already exists and it does not have any
+                                 snapshots, and ``force`` is `False`.
+    :raises DatasetNotFound: if the destination filesystem and its parent do not exist.
+    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exists.
+    :raises DatasetBusy: if ``force`` is `True` but the destination filesystem could not
+                         be rolled back to a matching snapshot because a newer snapshot
+                         is held and could not be destroyed.
+    :raises DatasetBusy: if another receive operation is being performed on the
+                         destination filesystem and this operation has lost the race.
     :raises BadStream: if the stream is corrupt or it is not recognized or it is
                        a compound stream or it is a clone stream, but ``origin``
                        is `None`.
+    :raises BadStream: if a clone stream is received and the destination filesystem
+                       already exists.
     :raises StreamFeatureNotSupported: if the stream has a feature that is not
                                        supported on the receiving side.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
@@ -762,8 +783,31 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
     :raises NameTooLong: if the name of either snapshot is too long.
 
     .. note::
-    This interface does not work on dedup'd streams
-    (those with ``DMU_BACKUP_FEATURE_DEDUP``).
+        The ``origin`` is ignored if the actual stream is an incremental stream
+        that is not a clone stream and the destination filesystem exists.
+        If the stream is a full stream and the destination filesystem does not
+        exist then the ``origin`` is checked for existence: if it does not exist
+        :exc:`.DatasetNotFound` is raised, otherwise :exc:`.StreamMismatch` is
+        raised, because that snapshot can not have any relation to the stream.
+
+    .. note::
+        If ``force`` is `True` and the stream is incremental then the destination
+        filesystem is rolled back to a matching source snapshot if necessary.
+        Intermediate snapshots are destroyed in that case.
+
+        However, none of the existing snapshots must have the same name as
+        ``snapname`` even if such a snapshot were to be destroyed.
+        The existing ``snapname`` snapshot always causes :exc:`.SnapshotExists`
+        to be raised.
+
+        If ``force`` is `True` and the stream is a full stream then the destination
+        filesystem is replaced with the received filesystem unless the former
+        has any snapshots.
+        Those prevent the destination filesystem from being rolled back / replaced.
+
+    .. note::
+        This interface does not work on dedup'd streams
+        (those with ``DMU_BACKUP_FEATURE_DEDUP``).
     '''
 
     c_origin = origin if origin is not None else _ffi.NULL
@@ -785,13 +829,15 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
             else:
                 raise DatasetNotFound(snapname)
         if ret == errno.EEXIST:
-            raise DatasetExists(snapname)
+            raise SnapshotExists(snapname)
         if ret == errno.ENOTSUP:
             raise StreamFeatureNotSupported()
         if ret == errno.ENODEV:
             raise StreamMismatch(_fs_name(snapname))
         if ret == errno.ETXTBSY:
             raise DestinationModified(_fs_name(snapname))
+        if ret == errno.EBUSY:
+            raise DatasetBusy(_fs_name(snapname))
         raise IOError(ret, os.strerror(ret))
 
 
