@@ -1824,6 +1824,524 @@ class ZFSTest(unittest.TestCase):
             lzc_receive(clone_dst, stream.fileno(), origin = orig_dst)
 
 
+    def test_recv_full_already_existing_empty_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-3")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        lzc_create(dstfs)
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(DestinationModified):
+                lzc_receive(dst, stream.fileno())
+
+
+    def test_recv_full_already_existing_modified_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-5")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        lzc_create(dstfs)
+        with temp_file_in_fs(dstfs):
+            with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+                lzc_send(src, None, stream.fileno())
+                stream.seek(0)
+                with self.assertRaises(DestinationModified):
+                    lzc_receive(dst, stream.fileno())
+
+
+    def test_recv_full_already_existing_with_snapshots(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-4")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        lzc_create(dstfs)
+        lzc_snapshot([dstfs + "@snap1"])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst, stream.fileno())
+
+
+    def test_recv_full_already_existing_snapshot(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-6")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        lzc_create(dstfs)
+        lzc_snapshot([dst])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(SnapshotExists):
+                lzc_receive(dst, stream.fileno())
+
+
+    def test_recv_full_missing_parent_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dst = ZFSTest.pool.makeName("fs2/nonexistent/fs@snap")
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(DatasetNotFound):
+                lzc_receive(dst, stream.fileno())
+
+
+    def test_recv_full_but_specify_origin(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src = srcfs + "@snap"
+        dstfs = ZFSTest.pool.makeName("fs2/received-30")
+        dst = dstfs + '@snap'
+        origin1 = ZFSTest.pool.makeName("fs2@snap1")
+        origin2 = ZFSTest.pool.makeName("fs2@snap2")
+
+        lzc_snapshot([origin1])
+        with streams(srcfs, src, None) as (_, (stream, _)):
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst, stream.fileno(), origin = origin1)
+            stream.seek(0)
+            with self.assertRaises(DatasetNotFound):
+                lzc_receive(dst, stream.fileno(), origin = origin2)
+
+
+    def test_recv_full_existing_empty_fs_and_origin(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src = srcfs + "@snap"
+        dstfs = ZFSTest.pool.makeName("fs2/received-31")
+        dst = dstfs + '@snap'
+        origin = dstfs + '@dummy'
+
+        lzc_create(dstfs)
+        with streams(srcfs, src, None) as (_, (stream, _)):
+            # because the destination fs already exists and has no snaps
+            with self.assertRaises(DestinationModified):
+                lzc_receive(dst, stream.fileno(), origin = origin)
+            lzc_snapshot([origin])
+            stream.seek(0)
+            # because the destination fs already exists and has the snap
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst, stream.fileno(), origin = origin)
+
+
+    def test_recv_incremental_mounted_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-7")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with zfs_mount(dstfs):
+                lzc_receive(dst2, incr.fileno())
+
+
+    def test_recv_incremental_modified_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-15")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                with self.assertRaises(DestinationModified):
+                    lzc_receive(dst2, incr.fileno())
+
+
+    def test_recv_incremental_snapname_used(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-8")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_snapshot([dst2])
+            with self.assertRaises(SnapshotExists):
+                lzc_receive(dst2, incr.fileno())
+
+
+    def test_recv_incremental_more_recent_snap_with_no_changes(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-9")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_snapshot([dst_snap])
+            lzc_receive(dst2, incr.fileno())
+
+
+    def test_recv_incremental_non_clone_but_set_origin(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-20")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_snapshot([dst_snap])
+            lzc_receive(dst2, incr.fileno(), origin = dst1)
+
+
+    def test_recv_incremental_non_clone_but_set_random_origin(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-21")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_snapshot([dst_snap])
+            lzc_receive(dst2, incr.fileno(),
+                origin = ZFSTest.pool.makeName("fs2/fs@snap"))
+
+
+    def test_recv_incremental_more_recent_snap(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-10")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                lzc_snapshot([dst_snap])
+                with self.assertRaises(DestinationModified):
+                    lzc_receive(dst2, incr.fileno())
+
+
+    def test_recv_incremental_duplicate(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-11")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_receive(dst2, incr.fileno())
+            incr.seek(0)
+            with self.assertRaises(DestinationModified):
+                lzc_receive(dst_snap, incr.fileno())
+
+
+    def test_recv_incremental_unrelated_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-12")
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (_, incr)):
+            lzc_create(dstfs)
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst_snap, incr.fileno())
+
+
+    def test_recv_incremental_nonexistent_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-13")
+        dst_snap = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (_, incr)):
+            with self.assertRaises(DatasetNotFound):
+                lzc_receive(dst_snap, incr.fileno())
+
+
+    def test_recv_incremental_same_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        src_snap = srcfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (_, incr)):
+            with self.assertRaises(DestinationModified):
+                lzc_receive(src_snap, incr.fileno())
+
+
+    def test_recv_clone_without_specifying_origin(self):
+        orig_src = ZFSTest.pool.makeName("fs2@send-origin-2")
+        clone = ZFSTest.pool.makeName("fs1/fs/send-clone-2")
+        clone_snap = clone + "@snap"
+        orig_dst = ZFSTest.pool.makeName("fs1/fs/recv-origin-2@snap")
+        clone_dst = ZFSTest.pool.makeName("fs1/fs/recv-clone-2@snap")
+
+        lzc_snapshot([orig_src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(orig_src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(orig_dst, stream.fileno())
+
+        lzc_clone(clone, orig_src)
+        lzc_snapshot([clone_snap])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(clone_snap, orig_src, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(BadStream):
+                lzc_receive(clone_dst, stream.fileno())
+
+
+    def test_recv_clone_invalid_origin(self):
+        orig_src = ZFSTest.pool.makeName("fs2@send-origin-3")
+        clone = ZFSTest.pool.makeName("fs1/fs/send-clone-3")
+        clone_snap = clone + "@snap"
+        orig_dst = ZFSTest.pool.makeName("fs1/fs/recv-origin-3@snap")
+        clone_dst = ZFSTest.pool.makeName("fs1/fs/recv-clone-3@snap")
+
+        lzc_snapshot([orig_src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(orig_src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(orig_dst, stream.fileno())
+
+        lzc_clone(clone, orig_src)
+        lzc_snapshot([clone_snap])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(clone_snap, orig_src, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(NameInvalid):
+                lzc_receive(clone_dst, stream.fileno(), origin = ZFSTest.pool.makeName("fs1/fs"))
+
+
+    def test_recv_clone_wrong_origin(self):
+        orig_src = ZFSTest.pool.makeName("fs2@send-origin-4")
+        clone = ZFSTest.pool.makeName("fs1/fs/send-clone-4")
+        clone_snap = clone + "@snap"
+        orig_dst = ZFSTest.pool.makeName("fs1/fs/recv-origin-4@snap")
+        clone_dst = ZFSTest.pool.makeName("fs1/fs/recv-clone-4@snap")
+        wrong_origin = ZFSTest.pool.makeName("fs1/fs@snap")
+
+        lzc_snapshot([orig_src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(orig_src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(orig_dst, stream.fileno())
+
+        lzc_clone(clone, orig_src)
+        lzc_snapshot([clone_snap])
+        lzc_snapshot([wrong_origin])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(clone_snap, orig_src, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(clone_dst, stream.fileno(), origin = wrong_origin)
+
+
+    def test_recv_clone_nonexistent_origin(self):
+        orig_src = ZFSTest.pool.makeName("fs2@send-origin-5")
+        clone = ZFSTest.pool.makeName("fs1/fs/send-clone-5")
+        clone_snap = clone + "@snap"
+        orig_dst = ZFSTest.pool.makeName("fs1/fs/recv-origin-5@snap")
+        clone_dst = ZFSTest.pool.makeName("fs1/fs/recv-clone-5@snap")
+        wrong_origin = ZFSTest.pool.makeName("fs1/fs@snap")
+
+        lzc_snapshot([orig_src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(orig_src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(orig_dst, stream.fileno())
+
+        lzc_clone(clone, orig_src)
+        lzc_snapshot([clone_snap])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(clone_snap, orig_src, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(DatasetNotFound):
+                lzc_receive(clone_dst, stream.fileno(), origin = wrong_origin)
+
+
+    def test_force_recv_full_existing_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-50")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+
+        lzc_create(dstfs)
+        with temp_file_in_fs(dstfs):
+            pass # enough to taint the fs
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(dst, stream.fileno(), force = True)
+
+
+    def test_force_recv_full_already_existing_with_snapshots(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-51")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+
+        lzc_create(dstfs)
+        with temp_file_in_fs(dstfs):
+            pass # enough to taint the fs
+        lzc_snapshot([dstfs + "@snap1"])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst, stream.fileno(), force = True)
+
+
+    def test_force_recv_full_already_existing_with_same_snap(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-52")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+
+        lzc_create(dstfs)
+        with temp_file_in_fs(dstfs):
+            pass # enough to taint the fs
+        lzc_snapshot([dst])
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(SnapshotExists):
+                lzc_receive(dst, stream.fileno(), force = True)
+
+
+    def test_recv_full_missing_parent_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dst = ZFSTest.pool.makeName("fs2/nonexistent/fs@snap")
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(DatasetNotFound):
+                lzc_receive(dst, stream.fileno())
+
+
+    def test_force_recv_incremental_modified_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-60")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                pass # enough to taint the fs
+            lzc_receive(dst2, incr.fileno(), force = True)
+
+
+    def test_force_recv_incremental_modified_fs_plus_later_snap(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-61")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst3 = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                pass # enough to taint the fs
+            lzc_snapshot([dst3])
+            lzc_receive(dst2, incr.fileno(), force = True)
+        self.assertTrue(lzc_exists(dst1))
+        self.assertTrue(lzc_exists(dst2))
+        self.assertFalse(lzc_exists(dst3))
+
+
+    def test_force_recv_incremental_modified_fs_plus_same_name_snap(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-62")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                pass # enough to taint the fs
+            lzc_snapshot([dst2])
+            with self.assertRaises(SnapshotExists):
+                lzc_receive(dst2, incr.fileno(), force = True)
+
+
+    def test_force_recv_incremental_modified_fs_plus_held_snap(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-63")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst3 = dstfs + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                pass # enough to taint the fs
+            lzc_snapshot([dst3])
+            with cleanup_fd() as cfd:
+                lzc_hold({dst3: 'tag'}, cfd)
+                with self.assertRaises(DatasetBusy):
+                    lzc_receive(dst2, incr.fileno(), force = True)
+        self.assertTrue(lzc_exists(dst1))
+        self.assertFalse(lzc_exists(dst2))
+        self.assertTrue(lzc_exists(dst3))
+
+
+    def test_recv_bad_stream(self):
+        dstfs = ZFSTest.pool.makeName("fs2/received")
+        dst_snap = dstfs + '@snap'
+
+        with dev_zero() as fd:
+            with self.assertRaises(BadStream):
+                lzc_receive(dst_snap, fd)
+
+
     @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
