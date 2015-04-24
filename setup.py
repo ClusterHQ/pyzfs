@@ -12,6 +12,7 @@ setup(
         "cffi",
     ],
     zip_safe = False,
+    test_suite="libzfs_core.test",
 )
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
