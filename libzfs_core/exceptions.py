@@ -24,6 +24,14 @@ class DatasetNotFound(ZFSError):
     def __init__(self, name):
         super(DatasetNotFound, self).__init__(errno.ENOENT, "Dataset not found", name)
 
+class DatasetExists(ZFSError):
+    """
+    This exception is raised when an operation failure can be caused by an existing
+    snapshot or filesystem and it is impossible to distinguish between
+    the causes.
+    """
+    def __init__(self, name):
+        super(DatasetExists, self).__init__(errno.EEXIST, "Dataset already exists", name)
 class FilesystemExists(ZFSError):
     def __init__(self, name):
         super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)
