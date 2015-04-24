@@ -748,7 +748,8 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
     :type props: dict of str : Any
 
     :raises IOError: if an input / output error occurs while reading from the ``fd``.
-    :raises SnapshotExists: if the snapshot named ``snapname`` already exists.
+    :raises DatasetExists: if the snapshot named ``snapname`` already exists.
+    :raises DatasetExists: if the stream is a full stream and the destination filesystem already exists.
     :raises StreamMismatch: if an incremental stream is received and the latest
                             snapshot of the destination filesystem does not match
                             the source snapshot of the stream.
@@ -829,7 +830,7 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
             else:
                 raise DatasetNotFound(snapname)
         if ret == errno.EEXIST:
-            raise SnapshotExists(snapname)
+            raise DatasetExists(snapname)
         if ret == errno.ENOTSUP:
             raise StreamFeatureNotSupported()
         if ret == errno.ENODEV:
