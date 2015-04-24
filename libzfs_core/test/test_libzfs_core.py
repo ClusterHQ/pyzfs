@@ -1839,6 +1839,30 @@ class ZFSTest(unittest.TestCase):
                 lzc_receive(dst, stream.fileno())
 
 
+    def test_recv_full_into_empty_pool(self):
+        empty_pool = None
+        try:
+            srcfs = ZFSTest.pool.makeName("fs1")
+            empty_pool = _TempPool()
+            dst = empty_pool.makeName('@snap')
+
+            with streams(srcfs, "snap", None) as (_, (stream, _)):
+                with self.assertRaises(DestinationModified):
+                    lzc_receive(dst, stream.fileno())
+        finally:
+            if empty_pool is not None:
+                empty_pool.cleanUp()
+
+
+    def test_recv_full_into_ro_pool(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        dst = ZFSTest.readonly_pool.makeName('fs2/received@snap')
+
+        with streams(srcfs, "snap", None) as (_, (stream, _)):
+            with self.assertRaises(ReadOnlyPool):
+                lzc_receive(dst, stream.fileno())
+
+
     def test_recv_full_already_existing_modified_fs(self):
         src = ZFSTest.pool.makeName("fs1@snap")
         dstfs = ZFSTest.pool.makeName("fs2/received-5")
