@@ -204,6 +204,9 @@ def lzc_snapshot(snaps, props = {}):
     _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
 
 
+lzc_snap = lzc_snapshot
+
+
 def lzc_destroy_snaps(snaps, defer):
     '''
     Destroy snapshots.
@@ -851,6 +854,9 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
             raise SuspendedPool(_pool_name(snapname))
 
         raise IOError(ret, os.strerror(ret))
+
+
+lzc_recv = lzc_receive
 
 
 def lzc_exists(name):
