@@ -2226,6 +2226,31 @@ class ZFSTest(unittest.TestCase):
             lzc_receive(dst, stream.fileno(), force = True)
 
 
+    def test_force_recv_full_existing_modified_mounted_fs(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dstfs = ZFSTest.pool.makeName("fs2/received-53")
+        dst = dstfs + '@snap'
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc_snapshot([src])
+
+        lzc_create(dstfs)
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+            with zfs_mount(dstfs) as mntdir:
+                f = tempfile.NamedTemporaryFile(dir = mntdir, delete = False)
+                for i in range(1024):
+                    f.write('x' * 1024)
+                lzc_receive(dst, stream.fileno(), force = True)
+                # The temporary file dissappears and any access, even close(),
+                # results in EIO.
+                self.assertFalse(os.path.exists(f.name))
+                with self.assertRaises(IOError):
+                    f.close()
+
+
     # This test-case expect the behavior that should be there,
     # at the moment it may fail with DatasetExists or StreamMismatch
     # depending on the implementation.
@@ -2295,6 +2320,28 @@ class ZFSTest(unittest.TestCase):
             with temp_file_in_fs(dstfs):
                 pass # enough to taint the fs
             lzc_receive(dst2, incr.fileno(), force = True)
+
+
+    def test_force_recv_incremental_modified_mounted_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-64")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with zfs_mount(dstfs) as mntdir:
+                f = tempfile.NamedTemporaryFile(dir = mntdir, delete = False)
+                for i in range(1024):
+                    f.write('x' * 1024)
+                lzc_receive(dst2, incr.fileno(), force = True)
+                # The temporary file dissappears and any access, even close(),
+                # results in EIO.
+                self.assertFalse(os.path.exists(f.name))
+                with self.assertRaises(IOError):
+                    f.close()
 
 
     def test_force_recv_incremental_modified_fs_plus_later_snap(self):
