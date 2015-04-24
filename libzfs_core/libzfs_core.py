@@ -838,6 +838,17 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
             raise DestinationModified(_fs_name(snapname))
         if ret == errno.EBUSY:
             raise DatasetBusy(_fs_name(snapname))
+        if ret == errno.ENOSPC:
+            raise NoSpace(_fs_name(snapname))
+        if ret == errno.EDQUOT:
+            raise QuotaExceeded(_fs_name(snapname))
+        if ret == errno.ENAMETOOLONG:
+            raise NameTooLong(snapname)
+        if ret == errno.EROFS:
+            raise ReadOnlyPool(_pool_name(snapname))
+        if ret == errno.EAGAIN:
+            raise SuspendedPool(_pool_name(snapname))
+
         raise IOError(ret, os.strerror(ret))
 
 
