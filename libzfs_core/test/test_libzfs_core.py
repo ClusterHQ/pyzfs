@@ -2294,7 +2294,7 @@ class ZFSTest(unittest.TestCase):
                 lzc_receive(dst, stream.fileno(), force = True)
 
 
-    def test_recv_full_missing_parent_fs(self):
+    def test_force_recv_full_missing_parent_fs(self):
         src = ZFSTest.pool.makeName("fs1@snap")
         dst = ZFSTest.pool.makeName("fs2/nonexistent/fs@snap")
 
@@ -2304,7 +2304,7 @@ class ZFSTest(unittest.TestCase):
             lzc_send(src, None, stream.fileno())
             stream.seek(0)
             with self.assertRaises(DatasetNotFound):
-                lzc_receive(dst, stream.fileno())
+                lzc_receive(dst, stream.fileno(), force = True)
 
 
     def test_force_recv_incremental_modified_fs(self):
