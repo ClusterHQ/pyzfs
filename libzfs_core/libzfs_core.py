@@ -484,8 +484,7 @@ def lzc_hold(holds, fd = None):
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
 
-    # XXX ENOENT seems like a FreeBSD quirk
-    if ret == errno.EBADF or ret == errno.ENOENT:
+    if ret == errno.EBADF:
         raise BadHoldCleanupFD()
     _handleErrList(ret, errlist, holds.keys(), HoldFailure, _map)
 
