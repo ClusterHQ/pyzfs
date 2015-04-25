@@ -2950,6 +2950,7 @@ class _TempPool(object):
             raise
         for fs in self._filesystems:
             lzc_create(self.makeName(fs))
+        self.getRoot().reset()
 
 
     def cleanUp(self):
