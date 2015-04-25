@@ -2532,6 +2532,37 @@ class ZFSTest(unittest.TestCase):
         self.assertEqual(sorted(missing), sorted([snap1, snap2]))
 
 
+    def test_hold_missing_fs(self):
+        # XXX skip pre-created filesystems
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        snap = ZFSTest.pool.getRoot().getFilesystem().getSnap()
+
+        with self.assertRaises(HoldFailure) as ctx:
+            missing = lzc_hold({snap: 'tag'})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, FilesystemNotFound)
+
+
+    def test_hold_missing_fs_auto_cleanup(self):
+        # XXX skip pre-created filesystems
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        ZFSTest.pool.getRoot().getFilesystem()
+        snap = ZFSTest.pool.getRoot().getFilesystem().getSnap()
+
+        with cleanup_fd() as fd:
+            with self.assertRaises(HoldFailure) as ctx:
+                lzc_hold({snap: 'tag'})
+        for e in ctx.exception.errors:
+            self.assertIsInstance(e, FilesystemNotFound)
+
+
     def test_hold_duplicate(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc_snapshot([snap])

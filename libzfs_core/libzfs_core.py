@@ -472,6 +472,7 @@ def lzc_hold(holds, fd = None):
                 if len(invalid_names) > 0:
                     return NameInvalid(invalid_names[0])
         return {
+            errno.ENOENT: FilesystemNotFound(_fs_name(name)),
             errno.EEXIST: HoldExists(name),
             errno.E2BIG:  NameTooLong(holds[name]),
         }.get(ret, genericException(ret, name, "Failed to hold snapshot"))
