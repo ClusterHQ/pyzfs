@@ -2895,6 +2895,125 @@ class ZFSTest(unittest.TestCase):
             self.assertEquals(e.filename, snap)
 
 
+    def test_send_full_across_clone_branch_point(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-20", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-20")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, None, stream.fileno())
+
+
+    def test_send_incr_across_clone_branch_point(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-21", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-21")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, fromsnap, stream.fileno())
+
+
+
+    def test_recv_full_across_clone_branch_point(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-30", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-30")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        recvfs = ZFSTest.pool.makeName("fs1/recv-clone-30")
+        recvsnap = recvfs + "@snap"
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(recvsnap, stream.fileno())
+
+
+    def test_recv_incr_across_clone_branch_point__no_origin(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-32", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-32")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        recvfs = ZFSTest.pool.makeName("fs1/recv-clone-32")
+        recvsnap1 = recvfs + "@snap1"
+        recvsnap2 = recvfs + "@snap2"
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(fromsnap, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(recvsnap1, stream.fileno())
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, fromsnap, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(BadStream):
+                lzc_receive(recvsnap2, stream.fileno())
+
+
+    def test_recv_incr_across_clone_branch_point(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-31", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-31")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        recvfs = ZFSTest.pool.makeName("fs1/recv-clone-31")
+        recvsnap1 = recvfs + "@snap1"
+        recvsnap2 = recvfs + "@snap2"
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(fromsnap, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(recvsnap1, stream.fileno())
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, fromsnap, stream.fileno())
+            stream.seek(0)
+            with self.assertRaises(BadStream):
+                lzc_receive(recvsnap2, stream.fileno(), origin = recvsnap1)
+
+
+    def test_recv_incr_across_clone_branch_point__new_fs(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+
+        (_, (fromsnap, origsnap, _)) = make_snapshots(origfs, "snap1", "send-origin-33", None)
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/send-clone-33")
+        lzc_clone(clonefs, origsnap)
+
+        (_, (_, tosnap, _)) = make_snapshots(clonefs, None, "snap", None)
+
+        recvfs1 = ZFSTest.pool.makeName("fs1/recv-clone-33")
+        recvsnap1 = recvfs1 + "@snap"
+        recvfs2 = ZFSTest.pool.makeName("fs1/recv-clone-33_2")
+        recvsnap2 = recvfs2 + "@snap"
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(fromsnap, None, stream.fileno())
+            stream.seek(0)
+            lzc_receive(recvsnap1, stream.fileno())
+        with tempfile.TemporaryFile(suffix = '.ztream') as stream:
+            lzc_send(tosnap, fromsnap, stream.fileno())
+            stream.seek(0)
+            lzc_receive(recvsnap2, stream.fileno(), origin = recvsnap1)
+
+
 
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
