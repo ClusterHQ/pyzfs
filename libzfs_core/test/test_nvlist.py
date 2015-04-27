@@ -67,7 +67,7 @@ class TestNVList(unittest.TestCase):
             props = {"key": boolean_t(2)}
             res = self._dict_to_nvlist_to_dict(props)
 
-    def test_explicit_boolean4_another_invalid_value(self):
+    def test_explicit_boolean_another_invalid_value(self):
         with self.assertRaises(OverflowError):
             props = {"key": boolean_t(-1)}
             res = self._dict_to_nvlist_to_dict(props)
