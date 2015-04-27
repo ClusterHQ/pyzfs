@@ -1,3 +1,5 @@
+# Copyright 2015 ClusterHQ. See LICENSE file for details.
+
 """
 nvlist_in and nvlist_out provide support for converting between
 a dictionary on the Python side and an nvlist_t on the C side

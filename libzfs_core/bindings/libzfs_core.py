@@ -1,3 +1,4 @@
+# Copyright 2015 ClusterHQ. See LICENSE file for details.
 
 CDEF = """
     enum lzc_send_flags {

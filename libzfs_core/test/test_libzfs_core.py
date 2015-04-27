@@ -1,3 +1,5 @@
+# Copyright 2015 ClusterHQ. See LICENSE file for details.
+
 import unittest
 import contextlib
 import filecmp

@@ -1,3 +1,5 @@
+# Copyright 2015 ClusterHQ. See LICENSE file for details.
+
 CDEF = """
     typedef ... nvlist_t;
     typedef ... nvpair_t;

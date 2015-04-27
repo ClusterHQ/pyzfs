@@ -1,3 +1,5 @@
+# Copyright 2015 ClusterHQ. See LICENSE file for details.
+
 """
 Utility functions for casting to a specific C type.
 """
