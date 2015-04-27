@@ -643,7 +643,10 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
         In that case ``lzc_send`` acts as if a temporary snapshot was created
         after the start of the call and before the stream starts being produced.
     '''
-    c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
+    if fromsnap is not None:
+        c_fromsnap = fromsnap
+    else:
+        c_fromsnap = _ffi.NULL
     c_flags = 0
     for flag in flags:
         c_flag = {
@@ -709,7 +712,10 @@ def lzc_send_space(snapname, fromsnap = None):
     ``fromsnap``, if not ``None``,  must be strictly an earlier snapshot,
     specifying the same snapshot as both ``fromsnap`` and ``snapname`` is an error.
     '''
-    c_fromsnap = fromsnap if fromsnap is not None else _ffi.NULL
+    if fromsnap is not None:
+        c_fromsnap = fromsnap
+    else:
+        c_fromsnap = _ffi.NULL
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_send_space(snapname, c_fromsnap, valp)
     if ret != 0:
@@ -816,7 +822,10 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
         (those with ``DMU_BACKUP_FEATURE_DEDUP``).
     '''
 
-    c_origin = origin if origin is not None else _ffi.NULL
+    if origin is not None:
+        c_origin = origin
+    else:
+        c_origin = _ffi.NULL
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
     if ret != 0:
@@ -882,7 +891,10 @@ def _handleErrList(ret, errlist, names, exception, mapper):
         return
 
     if len(errlist) == 0:
-        name = names[0] if len(names) == 1 else None
+        if len(names) == 1:
+            name = names[0]
+        else:
+            name = None
         errors = [mapper(ret, name)]
     else:
         errors = []
