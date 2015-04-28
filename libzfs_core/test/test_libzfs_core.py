@@ -2406,6 +2406,51 @@ class ZFSTest(unittest.TestCase):
         self.assertTrue(lzc_exists(dst3))
 
 
+    def test_force_recv_incremental_modified_fs_plus_cloned_snap(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-70")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+        dst3 = dstfs + '@snap'
+        cloned = ZFSTest.pool.makeName("fs2/received-cloned-70")
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            with temp_file_in_fs(dstfs):
+                pass # enough to taint the fs
+            lzc_snapshot([dst3])
+            lzc_clone(cloned, dst3)
+            with self.assertRaises(DatasetExists):
+                lzc_receive(dst2, incr.fileno(), force = True)
+        self.assertTrue(lzc_exists(dst1))
+        self.assertFalse(lzc_exists(dst2))
+        self.assertTrue(lzc_exists(dst3))
+
+
+    def test_recv_incremental_into_cloned_fs(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-71")
+        dst1 = dstfs + '@snap1'
+        cloned = ZFSTest.pool.makeName("fs2/received-cloned-71")
+        dst2 = cloned + '@snap'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc_receive(dst1, full.fileno())
+            lzc_clone(cloned, dst1)
+            # test both graceful and with-force attempts
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst2, incr.fileno())
+            incr.seek(0)
+            with self.assertRaises(StreamMismatch):
+                lzc_receive(dst2, incr.fileno(), force = True)
+        self.assertTrue(lzc_exists(dst1))
+        self.assertFalse(lzc_exists(dst2))
+
+
     def test_send_full_across_clone_branch_point(self):
         origfs = ZFSTest.pool.makeName("fs2")
 
