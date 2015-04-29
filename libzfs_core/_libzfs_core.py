@@ -5,11 +5,8 @@ import threading
 from . import exceptions
 from . import _error_translation as xlate
 from .bindings import libzfs_core
+from .constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
-
-
-MAXNAMELEN = 255
-'''Maximum ZFS name length.'''
 
 
 def lzc_create(name, is_zvol = False, props = {}):

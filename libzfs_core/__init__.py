@@ -1,7 +1,10 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
-from ._libzfs_core import (
+from .constants import (
     MAXNAMELEN,
+)
+
+from ._libzfs_core import (
     lzc_create,
     lzc_clone,
     lzc_rollback,

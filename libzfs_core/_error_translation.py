@@ -5,10 +5,7 @@ import os
 import re
 import string
 from . import exceptions as lzc_exc
-
-
-MAXNAMELEN = 255
-'''Maximum ZFS name length.'''
+from .constants import MAXNAMELEN
 
 
 def lzc_create_xlate_error(ret, name, is_zvol, props):
