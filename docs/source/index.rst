@@ -23,7 +23,7 @@ Indices and tables
 Documentation for the libzfs_core
 *********************************
 
-.. automodule:: libzfs_core.libzfs_core
+.. automodule:: libzfs_core
    :members:
 
 Documentation for the libzfs_core exceptions
