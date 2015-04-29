@@ -1,9 +1,9 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
-import re
-import string
+import errno
 import threading
-from .exceptions import *
+from . import exceptions
+from . import _error_translation as xlate
 from .bindings import libzfs_core
 from ._nvlist import nvlist_in, nvlist_out
 
@@ -34,19 +34,7 @@ def lzc_create(name, is_zvol = False, props = {}):
         ds_type = _lib.DMU_OST_ZFS
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_create(name, ds_type, nvlist)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_fs_name(name):
-                raise NameInvalid(name)
-            elif len(name) > MAXNAMELEN:
-                raise NameTooLong(name)
-            else:
-                raise PropertyInvalid(name)
-
-        raise {
-            errno.EEXIST: FilesystemExists(name),
-            errno.ENOENT: ParentNotFound(name),
-        }.get(ret, genericException(ret, name, "Failed to create filesystem"))
+    xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
 
 
 def lzc_clone(name, origin, props = {}):
@@ -74,25 +62,7 @@ def lzc_clone(name, origin, props = {}):
     '''
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_clone(name, origin, nvlist)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_fs_name(name):
-                raise NameInvalid(name)
-            elif not _is_valid_snap_name(origin):
-                raise NameInvalid(origin)
-            elif len(name) > MAXNAMELEN:
-                raise NameTooLong(name)
-            elif len(origin) > MAXNAMELEN:
-                raise NameTooLong(origin)
-            elif _pool_name(name) != _pool_name(origin):
-                raise PoolsDiffer(name) # see https://www.illumos.org/issues/5824
-            else:
-                raise PropertyInvalid(name)
-
-        raise {
-            errno.EEXIST: FilesystemExists(name),
-            errno.ENOENT: DatasetNotFound(name),
-        }.get(ret, genericException(ret, name, "Failed to create clone"))
+    xlate.lzc_clone_xlate_error(ret, name, origin, props)
 
 
 def lzc_rollback(name):
@@ -111,21 +81,7 @@ def lzc_rollback(name):
     # Account for terminating NUL in C strings.
     snapnamep = _ffi.new('char[]', MAXNAMELEN + 1)
     ret = _lib.lzc_rollback(name, snapnamep, MAXNAMELEN + 1)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_fs_name(name):
-                raise NameInvalid(name)
-            elif len(name) > MAXNAMELEN:
-                raise NameTooLong(name)
-            else:
-                raise SnapshotNotFound(name)
-        if ret == errno.ENOENT:
-            if not _is_valid_fs_name(name):
-                raise NameInvalid(name)
-            else:
-                raise FilesystemNotFound(name)
-        raise genericException(ret, name, "Failed to rollback")
-
+    xlate.lzc_rollback_xlate_error(ret, name)
     return _ffi.string(snapnamep)
 
 
@@ -177,33 +133,12 @@ def lzc_snapshot(snaps, props = {}):
           The latter is the case when the short name alone exceeds the maximum
           allowed length.
     '''
-    def _map(ret, name):
-        if ret == errno.EXDEV:
-            pool_names = map(_pool_name, snaps)
-            same_pool = all(x == pool_names[0] for x in pool_names)
-            if same_pool:
-                return DuplicateSnapshots(name)
-            else:
-                return PoolsDiffer(name)
-        elif ret == errno.EINVAL:
-            if any(not _is_valid_snap_name(s) for s in snaps):
-                return NameInvalid(name)
-            elif any(len(s) > MAXNAMELEN for s in snaps):
-                return NameTooLong(name)
-            else:
-                return PropertyInvalid(name)
-        else:
-            return {
-                errno.EEXIST: SnapshotExists(name),
-                errno.ENOENT: FilesystemNotFound(name),
-            }.get(ret, genericException(ret, name, "Failed to create snapshot"))
-
     snaps_dict = { name: None for name in snaps }
     errlist = {}
     with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, snaps, SnapshotFailure, _map)
+    xlate.lzc_snapshot_xlate_errors(ret, errlist, snaps, props)
 
 
 lzc_snap = lzc_snapshot
@@ -245,20 +180,12 @@ def lzc_destroy_snaps(snaps, defer):
         A snapshot name referring to a filesystem that doesn't exist is ignored.
         However, non-existent pool name causes :exc:`PoolNotFound`.
     '''
-
-    def _map(ret, name):
-        return {
-            errno.EEXIST: SnapshotIsCloned(name),
-            errno.ENOENT: PoolNotFound(name),
-            errno.EBUSY:  SnapshotIsHeld(name),
-        }.get(ret, genericException(ret, name, "Failed to destroy snapshot"))
-
     snaps_dict = { name: None for name in snaps }
     errlist = {}
     with nvlist_in(snaps_dict) as snaps_nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
-    _handleErrList(ret, errlist, snaps, SnapshotDestructionFailure, _map)
+    xlate.lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer)
 
 
 def lzc_bookmark(bookmarks):
@@ -274,34 +201,11 @@ def lzc_bookmark(bookmarks):
     the name of the snapshot (e.g. :file:`{pool}/{fs}@{snap}`).  All the bookmarks and
     snapshots must be in the same pool.
     '''
-    def _map(ret, name):
-        if ret == errno.EINVAL:
-            if bool(name):
-                snap = bookmarks[name]
-                pool_names = map(_pool_name, bookmarks.keys())
-                if not _is_valid_bmark_name(name):
-                    return NameInvalid(name)
-                elif not _is_valid_snap_name(snap):
-                    return NameInvalid(snap)
-                elif _fs_name(name) != _fs_name(snap):
-                    return BookmarkMismatch(name)
-                elif any(x != _pool_name(name) for x in pool_names):
-                    return PoolsDiffer(name)
-            else:
-                invalid_names = [b for b in bookmarks.keys() if not _is_valid_bmark_name(b)]
-                if len(invalid_names) > 0:
-                    return NameInvalid(invalid_names[0])
-        return {
-            errno.EEXIST: BookmarkExists(name),
-            errno.ENOENT: SnapshotNotFound(name),
-            errno.ENOTSUP: BookmarkNotSupported(name),
-        }.get(ret, genericException(ret, name, "Failed to create bookmark"))
-
     errlist = {}
     with nvlist_in(bookmarks) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, bookmarks.keys(), BookmarkFailure, _map)
+    xlate.lzc_bookmark_xlate_errors(ret, errlist, bookmarks)
 
 
 def lzc_get_bookmarks(fsname, props = []):
@@ -335,10 +239,7 @@ def lzc_get_bookmarks(fsname, props = []):
     with nvlist_in(props_dict) as nvlist:
         with nvlist_out(bmarks) as bmarks_nvlist:
             ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
-    if ret != 0:
-        raise {
-            errno.ENOENT: FilesystemNotFound(fsname),
-        }.get(ret, genericException(ret, fsname, "Failed to list bookmarks"))
+    xlate.lzc_get_bookmarks_xlate_error(ret, fsname, props)
     return bmarks
 
 
@@ -361,17 +262,12 @@ def lzc_destroy_bookmarks(bookmarks):
 
     Either all bookmarks that existed are destroyed or an exception is raised.
     '''
-    def _map(ret, name):
-        return {
-            errno.EINVAL: NameInvalid(name),
-        }.get(ret, genericException(ret, name, "Failed to destroy bookmark"))
-
     errlist = {}
     bmarks_dict = { name: None for name in bookmarks }
     with nvlist_in(bmarks_dict) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, bookmarks, BookmarkDestructionFailure, _map)
+    xlate.lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks)
 
 
 def lzc_snaprange_space(firstsnap, lastsnap):
@@ -403,24 +299,7 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_snap_name(firstsnap):
-                raise NameInvalid(firstsnap)
-            elif not _is_valid_snap_name(lastsnap):
-                raise NameInvalid(lastsnap)
-            elif len(firstsnap) > MAXNAMELEN:
-                raise NameTooLong(firstsnap)
-            elif len(lastsnap) > MAXNAMELEN:
-                raise NameTooLong(lastsnap)
-            elif _pool_name(firstsnap) != _pool_name(lastsnap):
-                raise PoolsDiffer(lastsnap)
-            else:
-                raise SnapshotMismatch(lastsnap)
-        raise {
-            errno.ENOENT: SnapshotNotFound(lastsnap),
-        }.get(ret, genericException(ret, lastsnap, "Failed to calculate space used by range of snapshots"))
-
+    xlate.lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap)
     return int(valp[0])
 
 
@@ -456,40 +335,13 @@ def lzc_hold(holds, fd = None):
     specific to any hold / snapshot, or it may contain one or more elements
     detailing specific error per each affected hold.
     '''
-    def _map(ret, name):
-        if ret == errno.EXDEV:
-            return PoolsDiffer(name)
-        elif ret == errno.EINVAL:
-            if bool(name):
-                tag = holds[name]
-                pool_names = map(_pool_name, holds.keys())
-                if not _is_valid_snap_name(name):
-                    return NameInvalid(name)
-                elif len(name) > MAXNAMELEN:
-                    return NameTooLong(name)
-                elif any(x != _pool_name(name) for x in pool_names):
-                    return PoolsDiffer(name)
-            else:
-                invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
-                if len(invalid_names) > 0:
-                    return NameInvalid(invalid_names[0])
-        return {
-            errno.ENOENT: FilesystemNotFound(_fs_name(name)),
-            errno.EEXIST: HoldExists(name),
-            errno.E2BIG:  NameTooLong(holds[name]),
-        }.get(ret, genericException(ret, name, "Failed to hold snapshot"))
-
     errlist = {}
     if fd is None:
         fd = -1
     with nvlist_in(holds) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
-
-    if ret == errno.EBADF:
-        raise BadHoldCleanupFD()
-    _handleErrList(ret, errlist, holds.keys(), HoldFailure, _map)
-
+    xlate.lzc_hold_xlate_errors(ret, errlist, holds, fd)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots.
     assert all(x == errno.ENOENT for x in errlist.itervalues())
@@ -525,31 +377,6 @@ def lzc_release(holds):
     existed, were successfully removed.
     Otherwise an exception will be raised.
     '''
-    def _map(ret, name):
-        if ret == errno.EXDEV:
-            return PoolsDiffer(name)
-        elif ret == errno.EINVAL:
-            if bool(name):
-                pool_names = map(_pool_name, holds.keys())
-                if not _is_valid_snap_name(name):
-                    return NameInvalid(name)
-                elif len(name) > MAXNAMELEN:
-                    return NameTooLong(name)
-                elif any(x != _pool_name(name) for x in pool_names):
-                    return PoolsDiffer(name)
-            else:
-                invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
-                if len(invalid_names) > 0:
-                    return NameInvalid(invalid_names[0])
-        elif ret == errno.ENOENT:
-            return HoldNotFound(name)
-        elif ret == errno.E2BIG:
-            tag_list = holds[name]
-            too_long_tags = [t for t in tag_list if len(t) > MAXNAMELEN]
-            return NameTooLong(too_long_tags[0])
-        else:
-            return genericException(ret, name, "Failed to release snapshot hold")
-
     errlist = {}
     holds_dict = {}
     for snap, hold_list in holds.iteritems():
@@ -561,7 +388,7 @@ def lzc_release(holds):
     with nvlist_in(holds_dict) as nvlist:
         with nvlist_out(errlist) as errlist_nvlist:
             ret = _lib.lzc_release(nvlist, errlist_nvlist)
-    _handleErrList(ret, errlist, holds.keys(), HoldReleaseFailure, _map)
+    xlate.lzc_release_xlate_errors(ret, errlist, holds)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots and tags.
     assert all(x == errno.ENOENT for x in errlist.itervalues())
@@ -580,15 +407,7 @@ def lzc_get_holds(snapname):
     holds = {}
     with nvlist_out(holds) as nvlist:
         ret = _lib.lzc_get_holds(snapname, nvlist)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_snap_name(snapname):
-                raise NameInvalid(snapname)
-            elif len(snapname) > MAXNAMELEN:
-                raise NameTooLong(snapname)
-        raise {
-            errno.ENOENT: SnapshotNotFound(snapname),
-        }.get(ret, genericException(ret, snapname, "Failed to get holds on snapshot"))
+    xlate.lzc_get_holds_xlate_error(ret, snapname)
     return holds
 
 
@@ -658,35 +477,7 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
         c_flags |= c_flag
 
     ret = _lib.lzc_send(snapname, c_fromsnap, fd, c_flags)
-    if ret != 0:
-        if ret == errno.EXDEV and fromsnap is not None:
-            if _pool_name(fromsnap) != _pool_name(snapname):
-                raise PoolsDiffer(snapname)
-            else:
-                raise SnapshotMismatch(snapname)
-        elif ret == errno.EINVAL:
-            if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
-                not _is_valid_bmark_name(fromsnap)):
-                raise NameInvalid(fromsnap)
-            elif not _is_valid_snap_name(snapname) and not _is_valid_fs_name(snapname):
-                raise NameInvalid(snapname)
-            elif fromsnap is not None and len(fromsnap) > MAXNAMELEN:
-                raise NameTooLong(fromsnap)
-            elif len(snapname) > MAXNAMELEN:
-                raise NameTooLong(snapname)
-            elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
-                raise PoolsDiffer(snapname)
-        elif ret == errno.ENOENT:
-            if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
-                not _is_valid_bmark_name(fromsnap)):
-                raise NameInvalid(fromsnap)
-            raise SnapshotNotFound(snapname)
-        elif ret == errno.ENAMETOOLONG:
-            if fromsnap is not None and len(fromsnap) > MAXNAMELEN:
-                raise NameTooLong(fromsnap)
-            else:
-                raise NameTooLong(snapname)
-        raise IOError(ret, os.strerror(ret))
+    xlate.lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags)
 
 
 def lzc_send_space(snapname, fromsnap = None):
@@ -718,30 +509,7 @@ def lzc_send_space(snapname, fromsnap = None):
         c_fromsnap = _ffi.NULL
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_send_space(snapname, c_fromsnap, valp)
-    if ret != 0:
-        if ret == errno.EXDEV and fromsnap is not None:
-            if _pool_name(fromsnap) != _pool_name(snapname):
-                raise PoolsDiffer(snapname)
-            else:
-                raise SnapshotMismatch(snapname)
-        elif ret == errno.EINVAL:
-            if fromsnap is not None and not _is_valid_snap_name(fromsnap):
-                raise NameInvalid(fromsnap)
-            elif not _is_valid_snap_name(snapname):
-                raise NameInvalid(snapname)
-            elif fromsnap is not None and len(fromsnap) > MAXNAMELEN:
-                raise NameTooLong(fromsnap)
-            elif len(snapname) > MAXNAMELEN:
-                raise NameTooLong(snapname)
-            elif fromsnap is not None and _pool_name(fromsnap) != _pool_name(snapname):
-                raise PoolsDiffer(snapname)
-        elif ret == errno.ENOENT and fromsnap is not None:
-            if not _is_valid_snap_name(fromsnap):
-                raise NameInvalid(fromsnap)
-        raise {
-            errno.ENOENT: SnapshotNotFound(snapname),
-        }.get(ret, genericException(ret, snapname, "Failed to estimate backup stream size"))
-
+    xlate.lzc_send_space_xlate_error(ret, snapname, fromsnap)
     return int(valp[0])
 
 
@@ -831,43 +599,7 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
         c_origin = _ffi.NULL
     with nvlist_in(props) as nvlist:
         ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
-    if ret != 0:
-        if ret == errno.EINVAL:
-            if not _is_valid_snap_name(snapname):
-                raise NameInvalid(snapname)
-            elif len(snapname) > MAXNAMELEN:
-                raise NameTooLong(snapname)
-            elif origin is not None and not _is_valid_snap_name(origin):
-                raise NameInvalid(origin)
-            else:
-                raise BadStream()
-        if ret == errno.ENOENT:
-            if not _is_valid_snap_name(snapname):
-                raise NameInvalid(snapname)
-            else:
-                raise DatasetNotFound(snapname)
-        if ret == errno.EEXIST:
-            raise DatasetExists(snapname)
-        if ret == errno.ENOTSUP:
-            raise StreamFeatureNotSupported()
-        if ret == errno.ENODEV:
-            raise StreamMismatch(_fs_name(snapname))
-        if ret == errno.ETXTBSY:
-            raise DestinationModified(_fs_name(snapname))
-        if ret == errno.EBUSY:
-            raise DatasetBusy(_fs_name(snapname))
-        if ret == errno.ENOSPC:
-            raise NoSpace(_fs_name(snapname))
-        if ret == errno.EDQUOT:
-            raise QuotaExceeded(_fs_name(snapname))
-        if ret == errno.ENAMETOOLONG:
-            raise NameTooLong(snapname)
-        if ret == errno.EROFS:
-            raise ReadOnlyPool(_pool_name(snapname))
-        if ret == errno.EAGAIN:
-            raise SuspendedPool(_pool_name(snapname))
-
-        raise IOError(ret, os.strerror(ret))
+    xlate.lzc_receive_xlate_error(ret, snapname, fd, force, origin, props)
 
 
 lzc_recv = lzc_receive
@@ -889,53 +621,6 @@ def lzc_exists(name):
     return bool(ret)
 
 
-def _handleErrList(ret, errlist, names, exception, mapper):
-    if ret == 0:
-        return
-
-    if len(errlist) == 0:
-        if len(names) == 1:
-            name = names[0]
-        else:
-            name = None
-        errors = [mapper(ret, name)]
-    else:
-        errors = []
-        for name, err in errlist.iteritems():
-            errors.append(mapper(err, name))
-
-    raise exception(errors)
-
-
-def _pool_name(name):
-    return re.split('[/@#]', name, 1)[0]
-
-
-def _fs_name(name):
-    return re.split('[@#]', name, 1)[0]
-
-
-def _is_valid_name_component(component):
-    allowed = string.ascii_letters + string.digits + '-_.: '
-    return bool(component) and all(x in allowed for x in component)
-
-
-def _is_valid_fs_name(name):
-    return bool(name) and all(_is_valid_name_component(c) for c in name.split('/'))
-
-
-def _is_valid_snap_name(name):
-    parts = name.split('@')
-    return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
-           _is_valid_name_component(parts[1]))
-
-
-def _is_valid_bmark_name(name):
-    parts = name.split('#')
-    return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
-           _is_valid_name_component(parts[1]))
-
-
 # TODO: a better way to init and uninit the library
 def _initialize():
     class LazyInit(object):
@@ -951,7 +636,7 @@ def _initialize():
                     if not self._inited:
                         ret = self._lib.libzfs_core_init()
                         if ret != 0:
-                            raise ZFSInitializationFailed(ret)
+                            raise exceptions.ZFSInitializationFailed(ret)
                         self._inited = True
             return getattr(self._lib, name)
 

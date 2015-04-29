@@ -10,7 +10,8 @@ import stat
 import subprocess
 import tempfile
 import uuid
-from ..libzfs_core import *
+from .._libzfs_core import *
+from ..exceptions import *
 
 
 def _print(*args):
