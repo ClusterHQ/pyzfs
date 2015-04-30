@@ -12,10 +12,12 @@ class ZFSInitializationFailed(ZFSError):
 # Use first of the individual error codes
 # as an overall error code.  This is more consistent.
 class MultipleOperationsFailure(ZFSError):
-    def __init__(self, message, errors):
+    def __init__(self, message, errors, suppressed_count):
         super(MultipleOperationsFailure, self).__init__(errors[0].errno, message)
         #self.message = "Operation on more than one entity failed for one or more reasons"
         self.errors = errors
+        #: this many errors were encountered but not placed on the `errors` list
+        self.suppressed_count = suppressed_count
 
 class DatasetNotFound(ZFSError):
     """
@@ -71,12 +73,12 @@ class DuplicateSnapshots(ZFSError):
         super(DuplicateSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
 
 class SnapshotFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(SnapshotFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(SnapshotFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors, suppressed_count)
 
 class SnapshotDestructionFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(SnapshotDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(SnapshotDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors, suppressed_count)
 
 class BookmarkExists(ZFSError):
     def __init__(self, name):
@@ -95,12 +97,12 @@ class BookmarkNotSupported(ZFSError):
         super(BookmarkNotSupported, self).__init__(errno.ENOTSUP, "Bookmark feature is not supported", name)
 
 class BookmarkFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(BookmarkFailure, self).__init__("Creation of bookmark(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(BookmarkFailure, self).__init__("Creation of bookmark(s) failed for one or more reasons", errors, suppressed_count)
 
 class BookmarkDestructionFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors, suppressed_count)
 
 class BadHoldCleanupFD(ZFSError):
     def __init__(self):
@@ -115,12 +117,12 @@ class HoldNotFound(ZFSError):
         super(HoldNotFound, self).__init__(errno.ENOENT, "Hold with a given tag does not exist on snapshot", name)
 
 class HoldFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors, suppressed_count)
 
 class HoldReleaseFailure(MultipleOperationsFailure):
-    def __init__(self, errors):
-        super(HoldReleaseFailure, self).__init__("Release of hold(s) failed for one or more reasons", errors)
+    def __init__(self, errors, suppressed_count):
+        super(HoldReleaseFailure, self).__init__("Release of hold(s) failed for one or more reasons", errors, suppressed_count)
 
 class SnapshotMismatch(ZFSError):
     def __init__(self, name):

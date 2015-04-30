@@ -356,6 +356,7 @@ def _handleErrList(ret, errlist, names, exception, mapper):
         return
 
     if len(errlist) == 0:
+        suppressed_count = 0
         if len(names) == 1:
             name = names[0]
         else:
@@ -363,10 +364,11 @@ def _handleErrList(ret, errlist, names, exception, mapper):
         errors = [mapper(ret, name)]
     else:
         errors = []
+        suppressed_count = errlist.pop('N_MORE_ERRORS', 0)
         for name, err in errlist.iteritems():
             errors.append(mapper(err, name))
 
-    raise exception(errors)
+    raise exception(errors, suppressed_count)
 
 
 def _pool_name(name):
