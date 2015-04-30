@@ -1,6 +1,5 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
-#from . import exceptions
 from ._libzfs_core import (
     MAXNAMELEN,
     lzc_create,
