@@ -45,6 +45,14 @@ class TestNVList(unittest.TestCase):
         with self.assertRaises(TypeError):
             res = self._dict_to_nvlist_to_dict({"key": set(1, 2)})
 
+    def test_invalid_array_val_type(self):
+        with self.assertRaises(TypeError):
+            res = self._dict_to_nvlist_to_dict({"key": [(1, 2), (3, 4)]})
+
+    def test_invalid_array_of_arrays_val_type(self):
+        with self.assertRaises(TypeError):
+            res = self._dict_to_nvlist_to_dict({"key": [[1, 2], [3, 4]]})
+
     def test_string_value(self):
         props = {"key": "value"}
         res = self._dict_to_nvlist_to_dict(props)
