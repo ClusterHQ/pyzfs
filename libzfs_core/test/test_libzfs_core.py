@@ -3071,7 +3071,7 @@ class _TempPool(object):
 
     # XXX Whether to do a sloppy but much faster cleanup
     # or a proper but slower one.
-    _recreate_pools = False
+    _recreate_pools = True
 
 
     def __init__(self, size = 128 * 1024 * 1024, readonly = False, filesystems = []):
