@@ -287,3 +287,18 @@ texinfo_documents = [
 
 # Sort documentation in the same order as the source files.
 autodoc_member_order = 'bysource'
+
+
+#######################
+# Neutralize effects of function wrapping on documented signatures.
+# The affected signatures could be explcitly placed into the
+# documentation (either in .rst files or as a first line of a
+# docstring).
+import functools
+
+def no_op_wraps(func):
+    def wrapper(decorator):
+        return func
+    return wrapper
+
+functools.wraps = no_op_wraps
