@@ -2584,6 +2584,46 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_receive(dst_snap, fd)
 
 
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    def test_promote(self):
+        origfs = ZFSTest.pool.makeName("fs2")
+        snap = "@promote-snap-1"
+        origsnap = origfs + snap
+        lzc.lzc_snap([origsnap])
+
+        clonefs = ZFSTest.pool.makeName("fs1/fs/promote-clone-1")
+        lzc.lzc_clone(clonefs, origsnap)
+
+        lzc.lzc_promote(clonefs)
+        # the snapshot now should belong to the promoted fs
+        self.assertTrue(lzc.lzc_exists(clonefs + snap))
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    def test_promote_too_long_snapname(self):
+        # origfs name must be shorter than clonefs name
+        origfs = ZFSTest.pool.makeName("fs2")
+        clonefs = ZFSTest.pool.makeName("fs1/fs/promote-clone-2")
+        snapprefix = "@promote-snap-2-"
+        pad_len = 1 + lzc.MAXNAMELEN - len(clonefs) - len(snapprefix)
+        snap = snapprefix + 'x' * pad_len
+        origsnap = origfs + snap
+
+        lzc.lzc_snap([origsnap])
+        lzc.lzc_clone(clonefs, origsnap)
+
+        # XXX This fails, OpenZFS bug
+        with self.assertRaises(lzc_exc.NameTooLong):
+            lzc.lzc_promote(clonefs)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    def test_promote_not_cloned(self):
+        fs = ZFSTest.pool.makeName("fs2")
+        with self.assertRaises(lzc_exc.NotClone):
+            lzc.lzc_promote(fs)
+
+
     @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
