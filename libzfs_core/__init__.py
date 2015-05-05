@@ -1,4 +1,21 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
+'''
+Python wrappers for **libzfs_core** library.
+
+*libzfs_core* is intended to be a stable, committed interface for programmatic
+administration of ZFS.
+This wrapper provides one-to-one wrappers for libzfs_core API functions,
+but the signatures and types are more natural to Python.
+nvlists are wrapped as dictionaries or lists depending on their usage.
+Some parameters have default values depending on typical use for
+increased convenience.
+Output parameters are not used and return values are directly returned.
+Enumerations and bit flags become strings and lists of strings in Python.
+Errors are reported as exceptions rather than integer errno-style
+error codes.  The wrapper takes care to provide one-to-many mapping
+of the error codes to the exceptions by interpreting a context
+in which the error code is produced.
+'''
 
 from .constants import (
     MAXNAMELEN,
