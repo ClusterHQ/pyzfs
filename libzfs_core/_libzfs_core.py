@@ -1,6 +1,7 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
 import errno
+import functools
 import threading
 from . import exceptions
 from . import _error_translation as xlate
@@ -616,6 +617,41 @@ def lzc_exists(name):
     '''
     ret = _lib.lzc_exists(name)
     return bool(ret)
+
+
+def _uncommitted(func):
+    @functools.wraps(func)
+    def _f(*args, **kwargs):
+        if not is_supported(func):
+            raise NotImplementedError(func.__name__)
+        return func(*args, **kwargs)
+    return _f
+
+
+def is_supported(func):
+    '''
+    Check whether C *libzfs_core* provides implementation required
+    for the given Python wrapper.
+
+    :param function func: the function to check.
+    :return bool: whether the funciton can be used.
+
+    If `is_supported` returns ``False`` for the function, then
+    calling the function would result in :exc:`NotImplementedError`.
+    '''
+    try:
+        # woulf fail if is_supported is not set yet
+        return func._is_supported
+    except AttributeError:
+        fname = getattr(func, '__name__', None)
+        if fname is None:
+            raise ValueError('argument does not have __name__')
+        if not fname in globals():
+            raise ValueError(fname + ' is not from libzfs_core')
+        if not callable(func):
+            raise ValueError(fname + ' is not a function')
+        func._is_supported = (getattr(_lib, fname, None) != None)
+        return func._is_supported
 
 
 # TODO: a better way to init and uninit the library
