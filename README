@@ -12,3 +12,14 @@ Errors are reported as exceptions rather than integer errno-style
 error codes.  The wrapper takes care to provide one-to-many mapping
 of the error codes to the exceptions by interpreting a context
 in which the error code is produced.
+
+Unit tests and automated test for the libzfs_core API are provided
+with this package.
+Please note that the API tests perform lots of ZFS dataset level
+operatiions and ZFS tries hard to ensure that any modifications
+do reach stable storage. That means that the operations are done
+synchronously and that, for example, disk caches are flushed.
+Thus, the tests can be very slow on real hardware.
+It is recommended to place the default temporary directory or
+a temporary directory specified by, for instance, TMP environment
+variable on a memory backed filesystem.
