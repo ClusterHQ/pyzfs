@@ -362,6 +362,22 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     raise IOError(ret, os.strerror(ret))
 
 
+def lzc_promote_xlate_error(ret, name, conflicting):
+    if ret == 0:
+        return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(snapname)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
+        else:
+            raise lzc_exc.NotClone(name)
+    raise {
+        errno.ENOENT: lzc_exc.FilesystemNotFound(name),
+        errno.EEXIST: lzc_exc.SnapshotExists(conflicting),
+    }.get(ret, lzc_exc.genericException(ret, name, "Failed to promote dataset"))
+
+
 def _handleErrList(ret, errlist, names, exception, mapper):
     if ret == 0:
         return

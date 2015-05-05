@@ -628,6 +628,18 @@ def _uncommitted(func):
     return _f
 
 
+@_uncommitted
+def lzc_promote(name):
+    '''
+    Promotes the ZFS dataset.
+
+    :param str name: the name of the dataset to promote.
+    '''
+    conflicting = _ffi.new('char[]', MAXNAMELEN + 1)
+    ret = _lib.lzc_promote(name, conflicting, MAXNAMELEN + 1)
+    xlate.lzc_promote_xlate_error(ret, name, _ffi.string(conflicting))
+
+
 def is_supported(func):
     '''
     Check whether C *libzfs_core* provides implementation required

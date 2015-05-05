@@ -36,6 +36,12 @@ class DatasetExists(ZFSError):
     """
     def __init__(self, name):
         super(DatasetExists, self).__init__(errno.EEXIST, "Dataset already exists", name)
+
+
+class NotClone(ZFSError):
+    def __init__(self, name):
+        super(NotClone, self).__init__(errno.EINVAL, "Filesystem is not a clone, can not promote", name)
+
 class FilesystemExists(ZFSError):
     def __init__(self, name):
         super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)

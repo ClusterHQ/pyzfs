@@ -41,6 +41,7 @@ from ._libzfs_core import (
     lzc_recv,
     lzc_exists,
     is_supported,
+    lzc_promote,
 )
 
 __all__ = [
@@ -66,6 +67,7 @@ __all__ = [
     'lzc_recv',
     'lzc_exists',
     'is_supported',
+    'lzc_promote',
 ]
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

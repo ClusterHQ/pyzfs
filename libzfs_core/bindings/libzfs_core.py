@@ -40,6 +40,8 @@ CDEF = """
     boolean_t lzc_exists(const char *);
 
     int lzc_rollback(const char *, char *, int);
+
+    int lzc_promote(const char *, char *, int);
 """
 
 SOURCE = """
