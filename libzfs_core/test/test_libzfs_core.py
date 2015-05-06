@@ -2259,7 +2259,6 @@ class ZFSTest(unittest.TestCase):
     # This test-case expects the behavior that should be there,
     # at the moment it may fail with DatasetExists or StreamMismatch
     # depending on the implementation.
-    @unittest.expectedFailure
     def test_force_recv_full_already_existing_with_snapshots(self):
         src = ZFSTest.pool.makeName("fs1@snap")
         dstfs = ZFSTest.pool.makeName("fs2/received-51")
