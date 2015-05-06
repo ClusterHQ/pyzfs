@@ -2256,7 +2256,7 @@ class ZFSTest(unittest.TestCase):
                     f.close()
 
 
-    # This test-case expect the behavior that should be there,
+    # This test-case expects the behavior that should be there,
     # at the moment it may fail with DatasetExists or StreamMismatch
     # depending on the implementation.
     @unittest.expectedFailure
