@@ -1066,6 +1066,7 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_bookmark(bmark_dict2)
 
 
+    @skipUnlessBookmarksSupported
     def test_bookmarks_duplicate_name(self):
         snap1 = ZFSTest.pool.makeName('fs1@snap1')
         snap2 = ZFSTest.pool.makeName('fs1@snap2')
@@ -1666,6 +1667,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_send(bmark, None, fd)
 
 
+    @skipUnlessBookmarksSupported
     def test_send_from_bookmark(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
         snap2 = ZFSTest.pool.makeName("fs1@snap2")
