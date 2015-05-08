@@ -192,9 +192,10 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
                 if len(invalid_names) > 0:
                     return lzc_exc.NameInvalid(invalid_names[0])
         return {
-            errno.ENOENT: lzc_exc.FilesystemNotFound(name),
-            errno.EEXIST: lzc_exc.HoldExists(name),
-            errno.E2BIG:  lzc_exc.NameTooLong(holds[name]),
+            errno.ENOENT:   lzc_exc.FilesystemNotFound(name),
+            errno.EEXIST:   lzc_exc.HoldExists(name),
+            errno.E2BIG:    lzc_exc.NameTooLong(holds[name]),
+            errno.ENOTSUP:  lzc_exc.FeatureNotSupported(name),
         }.get(ret, lzc_exc.genericException(ret, name, "Failed to hold snapshot"))
     if ret == errno.EBADF:
         raise lzc_exc.BadHoldCleanupFD()
@@ -229,6 +230,8 @@ def lzc_release_xlate_errors(ret, errlist, holds):
             tag_list = holds[name]
             too_long_tags = [t for t in tag_list if len(t) > MAXNAMELEN]
             return lzc_exc.NameTooLong(too_long_tags[0])
+        elif ret == errno.ENOTSUP:
+            return lzc_exc.FeatureNotSupported(name),
         else:
             return lzc_exc.genericException(ret, name, "Failed to release snapshot hold")
     _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
@@ -243,7 +246,8 @@ def lzc_get_holds_xlate_error(ret, snapname):
         elif len(snapname) > MAXNAMELEN:
             raise lzc_exc.NameTooLong(snapname)
     raise {
-        errno.ENOENT: lzc_exc.SnapshotNotFound(snapname),
+        errno.ENOENT:   lzc_exc.SnapshotNotFound(snapname),
+        errno.ENOTSUP:  lzc_exc.FeatureNotSupported(snapname),
     }.get(ret, lzc_exc.genericException(ret, snapname, "Failed to get holds on snapshot"))
 
 

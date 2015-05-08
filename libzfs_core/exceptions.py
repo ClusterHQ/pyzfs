@@ -184,6 +184,10 @@ class PoolsDiffer(ZFSError):
     def __init__(self, name):
         super(PoolsDiffer, self).__init__(errno.EXDEV, "Source and target belong to different pools", name)
 
+class FeatureNotSupported(ZFSError):
+    def __init__(self, name):
+        super(FeatureNotSupported, self).__init__(errno.ENOTSUP, "Feature is not supported in this version", name)
+
 class PropertyNotSupported(ZFSError):
     def __init__(self, name):
         super(PropertyNotSupported, self).__init__(errno.ENOTSUP, "Property is not supported in this version", name)
