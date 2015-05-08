@@ -1649,6 +1649,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_send(snap, fs, fd)
 
 
+    @skipUnlessBookmarksSupported
     def test_send_bookmark(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
         snap2 = ZFSTest.pool.makeName("fs1@snap2")
