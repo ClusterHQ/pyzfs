@@ -191,11 +191,18 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
                 invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
                 if len(invalid_names) > 0:
                     return lzc_exc.NameInvalid(invalid_names[0])
+        fs_name = None
+        hold_name = None
+        pool_name = None
+        if name is not None:
+            fs_name = _fs_name(name)
+            pool_name = _pool_name(name)
+            hold_name = holds[name]
         return {
-            errno.ENOENT:   lzc_exc.FilesystemNotFound(name),
+            errno.ENOENT:   lzc_exc.FilesystemNotFound(fs_name),
             errno.EEXIST:   lzc_exc.HoldExists(name),
-            errno.E2BIG:    lzc_exc.NameTooLong(holds[name]),
-            errno.ENOTSUP:  lzc_exc.FeatureNotSupported(name),
+            errno.E2BIG:    lzc_exc.NameTooLong(hold_name),
+            errno.ENOTSUP:  lzc_exc.FeatureNotSupported(pool_name),
         }.get(ret, lzc_exc.genericException(ret, name, "Failed to hold snapshot"))
     if ret == errno.EBADF:
         raise lzc_exc.BadHoldCleanupFD()
@@ -231,7 +238,10 @@ def lzc_release_xlate_errors(ret, errlist, holds):
             too_long_tags = [t for t in tag_list if len(t) > MAXNAMELEN]
             return lzc_exc.NameTooLong(too_long_tags[0])
         elif ret == errno.ENOTSUP:
-            return lzc_exc.FeatureNotSupported(name),
+            pool_name = None
+            if name is not None:
+                pool_name = _pool_name(name)
+            return lzc_exc.FeatureNotSupported(pool_name),
         else:
             return lzc_exc.genericException(ret, name, "Failed to release snapshot hold")
     _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
@@ -247,7 +257,7 @@ def lzc_get_holds_xlate_error(ret, snapname):
             raise lzc_exc.NameTooLong(snapname)
     raise {
         errno.ENOENT:   lzc_exc.SnapshotNotFound(snapname),
-        errno.ENOTSUP:  lzc_exc.FeatureNotSupported(snapname),
+        errno.ENOTSUP:  lzc_exc.FeatureNotSupported(_pool_name(snapname)),
     }.get(ret, lzc_exc.genericException(ret, snapname, "Failed to get holds on snapshot"))
 
 
