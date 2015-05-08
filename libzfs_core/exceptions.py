@@ -186,7 +186,7 @@ class PoolsDiffer(ZFSError):
 
 class PropertyNotSupported(ZFSError):
     def __init__(self, name):
-        super(PropertyNotSupported, self).__init__(errno.ENOTSUP, "Property is not supported in this verrsion", name)
+        super(PropertyNotSupported, self).__init__(errno.ENOTSUP, "Property is not supported in this version", name)
 
 class PropertyInvalid(ZFSError):
     def __init__(self, name):
