@@ -192,7 +192,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
                 if len(invalid_names) > 0:
                     return lzc_exc.NameInvalid(invalid_names[0])
         return {
-            errno.ENOENT: lzc_exc.FilesystemNotFound(_fs_name(name)),
+            errno.ENOENT: lzc_exc.FilesystemNotFound(name),
             errno.EEXIST: lzc_exc.HoldExists(name),
             errno.E2BIG:  lzc_exc.NameTooLong(holds[name]),
         }.get(ret, lzc_exc.genericException(ret, name, "Failed to hold snapshot"))
