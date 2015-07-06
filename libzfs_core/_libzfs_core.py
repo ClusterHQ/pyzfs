@@ -640,6 +640,123 @@ def lzc_promote(name):
     xlate.lzc_promote_xlate_error(ret, name, _ffi.string(conflicting))
 
 
+@_uncommitted
+def lzc_rename(source, target):
+    '''
+    Rename the ZFS dataset.
+
+    :param source name: the current name of the dataset to rename.
+    :param target name: the new name of the dataset.
+    '''
+    ret = _lib.lzc_rename(source, target)
+    xlate.lzc_rename_xlate_error(ret, source, target)
+
+
+@_uncommitted
+def lzc_destroy(name):
+    '''
+    Destroy the ZFS dataset.
+
+    :param str name: the name of the dataset to destroy.
+    '''
+    ret = _lib.lzc_destroy(name)
+    xlate.lzc_destroy_xlate_error(ret, name)
+
+
+@_uncommitted
+def lzc_inherit_prop(name, prop):
+    '''
+    Inherit properties from a parent dataset of the given ZFS dataset.
+
+    :param str name: the name of the dataset.
+    :param str prop: the name of the property to inherit.
+    '''
+    ret = _lib.lzc_inherit_prop(name, prop)
+    xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
+
+
+@_uncommitted
+def lzc_set_prop(name, prop, val):
+    '''
+    Set properties of the ZFS dataset.
+
+    :param str name: the name of the dataset.
+    :param str prop: the name of the property.
+    :param str val: the value of the property.
+    '''
+    props = { prop: val }
+    with nvlist_in(props) as props_nv:
+        ret = _lib.lzc_set_prop(name, props_nv)
+    xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
+
+
+@_uncommitted
+def lzc_get_props(name):
+    '''
+    Get properties of the ZFS dataset.
+
+    :param str name: the name of the dataset.
+    :return: a dictionary mapping the property names to their values.
+    :rtype: dict of str:Any
+    '''
+    result = {}
+    with nvlist_out(result) as result_nv:
+        ret = _lib.lzc_get_props(name, result_nv)
+    xlate.lzc_get_props_xlate_error(ret, name)
+    result = { k: v['value'] for k, v in result.iteritems() }
+    if result.has_key('clones'):
+        result['clones'] = [ x for x in result['clones'] ]
+    return result
+
+
+@_uncommitted
+def lzc_list_children(name):
+    '''
+    List the children of the ZFS dataset.
+
+    :param str name: the name of the dataset.
+    :return: an iterator that produces the names of the children.
+    '''
+
+    child_name = _ffi.new('char[]', MAXNAMELEN + 1)
+
+    def _iterator():
+        cursor = _ffi.new('uint64_t *')
+        cursor[0] = 0   # opaque cursor, always starts with zero
+        while True:
+            ret = _lib.lzc_list_children(name, cursor, child_name)
+            try:
+                xlate.lzc_list_children_xlate_error(ret, name)
+            except StopIteration:
+                break
+            yield _ffi.string(child_name)
+    return _iterator()
+
+
+@_uncommitted
+def lzc_list_snaps(name):
+    '''
+    List the snapshots of the ZFS dataset.
+
+    :param str name: the name of the dataset.
+    :return: an iterator that produces the names of the snapshots.
+    '''
+
+    snapname = _ffi.new('char[]', MAXNAMELEN + 1)
+
+    def _iterator():
+        cursor = _ffi.new('uint64_t *')
+        cursor[0] = 0   # opaque cursor, always starts with zero
+        while True:
+            ret = _lib.lzc_list_snaps(name, cursor, snapname)
+            try:
+                xlate.lzc_list_snaps_xlate_error(ret, name)
+            except StopIteration:
+                break
+            yield _ffi.string(snapname)
+    return _iterator()
+
+
 def is_supported(func):
     '''
     Check whether C *libzfs_core* provides implementation required

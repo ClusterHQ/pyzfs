@@ -42,6 +42,13 @@ from ._libzfs_core import (
     lzc_exists,
     is_supported,
     lzc_promote,
+    lzc_rename,
+    lzc_destroy,
+    lzc_inherit_prop,
+    lzc_set_prop,
+    lzc_get_props,
+    lzc_list_children,
+    lzc_list_snaps,
 )
 
 __all__ = [
@@ -68,6 +75,13 @@ __all__ = [
     'lzc_exists',
     'is_supported',
     'lzc_promote',
+    'lzc_rename',
+    'lzc_destroy',
+    'lzc_inherit_prop',
+    'lzc_set_prop',
+    'lzc_get_props',
+    'lzc_list_children',
+    'lzc_list_snaps',
 ]
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

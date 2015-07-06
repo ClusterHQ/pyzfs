@@ -378,6 +378,73 @@ def lzc_promote_xlate_error(ret, name, conflicting):
     }.get(ret, lzc_exc.genericException(ret, name, "Failed to promote dataset"))
 
 
+def lzc_rename_xlate_error(ret, source, target):
+    if ret == 0:
+        return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(source):
+            raise lzc_exc.NameInvalid(source)
+        elif not _is_valid_fs_name(target):
+            raise lzc_exc.NameInvalid(target)
+        elif len(source) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(source)
+        elif len(target) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(target)
+        elif _pool_name(source) != _pool_name(target):
+            raise lzc_exc.PoolsDiffer(source)
+    raise {
+        errno.EEXIST: lzc_exc.FilesystemExists(target),
+        errno.ENOENT: lzc_exc.FilesystemNotFound(source),
+    }.get(ret, lzc_exc.genericException(ret, source, "Failed to rename dataset"))
+
+
+def lzc_destroy_xlate_error(ret, name):
+    if ret == 0:
+        return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
+    raise {
+        errno.ENOENT: lzc_exc.FilesystemNotFound(name),
+    }.get(ret, lzc_exc.genericException(ret, name, "Failed to destroy dataset"))
+
+
+def lzc_inherit_prop_xlate_error(ret, name, prop):
+    if ret == 0:
+        return
+    raise lzc_exc.genericException(ret, name, "Failed to inherit a property")
+
+
+def lzc_set_prop_xlate_error(ret, name, prop, val):
+    if ret == 0:
+        return
+    raise lzc_exc.genericException(ret, name, "Failed to set a property")
+
+
+def lzc_get_props_xlate_error(ret, name):
+    if ret == 0:
+        return
+    raise lzc_exc.genericException(ret, name, "Failed to get properties")
+
+
+def lzc_list_children_xlate_error(ret, name):
+    if ret == 0:
+        return
+    if ret == errno.ESRCH:
+        raise StopIteration()
+    raise lzc_exc.genericException(ret, name, "Error while iterating children")
+
+
+def lzc_list_snaps_xlate_error(ret, name):
+    if ret == 0:
+        return
+    if ret == errno.ESRCH:
+        raise StopIteration()
+    raise lzc_exc.genericException(ret, name, "Error while iterating snapshots")
+
+
 def _handleErrList(ret, errlist, names, exception, mapper):
     if ret == 0:
         return
