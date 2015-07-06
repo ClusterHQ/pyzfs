@@ -1808,6 +1808,22 @@ class ZFSTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
 
 
+    @unittest.skip("fails with unpatched libzfs_core")
+    def test_recv_without_explicit_snap_name(self):
+        srcfs = ZFSTest.pool.makeName("fs1")
+        src1 = srcfs + "@snap1"
+        src2 = srcfs + "@snap2"
+        dstfs = ZFSTest.pool.makeName("fs2/received-100")
+        dst1 = dstfs + '@snap1'
+        dst2 = dstfs + '@snap2'
+
+        with streams(srcfs, src1, src2) as (_, (full, incr)):
+            lzc.lzc_receive(dstfs, full.fileno())
+            lzc.lzc_receive(dstfs, incr.fileno())
+        self.assertTrue(lzc.lzc_exists(dst1))
+        self.assertTrue(lzc.lzc_exists(dst2))
+
+
     def test_recv_clone(self):
         orig_src = ZFSTest.pool.makeName("fs2@send-origin")
         clone = ZFSTest.pool.makeName("fs1/fs/send-clone")
