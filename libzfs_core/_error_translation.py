@@ -362,7 +362,7 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     raise IOError(ret, os.strerror(ret))
 
 
-def lzc_promote_xlate_error(ret, name, conflicting):
+def lzc_promote_xlate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -374,7 +374,7 @@ def lzc_promote_xlate_error(ret, name, conflicting):
             raise lzc_exc.NotClone(name)
     raise {
         errno.ENOENT: lzc_exc.FilesystemNotFound(name),
-        errno.EEXIST: lzc_exc.SnapshotExists(conflicting),
+        errno.EEXIST: lzc_exc.SnapshotExists(name),
     }.get(ret, lzc_exc.genericException(ret, name, "Failed to promote dataset"))
 
 
@@ -443,6 +443,14 @@ def lzc_list_snaps_xlate_error(ret, name):
     if ret == errno.ESRCH:
         raise StopIteration()
     raise lzc_exc.genericException(ret, name, "Error while iterating snapshots")
+
+
+def lzc_list_xlate_error(ret, name, opts):
+    if ret == 0:
+        return
+    if ret == errno.ESRCH:
+        raise StopIteration()
+    raise lzc_exc.genericException(ret, name, "Error obtaining a list")
 
 
 def _handleErrList(ret, errlist, names, exception, mapper):

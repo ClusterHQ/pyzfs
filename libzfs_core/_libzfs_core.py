@@ -2,6 +2,9 @@
 
 import errno
 import functools
+import fcntl
+import os
+import struct
 import threading
 from . import exceptions
 from . import _error_translation as xlate
@@ -619,28 +622,32 @@ def lzc_exists(name):
     return bool(ret)
 
 
-def _uncommitted(func):
-    @functools.wraps(func)
-    def _f(*args, **kwargs):
-        if not is_supported(func):
-            raise NotImplementedError(func.__name__)
-        return func(*args, **kwargs)
-    return _f
+def _uncommitted(check_func = None):
+    def _uncommitted_decorator(func, check_func = check_func):
+        if check_func is None:
+            check_func = func
+
+        @functools.wraps(func)
+        def _f(*args, **kwargs):
+            if not is_supported(check_func):
+                raise NotImplementedError(func.__name__)
+            return func(*args, **kwargs)
+        return _f
+    return _uncommitted_decorator
 
 
-@_uncommitted
+@_uncommitted()
 def lzc_promote(name):
     '''
     Promotes the ZFS dataset.
 
     :param str name: the name of the dataset to promote.
     '''
-    conflicting = _ffi.new('char[]', MAXNAMELEN + 1)
-    ret = _lib.lzc_promote(name, conflicting, MAXNAMELEN + 1)
-    xlate.lzc_promote_xlate_error(ret, name, _ffi.string(conflicting))
+    ret = _lib.lzc_promote(name)
+    xlate.lzc_promote_xlate_error(ret, name)
 
 
-@_uncommitted
+@_uncommitted()
 def lzc_rename(source, target):
     '''
     Rename the ZFS dataset.
@@ -648,35 +655,41 @@ def lzc_rename(source, target):
     :param source name: the current name of the dataset to rename.
     :param target name: the new name of the dataset.
     '''
-    ret = _lib.lzc_rename(source, target)
+    ret = _lib.lzc_rename(source, target, _ffi.NULL, _ffi.NULL)
     xlate.lzc_rename_xlate_error(ret, source, target)
 
 
-@_uncommitted
-def lzc_destroy(name):
+@_uncommitted()
+def lzc_destroy_one(name):
     '''
     Destroy the ZFS dataset.
 
     :param str name: the name of the dataset to destroy.
     '''
-    ret = _lib.lzc_destroy(name)
+    ret = _lib.lzc_destroy_one(name, _ffi.NULL)
     xlate.lzc_destroy_xlate_error(ret, name)
 
 
-@_uncommitted
-def lzc_inherit_prop(name, prop):
+lzc_destroy = lzc_destroy_one
+
+
+@_uncommitted()
+def lzc_inherit(name, prop):
     '''
     Inherit properties from a parent dataset of the given ZFS dataset.
 
     :param str name: the name of the dataset.
     :param str prop: the name of the property to inherit.
     '''
-    ret = _lib.lzc_inherit_prop(name, prop)
+    ret = _lib.lzc_inherit(name, prop, _ffi.NULL)
     xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
 
 
-@_uncommitted
-def lzc_set_prop(name, prop, val):
+lzc_inherit_prop = lzc_inherit
+
+
+@_uncommitted()
+def lzc_set_props(name, prop, val):
     '''
     Set properties of the ZFS dataset.
 
@@ -686,11 +699,29 @@ def lzc_set_prop(name, prop, val):
     '''
     props = { prop: val }
     with nvlist_in(props) as props_nv:
-        ret = _lib.lzc_set_prop(name, props_nv)
+        ret = _lib.lzc_set_props(name, props_nv, False)
     xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
 
 
-@_uncommitted
+lzc_set_prop = lzc_set_props
+
+
+@_uncommitted()
+def lzc_list(name, options):
+    (rfd, wfd) = os.pipe()
+    fcntl.fcntl(rfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    fcntl.fcntl(wfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    with nvlist_in(options) as opts_nv:
+        ret = _lib.lzc_list(name, wfd, opts_nv)
+    xlate.lzc_list_xlate_error(ret, name, options)
+    return (rfd, wfd)
+
+
+_PIPE_RECORD_FORMAT = 'IBBBB'
+_PIPE_RECORD_SIZE = struct.calcsize(_PIPE_RECORD_FORMAT)
+
+
+@_uncommitted(lzc_list)
 def lzc_get_props(name):
     '''
     Get properties of the ZFS dataset.
@@ -699,17 +730,42 @@ def lzc_get_props(name):
     :return: a dictionary mapping the property names to their values.
     :rtype: dict of str:Any
     '''
-    result = {}
-    with nvlist_out(result) as result_nv:
-        ret = _lib.lzc_get_props(name, result_nv)
-    xlate.lzc_get_props_xlate_error(ret, name)
+    (fd, other_fd) = lzc_list(name, {})
+    entry = None
+    try:
+        while True:
+            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+            if not record_bytes:
+                break
+            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+            xlate.lzc_get_props_xlate_error(err, name)
+            if size == 0:
+                break
+            data_bytes = os.read(fd, size)
+            result = {}
+            with nvlist_out(result) as nvp:
+                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+            if ret != 0:
+                raise ZFSError(ret, "Failed to unpack list data")
+            entry = result['name']
+            if entry == name:
+                break
+            else:
+                entry = None
+    finally:
+        os.close(other_fd)
+        os.close(fd)
+
+    if entry is None:
+        raise DatasetNotFound(name)
+    result = result['properties']
     result = { k: v['value'] for k, v in result.iteritems() }
     if result.has_key('clones'):
         result['clones'] = [ x for x in result['clones'] ]
     return result
 
 
-@_uncommitted
+@_uncommitted(lzc_list)
 def lzc_list_children(name):
     '''
     List the children of the ZFS dataset.
@@ -717,23 +773,35 @@ def lzc_list_children(name):
     :param str name: the name of the dataset.
     :return: an iterator that produces the names of the children.
     '''
-
-    child_name = _ffi.new('char[]', MAXNAMELEN + 1)
+    (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
 
     def _iterator():
-        cursor = _ffi.new('uint64_t *')
-        cursor[0] = 0   # opaque cursor, always starts with zero
-        while True:
-            ret = _lib.lzc_list_children(name, cursor, child_name)
-            try:
-                xlate.lzc_list_children_xlate_error(ret, name)
-            except StopIteration:
-                break
-            yield _ffi.string(child_name)
+        try:
+            while True:
+                record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+                if not record_bytes:
+                    break
+                (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+                xlate.lzc_list_children_xlate_error(err, name)
+                if size == 0:
+                    break
+                data_bytes = os.read(fd, size)
+                result = {}
+                with nvlist_out(result) as nvp:
+                    ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+                if ret != 0:
+                    raise ZFSError(ret, "Failed to unpack list data")
+                child = result['name']
+                if child != name:
+                    yield child
+        finally:
+            os.close(other_fd)
+            os.close(fd)
+
     return _iterator()
 
 
-@_uncommitted
+@_uncommitted(lzc_list)
 def lzc_list_snaps(name):
     '''
     List the snapshots of the ZFS dataset.
@@ -741,19 +809,31 @@ def lzc_list_snaps(name):
     :param str name: the name of the dataset.
     :return: an iterator that produces the names of the snapshots.
     '''
-
-    snapname = _ffi.new('char[]', MAXNAMELEN + 1)
+    (fd, other_fd) = lzc_list(name, {'type': {'snapshot': None}})
 
     def _iterator():
-        cursor = _ffi.new('uint64_t *')
-        cursor[0] = 0   # opaque cursor, always starts with zero
-        while True:
-            ret = _lib.lzc_list_snaps(name, cursor, snapname)
-            try:
-                xlate.lzc_list_snaps_xlate_error(ret, name)
-            except StopIteration:
-                break
-            yield _ffi.string(snapname)
+        try:
+            while True:
+                record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+                if not record_bytes:
+                    break
+                (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+                xlate.lzc_list_snaps_xlate_error(err, name)
+                if size == 0:
+                    break
+                data_bytes = os.read(fd, size)
+                result = {}
+                with nvlist_out(result) as nvp:
+                    ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+                if ret != 0:
+                    raise ZFSError(ret, "Failed to unpack list data")
+                snap = result['name']
+                if snap != name:
+                    yield snap
+        finally:
+            os.close(other_fd)
+            os.close(fd)
+
     return _iterator()
 
 

@@ -42,6 +42,8 @@ CDEF = """
     int nvlist_alloc(nvlist_t **, uint_t, int);
     void nvlist_free(nvlist_t *);
 
+    int nvlist_unpack(char *, size_t, nvlist_t **, int);
+
     void dump_nvlist(nvlist_t *, int);
     int nvlist_dup(nvlist_t *, nvlist_t **, int);
 

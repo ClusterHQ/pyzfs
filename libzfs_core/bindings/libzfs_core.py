@@ -41,14 +41,12 @@ CDEF = """
 
     int lzc_rollback(const char *, char *, int);
 
-    int lzc_promote(const char *, char *, int);
-    int lzc_rename(const char *source, const char *target);
-    int lzc_destroy(const char *fsname);
-    int lzc_inherit_prop(const char *fsname, const char *name);
-    int lzc_set_prop(const char *fsname, nvlist_t *props);
-    int lzc_get_props(const char *fsname, nvlist_t **props);
-    int lzc_list_snaps(const char *fsname, uint64_t *cursor, char *name);
-    int lzc_list_children(const char *fsname, uint64_t *cursor, char *name);
+    int lzc_promote(const char *);
+    int lzc_rename(const char *, const char *, nvlist_t *, char **);
+    int lzc_destroy_one(const char *fsname, nvlist_t *);
+    int lzc_inherit(const char *fsname, const char *name, nvlist_t *);
+    int lzc_set_props(const char *, nvlist_t *, boolean_t);
+    int lzc_list (const char *, int, nvlist_t *);
 """
 
 SOURCE = """
