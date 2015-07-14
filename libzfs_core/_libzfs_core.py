@@ -698,6 +698,15 @@ def lzc_get_props(name):
     :param str name: the name of the dataset.
     :return: a dictionary mapping the property names to their values.
     :rtype: dict of str:Any
+
+    .. note::
+        The value of ``clones`` property is a `list` of clone names
+        as byte strings.
+
+    .. warning::
+        The returned dictionary does not contain entries for properties
+        with default values.  One exception is the ``mountpoint`` property
+        for which the default value is derived from the dataset name.
     '''
     result = {}
     with nvlist_out(result) as result_nv:
