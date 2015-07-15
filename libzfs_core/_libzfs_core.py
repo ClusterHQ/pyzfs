@@ -10,6 +10,7 @@ from . import exceptions
 from . import _error_translation as xlate
 from .bindings import libzfs_core
 from .constants import MAXNAMELEN
+from .ctypes import int32_t
 from ._nvlist import nvlist_in, nvlist_out
 
 
@@ -643,7 +644,7 @@ def lzc_promote(name):
 
     :param str name: the name of the dataset to promote.
     '''
-    ret = _lib.lzc_promote(name)
+    ret = _lib.lzc_promote(name, _ffi.NULL)
     xlate.lzc_promote_xlate_error(ret, name)
 
 
@@ -699,7 +700,7 @@ def lzc_set_props(name, prop, val):
     '''
     props = { prop: val }
     with nvlist_in(props) as props_nv:
-        ret = _lib.lzc_set_props(name, props_nv, False)
+        ret = _lib.lzc_set_props(name, props_nv, _ffi.NULL)
     xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
 
 
@@ -711,8 +712,9 @@ def lzc_list(name, options):
     (rfd, wfd) = os.pipe()
     fcntl.fcntl(rfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
     fcntl.fcntl(wfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    options['fd'] = int32_t(wfd)
     with nvlist_in(options) as opts_nv:
-        ret = _lib.lzc_list(name, wfd, opts_nv)
+        ret = _lib.lzc_list(name, opts_nv)
     xlate.lzc_list_xlate_error(ret, name, options)
     return (rfd, wfd)
 
