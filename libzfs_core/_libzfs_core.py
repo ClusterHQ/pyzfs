@@ -731,6 +731,15 @@ def lzc_get_props(name):
     :param str name: the name of the dataset.
     :return: a dictionary mapping the property names to their values.
     :rtype: dict of str:Any
+
+    .. note::
+        The value of ``clones`` property is a `list` of clone names
+        as byte strings.
+
+    .. warning::
+        The returned dictionary does not contain entries for properties
+        with default values.  One exception is the ``mountpoint`` property
+        for which the default value is derived from the dataset name.
     '''
     (fd, other_fd) = lzc_list(name, {})
     entry = None
@@ -761,9 +770,28 @@ def lzc_get_props(name):
     if entry is None:
         raise DatasetNotFound(name)
     result = result['properties']
+    # In most cases the source of the property is uninteresting and the
+    # value alone is sufficient.  One exception is the 'mountpoint'
+    # property the final value of which is not the same as the inherited
+    # value.
+    mountpoint = result.get('mountpoint')
+    if mountpoint is not None:
+        mountpoint_src = mountpoint['source']
+        mountpoint_val = mountpoint['value']
+        # 'source' is the name of the dataset that has 'mountpoint' set
+        # to a non-default value and from which the current dataset inherits
+        # the property.  'source' can be the current dataset if its
+        # 'mountpoint' is explicitly set.
+        # 'source' can also be a special value like '$recvd', that case
+        # is equivalent to the property being set on the current dataset.
+        if not mountpoint_src.startswith('$'):
+            mountpoint_val = mountpoint_val + name[len(mountpoint_src):]
+    else:
+        mountpoint_val = '/' + name
     result = { k: v['value'] for k, v in result.iteritems() }
     if result.has_key('clones'):
         result['clones'] = [ x for x in result['clones'] ]
+    result['mountpoint'] = mountpoint_val
     return result
 
 
