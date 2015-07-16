@@ -302,22 +302,4 @@ class PropertyInvalid(ZFSError):
         self.name = name
 
 
-def genericException(err, name, message):
-    if err in _errToException:
-        return _errToException[err](name)
-    else:
-        return ZFSGenericError(err, message, name)
-
-_errToException = {
-    errno.EIO:          ZIOError,
-    errno.ENOSPC:       NoSpace,
-    errno.EDQUOT:       QuotaExceeded,
-    errno.EBUSY:        DatasetBusy,
-    errno.ENAMETOOLONG: NameTooLong,
-    errno.EROFS:        ReadOnlyPool,
-    errno.EAGAIN:       SuspendedPool,
-    errno.EXDEV:        PoolsDiffer,
-    errno.ENOTSUP:      PropertyNotSupported,
-}
-
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

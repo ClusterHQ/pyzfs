@@ -35,7 +35,7 @@ def lzc_create_xlate_error(ret, name, is_zvol, props):
     raise {
         errno.EEXIST: lzc_exc.FilesystemExists(name),
         errno.ENOENT: lzc_exc.ParentNotFound(name),
-    }.get(ret, lzc_exc.genericException(ret, name, "Failed to create filesystem"))
+    }.get(ret, _generic_exception(ret, name, "Failed to create filesystem"))
 
 
 def lzc_clone_xlate_error(ret, name, origin, props):
@@ -58,7 +58,7 @@ def lzc_clone_xlate_error(ret, name, origin, props):
     raise {
         errno.EEXIST: lzc_exc.FilesystemExists(name),
         errno.ENOENT: lzc_exc.DatasetNotFound(name),
-    }.get(ret, lzc_exc.genericException(ret, name, "Failed to create clone"))
+    }.get(ret, _generic_exception(ret, name, "Failed to create clone"))
 
 
 def lzc_rollback_xlate_error(ret, name):
@@ -76,7 +76,7 @@ def lzc_rollback_xlate_error(ret, name):
             raise lzc_exc.NameInvalid(name)
         else:
             raise lzc_exc.FilesystemNotFound(name)
-    raise lzc_exc.lzc_exc.genericException(ret, name, "Failed to rollback")
+    raise _generic_exception(ret, name, "Failed to rollback")
 
 
 def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
@@ -101,7 +101,7 @@ def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
             return {
                 errno.EEXIST: lzc_exc.SnapshotExists(name),
                 errno.ENOENT: lzc_exc.FilesystemNotFound(name),
-            }.get(ret, lzc_exc.genericException(ret, name, "Failed to create snapshot"))
+            }.get(ret, _generic_exception(ret, name, "Failed to create snapshot"))
     _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
 
 
@@ -113,7 +113,7 @@ def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
             errno.EEXIST: lzc_exc.SnapshotIsCloned(name),
             errno.ENOENT: lzc_exc.PoolNotFound(name),
             errno.EBUSY:  lzc_exc.SnapshotIsHeld(name),
-        }.get(ret, lzc_exc.genericException(ret, name, "Failed to destroy snapshot"))
+        }.get(ret, _generic_exception(ret, name, "Failed to destroy snapshot"))
     _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
 
 
@@ -141,7 +141,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
             errno.EEXIST: lzc_exc.BookmarkExists(name),
             errno.ENOENT: lzc_exc.SnapshotNotFound(name),
             errno.ENOTSUP: lzc_exc.BookmarkNotSupported(name),
-        }.get(ret, lzc_exc.genericException(ret, name, "Failed to create bookmark"))
+        }.get(ret, _generic_exception(ret, name, "Failed to create bookmark"))
     _handleErrList(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
 
 
@@ -150,7 +150,7 @@ def lzc_get_bookmarks_xlate_error(ret, fsname, props):
         return
     raise {
         errno.ENOENT: lzc_exc.FilesystemNotFound(fsname),
-    }.get(ret, lzc_exc.genericException(ret, fsname, "Failed to list bookmarks"))
+    }.get(ret, _generic_exception(ret, fsname, "Failed to list bookmarks"))
 
 
 def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
@@ -159,7 +159,7 @@ def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
     def _map(ret, name):
         return {
             errno.EINVAL: lzc_exc.NameInvalid(name),
-        }.get(ret, lzc_exc.genericException(ret, name, "Failed to destroy bookmark"))
+        }.get(ret, _generic_exception(ret, name, "Failed to destroy bookmark"))
     _handleErrList(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
 
 
@@ -181,7 +181,7 @@ def lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap):
             raise lzc_exc.SnapshotMismatch(lastsnap)
     raise {
         errno.ENOENT: lzc_exc.SnapshotNotFound(lastsnap),
-    }.get(ret, lzc_exc.genericException(ret, lastsnap, "Failed to calculate space used by range of snapshots"))
+    }.get(ret, _generic_exception(ret, lastsnap, "Failed to calculate space used by range of snapshots"))
 
 
 def lzc_hold_xlate_errors(ret, errlist, holds, fd):
@@ -216,7 +216,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
             errno.EEXIST:   lzc_exc.HoldExists(name),
             errno.E2BIG:    lzc_exc.NameTooLong(hold_name),
             errno.ENOTSUP:  lzc_exc.FeatureNotSupported(pool_name),
-        }.get(ret, lzc_exc.genericException(ret, name, "Failed to hold snapshot"))
+        }.get(ret, _generic_exception(ret, name, "Failed to hold snapshot"))
     if ret == errno.EBADF:
         raise lzc_exc.BadHoldCleanupFD()
     _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
@@ -256,7 +256,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
                 pool_name = _pool_name(name)
             return lzc_exc.FeatureNotSupported(pool_name),
         else:
-            return lzc_exc.genericException(ret, name, "Failed to release snapshot hold")
+            return _generic_exception(ret, name, "Failed to release snapshot hold")
     _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
 
 
@@ -271,7 +271,7 @@ def lzc_get_holds_xlate_error(ret, snapname):
     raise {
         errno.ENOENT:   lzc_exc.SnapshotNotFound(snapname),
         errno.ENOTSUP:  lzc_exc.FeatureNotSupported(_pool_name(snapname)),
-    }.get(ret, lzc_exc.genericException(ret, snapname, "Failed to get holds on snapshot"))
+    }.get(ret, _generic_exception(ret, snapname, "Failed to get holds on snapshot"))
 
 
 def lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags):
@@ -331,7 +331,7 @@ def lzc_send_space_xlate_error(ret, snapname, fromsnap):
             raise lzc_exc.NameInvalid(fromsnap)
     raise {
         errno.ENOENT: lzc_exc.SnapshotNotFound(snapname),
-    }.get(ret, lzc_exc.genericException(ret, snapname, "Failed to estimate backup stream size"))
+    }.get(ret, _generic_exception(ret, snapname, "Failed to estimate backup stream size"))
 
 
 def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
@@ -422,6 +422,25 @@ def _is_valid_bmark_name(name):
     parts = name.split('#')
     return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
            _is_valid_name_component(parts[1]))
+
+
+def _generic_exception(err, name, message):
+    if err in _error_to_exception:
+        return _error_to_exception[err](name)
+    else:
+        return lzc_exc.ZFSGenericError(err, message, name)
+
+_error_to_exception = {
+    errno.EIO:          lzc_exc.ZIOError,
+    errno.ENOSPC:       lzc_exc.NoSpace,
+    errno.EDQUOT:       lzc_exc.QuotaExceeded,
+    errno.EBUSY:        lzc_exc.DatasetBusy,
+    errno.ENAMETOOLONG: lzc_exc.NameTooLong,
+    errno.EROFS:        lzc_exc.ReadOnlyPool,
+    errno.EAGAIN:       lzc_exc.SuspendedPool,
+    errno.EXDEV:        lzc_exc.PoolsDiffer,
+    errno.ENOTSUP:      lzc_exc.PropertyNotSupported,
+}
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
