@@ -7,21 +7,49 @@ Exceptions that can be raised by libzfs_core operations.
 import errno
 import os
 
-class ZFSError(OSError):
-    pass
+class ZFSError(Exception):
+    errno = None
+    message = None
+    name = None
+
+    def __str__(self):
+        if self.name is not None:
+            return "[Errno %d] %s: '%s'" % (self.errno, self.message, self.name)
+        else:
+            return "[Errno %d] %s" % (self.errno, self.message)
+
+    def __repr__(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self.errno, self.message)
+
+
+class ZFSGenericError(ZFSError):
+    def __init__(self, errno, name, message):
+        self.errno = errno
+        self.message = message
+        self.name = name
 
 class ZFSInitializationFailed(ZFSError):
-    pass
+    message = "Failed to initialize libzfs_core"
+    def __init__(self, errno):
+        self.errno = errno
 
-# Use first of the individual error codes
-# as an overall error code.  This is more consistent.
 class MultipleOperationsFailure(ZFSError):
-    def __init__(self, message, errors, suppressed_count):
-        super(MultipleOperationsFailure, self).__init__(errors[0].errno, message)
-        #self.message = "Operation on more than one entity failed for one or more reasons"
+    def __init__(self, errors, suppressed_count):
+        # Use first of the individual error codes
+        # as an overall error code.  This is more consistent.
+        self.errno = errors[0].errno
         self.errors = errors
         #: this many errors were encountered but not placed on the `errors` list
         self.suppressed_count = suppressed_count
+
+    def __str__(self):
+        return "%s, %d errors included, %d suppressed" % (ZFSError.__str__(self),
+            len(self.errors), self.suppressed_count)
+
+    def __repr__(self):
+        return "%s(%r, %r, errors=%r, supressed=%r)" % (self.__class__.__name__,
+            self.errno, self.message, self.errors, self.suppressed_count)
+
 
 class DatasetNotFound(ZFSError):
     """
@@ -29,8 +57,10 @@ class DatasetNotFound(ZFSError):
     snapshot or a missing filesystem and it is impossible to distinguish between
     the causes.
     """
+    errno = errno.ENOENT
+    message = "Dataset not found"
     def __init__(self, name):
-        super(DatasetNotFound, self).__init__(errno.ENOENT, "Dataset not found", name)
+        self.name = name
 
 class DatasetExists(ZFSError):
     """
@@ -38,174 +68,245 @@ class DatasetExists(ZFSError):
     snapshot or filesystem and it is impossible to distinguish between
     the causes.
     """
+    errno = errno.EEXIST
+    message = "Dataset already exists"
     def __init__(self, name):
-        super(DatasetExists, self).__init__(errno.EEXIST, "Dataset already exists", name)
+        self.name = name
+
 class FilesystemExists(ZFSError):
+    errno = errno.EEXIST
+    message = "Filesystem already exists"
     def __init__(self, name):
-        super(FilesystemExists, self).__init__(errno.EEXIST, "Filesystem already exists", name)
+        self.name = name
 
 class FilesystemNotFound(ZFSError):
+    errno = errno.ENOENT
+    message = "Filesystem not found"
     def __init__(self, name):
-        super(FilesystemNotFound, self).__init__(errno.ENOENT, "Filesystem not found", name)
+        self.name = name
 
 class ParentNotFound(ZFSError):
+    errno = errno.ENOENT
+    message = "Parent not found"
     def __init__(self, name):
-        super(ParentNotFound, self).__init__(errno.ENOENT, "Parent not found", name)
+        self.name = name
 
 class WrongParent(ZFSError):
+    errno = errno.EINVAL
+    message = "Parent dataset is not a filesystem"
     def __init__(self, name):
-        super(WrongParent, self).__init__(errno.EINVAL, "Parent dataset is not a filesystem", name)
+        self.name = name
 
 class SnapshotExists(ZFSError):
+    errno = errno.EEXIST
+    message = "Snapshot already exists"
     def __init__(self, name):
-        super(SnapshotExists, self).__init__(errno.EEXIST, "Snapshot already exists", name)
+        self.name = name
 
 class SnapshotNotFound(ZFSError):
+    errno = errno.ENOENT
+    message = "Snapshot not found"
     def __init__(self, name):
-        super(SnapshotNotFound, self).__init__(errno.ENOENT, "Snapshot not found", name)
+        self.name = name
 
 class SnapshotIsCloned(ZFSError):
+    errno = errno.EEXIST
+    message = "Snapshot is cloned"
     def __init__(self, name):
-        super(SnapshotIsCloned, self).__init__(errno.EEXIST, "Snapshot is cloned", name)
+        self.name = name
 
 class SnapshotIsHeld(ZFSError):
+    errno = errno.EBUSY
+    message = "Snapshot is held"
     def __init__(self, name):
-        super(SnapshotIsHeld, self).__init__(errno.EBUSY, "Snapshot is held", name)
+        self.name = name
 
 class DuplicateSnapshots(ZFSError):
+    errno = errno.EXDEV
+    message = "Requested multiple snapshots of the same filesystem"
     def __init__(self, name):
-        super(DuplicateSnapshots, self).__init__(errno.EXDEV, "Requested multiple snapshots of the same filesystem", name)
+        self.name = name
 
 class SnapshotFailure(MultipleOperationsFailure):
+    message = "Creation of snapshot(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(SnapshotFailure, self).__init__("Creation of snapshot(s) failed for one or more reasons", errors, suppressed_count)
+        super(SnapshotFailure, self).__init__(errors, suppressed_count)
 
 class SnapshotDestructionFailure(MultipleOperationsFailure):
+    message = "Destruction of snapshot(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(SnapshotDestructionFailure, self).__init__("Destruction of snapshot(s) failed for one or more reasons", errors, suppressed_count)
+        super(SnapshotDestructionFailure, self).__init__(errors, suppressed_count)
 
 class BookmarkExists(ZFSError):
+    errno = errno.EEXIST
+    message = "Bookmark already exists"
     def __init__(self, name):
-        super(BookmarkExists, self).__init__(errno.EEXIST, "Bookmark already exists", name)
+        self.name = name
 
 class BookmarkNotFound(ZFSError):
+    errno = errno.ENOENT
+    message = "Bookmark not found"
     def __init__(self, name):
-        super(BookmarkNotFound, self).__init__(errno.ENOENT, "Bookmark not found", name)
+        self.name = name
 
 class BookmarkMismatch(ZFSError):
+    errno = errno.EINVAL
+    message = "Bookmark is not in snapshot's filesystem"
     def __init__(self, name):
-        super(BookmarkMismatch, self).__init__(errno.EINVAL, "Bookmark is not in snapshot's filesystem", name)
+        self.name = name
 
 class BookmarkNotSupported(ZFSError):
+    errno = errno.ENOTSUP
+    message = "Bookmark feature is not supported"
     def __init__(self, name):
-        super(BookmarkNotSupported, self).__init__(errno.ENOTSUP, "Bookmark feature is not supported", name)
+        self.name = name
 
 class BookmarkFailure(MultipleOperationsFailure):
+    message = "Creation of bookmark(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(BookmarkFailure, self).__init__("Creation of bookmark(s) failed for one or more reasons", errors, suppressed_count)
+        super(BookmarkFailure, self).__init__(errors, suppressed_count)
 
 class BookmarkDestructionFailure(MultipleOperationsFailure):
+    message = "Destruction of bookmark(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(BookmarkDestructionFailure, self).__init__("Destruction of bookmark(s) failed for one or more reasons", errors, suppressed_count)
+        super(BookmarkDestructionFailure, self).__init__(errors, suppressed_count)
 
 class BadHoldCleanupFD(ZFSError):
-    def __init__(self):
-        super(BadHoldCleanupFD, self).__init__(errno.EBADF, "Bad file descriptor as cleanup file descriptor")
+    errno = errno.EBADF
+    message = "Bad file descriptor as cleanup file descriptor"
 
 class HoldExists(ZFSError):
+    errno = errno.EEXIST
+    message = "Hold with a given tag already exists on snapshot"
     def __init__(self, name):
-        super(HoldExists, self).__init__(errno.EEXIST, "Hold with a given tag already exists on snapshot", name)
+        self.name = name
 
 class HoldNotFound(ZFSError):
+    errno = errno.ENOENT
+    message = "Hold with a given tag does not exist on snapshot"
     def __init__(self, name):
-        super(HoldNotFound, self).__init__(errno.ENOENT, "Hold with a given tag does not exist on snapshot", name)
+        self.name = name
 
 class HoldFailure(MultipleOperationsFailure):
+    message = "Placement of hold(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(HoldFailure, self).__init__("Placement of hold(s) failed for one or more reasons", errors, suppressed_count)
+        super(HoldFailure, self).__init__(errors, suppressed_count)
 
 class HoldReleaseFailure(MultipleOperationsFailure):
+    message = "Release of hold(s) failed for one or more reasons"
     def __init__(self, errors, suppressed_count):
-        super(HoldReleaseFailure, self).__init__("Release of hold(s) failed for one or more reasons", errors, suppressed_count)
+        super(HoldReleaseFailure, self).__init__(errors, suppressed_count)
 
 class SnapshotMismatch(ZFSError):
+    errno = errno.ENODEV
+    message = "Snapshot is not descendant of source snapshot"
     def __init__(self, name):
-        super(SnapshotMismatch, self).__init__(errno.ENODEV, "Snapshot is not descendant of source snapshot", name)
+        self.name = name
 
 class StreamMismatch(ZFSError):
+    errno = errno.ENODEV
+    message = "Stream is not applicable to destination dataset"
     def __init__(self, name):
-        super(StreamMismatch, self).__init__(errno.ENODEV, "Stream is not applicable to destination dataset", name)
+        self.name = name
 
 class DestinationModified(ZFSError):
+    errno = errno.ETXTBSY
+    message = "Destination dataset has modifications that can not be undone"
     def __init__(self, name):
-        super(DestinationModified, self).__init__(errno.ETXTBSY, "Destination dataset has modifications that can not be undone", name)
+        self.name = name
 
 class BadStream(ZFSError):
-    def __init__(self):
-        super(BadStream, self).__init__(errno.EINVAL, "Bad backup stream")
+    errno = errno.EINVAL
+    message = "Bad backup stream"
 
 class StreamFeatureNotSupported(ZFSError):
-    def __init__(self):
-        super(StreamFeatureNotSupported, self).__init__(errno.ENOTSUP, "Stream contains unsupported feature")
+    errno = errno.ENOTSUP
+    message = "Stream contains unsupported feature"
 
 class ZIOError(ZFSError):
+    errno = errno.EIO
+    message = "I/O error"
     def __init__(self, name):
-        super(ZIOError, self).__init__(errno.EIO, "I/O error", name)
+        self.name = name
 
 class NoSpace(ZFSError):
+    errno = errno.ENOSPC
+    message = "No space left"
     def __init__(self, name):
-        super(NoSpace, self).__init__(errno.ENOSPC, "No space left", name)
+        self.name = name
 
 class QuotaExceeded(ZFSError):
+    errno = errno.EDQUOT
+    message = "Quouta exceeded"
     def __init__(self, name):
-        super(QuotaExceeded, self).__init__(errno.EDQUOT, "Quouta exceeded", name)
+        self.name = name
 
 class DatasetBusy(ZFSError):
+    errno = errno.EBUSY
+    message = "Dataset is busy"
     def __init__(self, name):
-        super(DatasetBusy, self).__init__(errno.EBUSY, "Dataset is busy", name)
+        self.name = name
 
 class NameTooLong(ZFSError):
+    errno = errno.ENAMETOOLONG
+    message = "Dataset name is too long"
     def __init__(self, name):
-        super(NameTooLong, self).__init__(errno.ENAMETOOLONG, "Dataset name is too long", name)
+        self.name = name
 
 class NameInvalid(ZFSError):
+    errno = errno.EINVAL
+    message = "Invalid name"
     def __init__(self, name):
-        super(NameInvalid, self).__init__(errno.EINVAL, "Invalid name", name)
+        self.name = name
 
 class ReadOnlyPool(ZFSError):
+    errno = errno.EROFS
+    message = "Pool is read-only"
     def __init__(self, name):
-        super(ReadOnlyPool, self).__init__(errno.EROFS, "Pool is read-only", name)
+        self.name = name
 
 class SuspendedPool(ZFSError):
+    errno = errno.EROFS
+    message = "Pool is suspended"
     def __init__(self, name):
-        super(SuspendedPool, self).__init__(errno.EROFS, "Pool is suspended", name)
+        self.name = name
 
 class PoolNotFound(ZFSError):
+    errno = errno.EXDEV
+    message = "No such pool"
     def __init__(self, name):
-        super(PoolNotFound, self).__init__(errno.EXDEV, "No such pool", name)
+        self.name = name
 
 class PoolsDiffer(ZFSError):
+    errno = errno.EXDEV
+    message = "Source and target belong to different pools"
     def __init__(self, name):
-        super(PoolsDiffer, self).__init__(errno.EXDEV, "Source and target belong to different pools", name)
+        self.name = name
 
 class FeatureNotSupported(ZFSError):
+    errno = errno.ENOTSUP
+    message = "Feature is not supported in this version"
     def __init__(self, name):
-        super(FeatureNotSupported, self).__init__(errno.ENOTSUP, "Feature is not supported in this version", name)
+        self.name = name
 
 class PropertyNotSupported(ZFSError):
+    errno = errno.ENOTSUP
+    message = "Property is not supported in this version"
     def __init__(self, name):
-        super(PropertyNotSupported, self).__init__(errno.ENOTSUP, "Property is not supported in this version", name)
+        self.name = name
 
 class PropertyInvalid(ZFSError):
+    errno = errno.EINVAL
+    message = "Invalid property or property value"
     def __init__(self, name):
-        super(PropertyInvalid, self).__init__(errno.EINVAL, "Invalid property or property value", name)
+        self.name = name
 
 
 def genericException(err, name, message):
     if err in _errToException:
         return _errToException[err](name)
     else:
-        return ZFSError(err, message, name)
+        return ZFSGenericError(err, message, name)
 
 _errToException = {
     errno.EIO:          ZIOError,

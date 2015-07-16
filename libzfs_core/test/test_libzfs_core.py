@@ -589,7 +589,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameInvalid)
-            self.assertIsNone(e.filename)
+            self.assertIsNone(e.name)
 
 
     def test_snapshot_too_long_complete_name(self):
@@ -604,7 +604,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertIsNotNone(e.filename)
+            self.assertIsNotNone(e.name)
 
 
     def test_snapshot_too_long_snap_name(self):
@@ -620,7 +620,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertIsNone(e.filename)
+            self.assertIsNone(e.name)
 
 
     def test_destroy_nonexistent_snapshot(self):
@@ -1284,11 +1284,11 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
             space = lzc.lzc_snaprange_space(snap1, snap2)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
 
         with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
             space = lzc.lzc_snaprange_space(snap2, snap1)
-        self.assertEquals(ctx.exception.filename, snap1)
+        self.assertEquals(ctx.exception.name, snap1)
 
 
     def test_snaprange_space_invalid_name(self):
@@ -1426,15 +1426,15 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
             space = lzc.lzc_send_space(snap1, snap2)
-        self.assertEquals(ctx.exception.filename, snap1)
+        self.assertEquals(ctx.exception.name, snap1)
 
         with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
             space = lzc.lzc_send_space(snap2, snap1)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
 
         with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
             space = lzc.lzc_send_space(snap2)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
 
 
     def test_send_space_invalid_name(self):
@@ -1445,13 +1445,13 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.NameInvalid) as ctx:
             space = lzc.lzc_send_space(snap2, snap1)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
         with self.assertRaises(lzc_exc.NameInvalid) as ctx:
             space = lzc.lzc_send_space(snap2)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
         with self.assertRaises(lzc_exc.NameInvalid) as ctx:
             space = lzc.lzc_send_space(snap1, snap2)
-        self.assertEquals(ctx.exception.filename, snap2)
+        self.assertEquals(ctx.exception.name, snap2)
 
 
     def test_send_space_not_snap(self):
@@ -1599,15 +1599,15 @@ class ZFSTest(unittest.TestCase):
             fd = output.fileno()
             with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
                 lzc.lzc_send(snap1, snap2, fd)
-            self.assertEquals(ctx.exception.filename, snap1)
+            self.assertEquals(ctx.exception.name, snap1)
 
             with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
                 lzc.lzc_send(snap2, snap1, fd)
-            self.assertEquals(ctx.exception.filename, snap2)
+            self.assertEquals(ctx.exception.name, snap2)
 
             with self.assertRaises(lzc_exc.SnapshotNotFound) as ctx:
                 lzc.lzc_send(snap2, None, fd)
-            self.assertEquals(ctx.exception.filename, snap2)
+            self.assertEquals(ctx.exception.name, snap2)
 
 
     def test_send_invalid_name(self):
@@ -1620,13 +1620,13 @@ class ZFSTest(unittest.TestCase):
             fd = output.fileno()
             with self.assertRaises(lzc_exc.NameInvalid) as ctx:
                 lzc.lzc_send(snap2, snap1, fd)
-            self.assertEquals(ctx.exception.filename, snap2)
+            self.assertEquals(ctx.exception.name, snap2)
             with self.assertRaises(lzc_exc.NameInvalid) as ctx:
                 lzc.lzc_send(snap2, None, fd)
-            self.assertEquals(ctx.exception.filename, snap2)
+            self.assertEquals(ctx.exception.name, snap2)
             with self.assertRaises(lzc_exc.NameInvalid) as ctx:
                 lzc.lzc_send(snap1, snap2, fd)
-            self.assertEquals(ctx.exception.filename, snap2)
+            self.assertEquals(ctx.exception.name, snap2)
 
 
     # XXX Although undocumented the API allows to create an incremental
@@ -2777,7 +2777,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({snap: tag}, fd)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertEquals(e.filename, tag)
+            self.assertEquals(e.name, tag)
 
     # Apparently the full snapshot name is not checked for length
     # and this snapshot is treated as simply missing.
@@ -2789,7 +2789,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({snap: 'tag'}, fd)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_hold_too_long_snap_name_2(self):
@@ -2799,7 +2799,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({snap: 'tag'}, fd)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_hold_invalid_snap_name(self):
@@ -2809,7 +2809,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({snap: 'tag'}, fd)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameInvalid)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_hold_invalid_snap_name_2(self):
@@ -2819,7 +2819,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({snap: 'tag'}, fd)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameInvalid)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_get_holds(self):
@@ -3051,7 +3051,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_release({snap: ['tag']})
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_release_hold_invalid_snap_name(self):
@@ -3060,7 +3060,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_release({snap: ['tag']})
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameInvalid)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
     def test_release_hold_invalid_snap_name_2(self):
@@ -3069,7 +3069,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_release({snap: ['tag']})
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameInvalid)
-            self.assertEquals(e.filename, snap)
+            self.assertEquals(e.name, snap)
 
 
 
