@@ -17,7 +17,7 @@ of the error codes to the exceptions by interpreting a context
 in which the error code is produced.
 '''
 
-from .constants import (
+from ._constants import (
     MAXNAMELEN,
 )
 

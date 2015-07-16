@@ -18,7 +18,7 @@ import os
 import re
 import string
 from . import exceptions as lzc_exc
-from .constants import MAXNAMELEN
+from ._constants import MAXNAMELEN
 
 
 def lzc_create_xlate_error(ret, name, is_zvol, props):

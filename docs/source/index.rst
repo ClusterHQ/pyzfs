@@ -23,7 +23,7 @@ Indices and tables
 Documentation for the libzfs_core
 *********************************
 
-.. automodule:: libzfs_core.constants
+.. automodule:: libzfs_core._constants
    :members:
 
 .. automodule:: libzfs_core
