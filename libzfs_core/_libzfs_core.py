@@ -1,5 +1,18 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Python wrappers for libzfs_core interfaces.
+
+As a rule, there is a Python function for each C function.
+The signatures of the Python functions generally follow those of the
+functions, but the argument types are natural to Python.
+nvlists are wrapped as dictionaries or lists depending on their usage.
+Some parameters have default values depending on typical use for
+increased convenience.  Output parameters are not used and return values
+are directly returned.  Error conditions are signalled by exceptions
+rather than by integer error codes.
+"""
+
 import errno
 import threading
 from . import exceptions

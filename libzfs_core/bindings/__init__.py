@@ -1,5 +1,11 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+The package that contains a module per each C library that
+`libzfs_core` uses.  The modules expose CFFI objects required
+to make calls to functions in the libraries.
+"""
+
 import sys
 import threading
 import importlib

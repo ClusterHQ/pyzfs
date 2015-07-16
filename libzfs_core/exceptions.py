@@ -1,5 +1,9 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Exceptions that can be raised by libzfs_core operations.
+"""
+
 import errno
 import os
 

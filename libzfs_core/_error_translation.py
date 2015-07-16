@@ -1,5 +1,18 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Helper routines for converting ``errno`` style error codes from C functions
+to Python exceptions defined by `libzfs_core` API.
+
+The conversion heavily depends on the context of the error: the attempted
+operation and the input parameters.  For this reason, there is a conversion
+routine for each `libzfs_core` interface function. The conversion routines
+have the return code as a parameter as well as all the parameters of the
+corresponding interface functions.
+
+The parameters and exceptions are documented in the `libzfs_core` interfaces.
+"""
+
 import errno
 import os
 import re

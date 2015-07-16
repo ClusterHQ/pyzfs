@@ -1,5 +1,13 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Tests for `libzfs_core` operations.
+
+These are mostly functional and conformance tests that validate
+that the operations produce expected effects or fail with expected
+exceptions.
+"""
+
 import unittest
 import contextlib
 import errno
