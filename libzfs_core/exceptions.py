@@ -271,7 +271,7 @@ class ReadOnlyPool(ZFSError):
         self.name = name
 
 class SuspendedPool(ZFSError):
-    errno = errno.EROFS
+    errno = errno.EAGAIN
     message = "Pool is suspended"
     def __init__(self, name):
         self.name = name

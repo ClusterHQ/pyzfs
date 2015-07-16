@@ -453,17 +453,17 @@ def _generic_exception(err, name, message):
     else:
         return lzc_exc.ZFSGenericError(err, message, name)
 
-_error_to_exception = {
-    errno.EIO:          lzc_exc.ZIOError,
-    errno.ENOSPC:       lzc_exc.NoSpace,
-    errno.EDQUOT:       lzc_exc.QuotaExceeded,
-    errno.EBUSY:        lzc_exc.DatasetBusy,
-    errno.ENAMETOOLONG: lzc_exc.NameTooLong,
-    errno.EROFS:        lzc_exc.ReadOnlyPool,
-    errno.EAGAIN:       lzc_exc.SuspendedPool,
-    errno.EXDEV:        lzc_exc.PoolsDiffer,
-    errno.ENOTSUP:      lzc_exc.PropertyNotSupported,
-}
+_error_to_exception = { e.errno: e for e in [
+    lzc_exc.ZIOError,
+    lzc_exc.NoSpace,
+    lzc_exc.QuotaExceeded,
+    lzc_exc.DatasetBusy,
+    lzc_exc.NameTooLong,
+    lzc_exc.ReadOnlyPool,
+    lzc_exc.SuspendedPool,
+    lzc_exc.PoolsDiffer,
+    lzc_exc.PropertyNotSupported,
+]}
 
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
