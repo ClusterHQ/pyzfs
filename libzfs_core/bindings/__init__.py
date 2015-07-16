@@ -8,8 +8,6 @@ from cffi import FFI
 
 
 def _setupCFFI():
-    # Based on https://caremad.io/2014/11/distributing-a-cffi-project/
-    # XXX License?
     class LazyLibrary(object):
         def __init__(self, ffi, libname):
             self._ffi = ffi
