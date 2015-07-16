@@ -1700,7 +1700,7 @@ class ZFSTest(unittest.TestCase):
         with tempfile.TemporaryFile() as tmp:
             bad_fd = tmp.fileno()
 
-        with self.assertRaises(IOError) as ctx:
+        with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, bad_fd)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
@@ -1713,7 +1713,7 @@ class ZFSTest(unittest.TestCase):
         with tempfile.TemporaryFile() as tmp:
             bad_fd = tmp.fileno()
 
-        with self.assertRaises(IOError) as ctx:
+        with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, -2)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
@@ -1728,7 +1728,7 @@ class ZFSTest(unittest.TestCase):
 
         (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
         bad_fd = hard + 1
-        with self.assertRaises(IOError) as ctx:
+        with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, bad_fd)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
@@ -1739,7 +1739,7 @@ class ZFSTest(unittest.TestCase):
 
         proc = subprocess.Popen(['true'], stdin = subprocess.PIPE)
         proc.wait()
-        with self.assertRaises(IOError) as ctx:
+        with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, proc.stdin.fileno())
         self.assertEquals(ctx.exception.errno, errno.EPIPE)
 
@@ -1754,7 +1754,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_snapshot([snap])
 
         proc = subprocess.Popen(['sleep', '2'], stdin = subprocess.PIPE)
-        with self.assertRaises(IOError) as ctx:
+        with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, proc.stdin.fileno())
         self.assertEquals(ctx.exception.errno, errno.EPIPE)
 
@@ -1769,7 +1769,7 @@ class ZFSTest(unittest.TestCase):
             # regardless of the specified mode, so we have to open it again.
             os.chmod(output.name, stat.S_IRUSR)
             fd = os.open(output.name, os.O_RDONLY)
-            with self.assertRaises(IOError) as ctx:
+            with self.assertRaises(lzc_exc.StreamIOError) as ctx:
                 lzc.lzc_send(snap, None, fd)
             os.close(fd)
         self.assertEquals(ctx.exception.errno, errno.EBADF)

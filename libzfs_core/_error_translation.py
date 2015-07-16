@@ -304,7 +304,7 @@ def lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags):
             raise lzc_exc.NameTooLong(fromsnap)
         else:
             raise lzc_exc.NameTooLong(snapname)
-    raise IOError(ret, os.strerror(ret))
+    raise lzc_exc.StreamIOError(ret)
 
 
 def lzc_send_space_xlate_error(ret, snapname, fromsnap):
@@ -372,7 +372,7 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     if ret == errno.EAGAIN:
         raise lzc_exc.SuspendedPool(_pool_name(snapname))
 
-    raise IOError(ret, os.strerror(ret))
+    raise lzc_exc.StreamIOError(ret)
 
 
 def _handleErrList(ret, errlist, names, exception, mapper):
