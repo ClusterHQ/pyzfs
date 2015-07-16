@@ -2,6 +2,7 @@
 
 import sys
 import threading
+import importlib
 
 from cffi import FFI
 
@@ -28,7 +29,7 @@ def _setupCFFI():
     ffi = FFI()
 
     for module_name in MODULES:
-        module = __import__(module_name, globals(), locals(), [], -1)
+        module = importlib.import_module("." + module_name, __package__)
         ffi.cdef(module.CDEF)
         lib = LazyLibrary(ffi, module.LIBRARY)
         setattr(module, "ffi", ffi)
