@@ -15,6 +15,10 @@ Errors are reported as exceptions rather than integer errno-style
 error codes.  The wrapper takes care to provide one-to-many mapping
 of the error codes to the exceptions by interpreting a context
 in which the error code is produced.
+
+.. data:: MAXNAMELEN
+
+    Maximum length of any ZFS name.
 '''
 
 from ._constants import (
