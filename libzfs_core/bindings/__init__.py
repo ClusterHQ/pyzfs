@@ -7,7 +7,7 @@ import importlib
 from cffi import FFI
 
 
-def _setupCFFI():
+def _setup_cffi():
     class LazyLibrary(object):
         def __init__(self, ffi, libname):
             self._ffi = ffi
@@ -34,6 +34,6 @@ def _setupCFFI():
         setattr(module, "lib", lib)
 
 
-_setupCFFI()
+_setup_cffi()
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
