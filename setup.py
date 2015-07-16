@@ -10,6 +10,20 @@ setup(
     author_email = "support@clusterhq.com",
     url = "https://clusterhq.com/",
     license = "Apache License, Version 2.0",
+    classifiers = [
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python :: 2.7",
+        "Topic :: System :: Filesystems",
+        "Topic :: Software Development :: Libraries",
+    ],
+    keywords = [
+        "ZFS",
+        "OpenZFS",
+        "libzfs_core",
+    ],
 
     packages = find_packages(),
     include_package_data = True,
