@@ -6,10 +6,24 @@ setup(
     name = "pyzfs",
     version = "0.2",
     description = "Wrapper for libzfs_core",
-    author="ClusterHQ",
-    author_email="support@clusterhq.com",
-    url="https://clusterhq.com/",
-    license="Apache License, Version 2.0",
+    author = "ClusterHQ",
+    author_email = "support@clusterhq.com",
+    url = "https://clusterhq.com/",
+    license = "Apache License, Version 2.0",
+    classifiers = [
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python :: 2.7",
+        "Topic :: System :: Filesystems",
+        "Topic :: Software Development :: Libraries",
+    ],
+    keywords = [
+        "ZFS",
+        "OpenZFS",
+        "libzfs_core",
+    ],
 
     packages = find_packages(),
     include_package_data = True,
@@ -20,7 +34,7 @@ setup(
         "cffi",
     ],
     zip_safe = False,
-    test_suite="libzfs_core.test",
+    test_suite = "libzfs_core.test",
 )
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

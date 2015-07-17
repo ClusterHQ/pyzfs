@@ -1,12 +1,25 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Python wrappers for libzfs_core interfaces.
+
+As a rule, there is a Python function for each C function.
+The signatures of the Python functions generally follow those of the
+functions, but the argument types are natural to Python.
+nvlists are wrapped as dictionaries or lists depending on their usage.
+Some parameters have default values depending on typical use for
+increased convenience.  Output parameters are not used and return values
+are directly returned.  Error conditions are signalled by exceptions
+rather than by integer error codes.
+"""
+
 import errno
 import functools
 import threading
 from . import exceptions
 from . import _error_translation as xlate
 from .bindings import libzfs_core
-from .constants import MAXNAMELEN
+from ._constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
 
 
@@ -14,10 +27,10 @@ def lzc_create(name, is_zvol = False, props = {}):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
-    :param str name: a name of the dataset to be created.
+    :param bytes name: a name of the dataset to be created.
     :param bool is_zvol: whether to create a zvol (false by default).
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str:Any
+    :type props: dict of bytes:Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
@@ -39,10 +52,10 @@ def lzc_clone(name, origin, props = {}):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
-    :param str name: a name of the dataset to be created.
-    :param str origin: a name of the origin snapshot.
+    :param bytes name: a name of the dataset to be created.
+    :param bytes origin: a name of the origin snapshot.
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str:Any
+    :type props: dict of bytes:Any
 
     :raises FilesystemExists: if a dataset with the given name already exists.
     :raises DatasetNotFound: if either a parent dataset of the requested dataset
@@ -67,9 +80,9 @@ def lzc_rollback(name):
     '''
     Roll back a filesystem or volume to its most recent snapshot.
 
-    :param str name: a name of the dataset to be rolled back.
+    :param bytes name: a name of the dataset to be rolled back.
     :return: a name of the most recent snapshot.
-    :rtype: str
+    :rtype: bytes
 
     :raises FilesystemNotFound: if the dataset does not exist.
     :raises SnapshotNotFound: if the dataset does not have any snapshots.
@@ -96,9 +109,9 @@ def lzc_snapshot(snaps, props = {}):
     an exception is raised.
 
     :param snaps: a list of names of snapshots to be created.
-    :type snaps: list of str
+    :type snaps: list of bytes
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
-    :type props: dict of str:str
+    :type props: dict of bytes:bytes
 
     :raises SnapshotFailure: if one or more snapshots could not be created.
 
@@ -161,7 +174,7 @@ def lzc_destroy_snaps(snaps, defer):
     later destruction if 'defer' is set) or didn't exist to begin with.
 
     :param snaps: a list of names of snapshots to be destroyed.
-    :type snaps: list of str
+    :type snaps: list of bytes
     :param bool defer: whether to mark busy snapshots for deferred destruction
                        rather than immediately failing.
 
@@ -191,7 +204,7 @@ def lzc_bookmark(bookmarks):
     Create bookmarks.
 
     :param bookmarks: a dict that maps names of wanted bookmarks to names of existing snapshots.
-    :type bookmarks: dict of str to str
+    :type bookmarks: dict of bytes to bytes
 
     :raises BookmarkFailure: if any of the bookmarks can not be created for any reason.
 
@@ -210,11 +223,11 @@ def lzc_get_bookmarks(fsname, props = []):
     '''
     Retrieve a list of bookmarks for the given file system.
 
-    :param str fsname: a name of the filesystem.
+    :param bytes fsname: a name of the filesystem.
     :param props: a `list` of properties that will be returned for each bookmark.
-    :type props: list of str
+    :type props: list of bytes
     :return: a `dict` that maps the bookmarks' short names to their properties.
-    :rtype: dict of str:dict
+    :rtype: dict of bytes:dict
 
     :raises FilesystemNotFound: if the filesystem is not found.
 
@@ -247,7 +260,7 @@ def lzc_destroy_bookmarks(bookmarks):
 
     :param bookmarks: a list of the bookmarks to be destroyed.
                       The bookmarks are specified as :file:`{fs}#{bmark}`.
-    :type bookmarks: list of str
+    :type bookmarks: list of bytes
 
     :raises BookmarkDestructionFailure: if any of the bookmarks may not be destroyed.
 
@@ -273,8 +286,8 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     Calculate a size of data referenced by snapshots in the inclusive range between
     the ``firstsnap`` and the ``lastsnap`` and not shared with any other datasets.
 
-    :param str firstsnap: the name of the first snapshot in the range.
-    :param str lastsnap: the name of the last snapshot in the range.
+    :param bytes firstsnap: the name of the first snapshot in the range.
+    :param bytes lastsnap: the name of the last snapshot in the range.
     :return: the calculated stream size, in bytes.
     :rtype: `int` or `long`
 
@@ -308,12 +321,12 @@ def lzc_hold(holds, fd = None):
     by :func:`lzc_destroy_snaps` ( ``defer`` = `True` ).)
 
     :param holds: the dictionary of names of the snapshots to hold mapped to the hold names.
-    :type holds: dict of str : str
+    :type holds: dict of bytes : bytes
     :type fd: int or None
     :param fd: if not None then it must be the result of :func:`os.open` called as ``os.open("/dev/zfs", O_EXCL)``.
     :type fd: int or None
     :return: a list of the snapshots that do not exist.
-    :rtype: list of str
+    :rtype: list of bytes
 
     :raises HoldFailure: if a hold was impossible on one or more of the snapshots.
     :raises BadHoldCleanupFD: if ``fd`` is not a valid file descriptor associated with :file:`/dev/zfs`.
@@ -359,12 +372,12 @@ def lzc_release(holds):
 
     :param holds: a ``dict`` where keys are snapshot names and values are
                   lists of hold tags to remove.
-    :type holds: dict of str : list of str
+    :type holds: dict of bytes : list of bytes
     :return: a list of any snapshots that do not exist and of any tags that do not
              exist for existing snapshots.
              Such tags are qualified with a corresponding snapshot name
              using the following format :file:`{pool}/{fs}@{snap}#{tag}`
-    :rtype: list of str
+    :rtype: list of bytes
 
     :raises HoldReleaseFailure: if one or more existing holds could not be released.
 
@@ -397,10 +410,10 @@ def lzc_get_holds(snapname):
     '''
     Retrieve list of *user holds* on the specified snapshot.
 
-    :param str snapname: the name of the snapshot.
+    :param bytes snapname: the name of the snapshot.
     :return: holds on the snapshot along with their creation times
              in seconds since the epoch
-    :rtype: dict of str : int
+    :rtype: dict of bytes : int
     '''
     holds = {}
     with nvlist_out(holds) as nvlist:
@@ -414,14 +427,14 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
     Generate a zfs send stream for the specified snapshot and write it to
     the specified file descriptor.
 
-    :param str snapname: the name of the snapshot to send.
+    :param bytes snapname: the name of the snapshot to send.
     :param fromsnap: if not None the name of the starting snapshot
                      for the incremental stream.
-    :type fromsnap: str or None
+    :type fromsnap: bytes or None
     :param int fd: the file descriptor to write the send stream to.
     :param flags: the flags that control what enhanced features can be used
                   in the stream.
-    :type flags: list of str
+    :type flags: list of bytes
 
     :raises SnapshotNotFound: if either the starting snapshot is not `None` and does not exist,
                               or if the ending snapshot does not exist.
@@ -483,11 +496,11 @@ def lzc_send_space(snapname, fromsnap = None):
     Estimate size of a full or incremental backup stream
     given the optional starting snapshot and the ending snapshot.
 
-    :param str snapname: the name of the snapshot for which the estimate should be done.
+    :param bytes snapname: the name of the snapshot for which the estimate should be done.
     :param fromsnap: the optional starting snapshot name.
                      If not `None` then an incremental stream size is estimated,
                      otherwise a full stream is esimated.
-    :type fromsnap: `str` or `None`
+    :type fromsnap: `bytes` or `None`
     :return: the estimated stream size, in bytes.
     :rtype: `int` or `long`
 
@@ -515,14 +528,14 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
     '''
     Receive from the specified ``fd``, creating the specified snapshot.
 
-    :param str snapname: the name of the snapshot to create.
+    :param bytes snapname: the name of the snapshot to create.
     :param int fd: the file descriptor from which to read the stream.
     :param bool force: whether to roll back or destroy the target filesystem
                        if that is required to receive the stream.
     :param origin: the optional origin snapshot name if the stream is for a clone.
-    :type origin: str or None
+    :type origin: bytes or None
     :param props: the properties to set on the snapshot as *received* properties.
-    :type props: dict of str : Any
+    :type props: dict of bytes : Any
 
     :raises IOError: if an input / output error occurs while reading from the ``fd``.
     :raises DatasetExists: if the snapshot named ``snapname`` already exists.
@@ -608,7 +621,7 @@ def lzc_exists(name):
     Check if a dataset (a filesystem, or a volume, or a snapshot)
     with the given name exists.
 
-    :param str name: the dataset name to check.
+    :param bytes name: the dataset name to check.
     :return: `True` if the dataset exists, `False` otherwise.
     :rtype: bool
 

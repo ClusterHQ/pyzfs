@@ -1,5 +1,9 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Python bindings for ``libzfs_core``.
+"""
+
 CDEF = """
     enum lzc_send_flags {
         LZC_SEND_FLAG_EMBED_DATA =  1,

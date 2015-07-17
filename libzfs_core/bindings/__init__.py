@@ -1,14 +1,19 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+The package that contains a module per each C library that
+`libzfs_core` uses.  The modules expose CFFI objects required
+to make calls to functions in the libraries.
+"""
+
 import sys
 import threading
+import importlib
 
 from cffi import FFI
 
 
-def _setupCFFI():
-    # Based on https://caremad.io/2014/11/distributing-a-cffi-project/
-    # XXX License?
+def _setup_cffi():
     class LazyLibrary(object):
         def __init__(self, ffi, libname):
             self._ffi = ffi
@@ -28,13 +33,13 @@ def _setupCFFI():
     ffi = FFI()
 
     for module_name in MODULES:
-        module = __import__(module_name, globals(), locals(), [], -1)
+        module = importlib.import_module("." + module_name, __package__)
         ffi.cdef(module.CDEF)
         lib = LazyLibrary(ffi, module.LIBRARY)
         setattr(module, "ffi", ffi)
         setattr(module, "lib", lib)
 
 
-_setupCFFI()
+_setup_cffi()
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4
