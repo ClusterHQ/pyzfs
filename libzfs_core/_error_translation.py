@@ -132,7 +132,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
 
     def _map(ret, name):
         if ret == errno.EINVAL:
-            if bool(name):
+            if name:
                 snap = bookmarks[name]
                 pool_names = map(_pool_name, bookmarks.keys())
                 if not _is_valid_bmark_name(name):
@@ -207,7 +207,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
         if ret == errno.EXDEV:
             return lzc_exc.PoolsDiffer(name)
         elif ret == errno.EINVAL:
-            if bool(name):
+            if name:
                 tag = holds[name]
                 pool_names = map(_pool_name, holds.keys())
                 if not _is_valid_snap_name(name):
@@ -253,7 +253,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
         if ret == errno.EXDEV:
             return lzc_exc.PoolsDiffer(name)
         elif ret == errno.EINVAL:
-            if bool(name):
+            if name:
                 pool_names = map(_pool_name, holds.keys())
                 if not _is_valid_snap_name(name):
                     return lzc_exc.NameInvalid(name)
@@ -428,11 +428,11 @@ def _fs_name(name):
 
 def _is_valid_name_component(component):
     allowed = string.ascii_letters + string.digits + '-_.: '
-    return bool(component) and all(x in allowed for x in component)
+    return component and all(x in allowed for x in component)
 
 
 def _is_valid_fs_name(name):
-    return bool(name) and all(_is_valid_name_component(c) for c in name.split('/'))
+    return name and all(_is_valid_name_component(c) for c in name.split('/'))
 
 
 def _is_valid_snap_name(name):
