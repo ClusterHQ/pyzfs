@@ -3245,14 +3245,14 @@ class _Filesystem(object):
 
     def getFilesystem(self):
         self._fs_id += 1
-        fsname = self._name + '/fs' + str(self._fs_id)
+        fsname = self._name + '/fs' + bytes(self._fs_id)
         fs = _Filesystem(fsname)
         self._children.append(fs)
         return fs
 
 
     def _makeSnapName(self, i):
-        return self._name + '@snap' + str(i)
+        return self._name + '@snap' + bytes(i)
 
 
     def getSnap(self):
@@ -3261,7 +3261,7 @@ class _Filesystem(object):
 
 
     def _makeBookmarkName(self, i):
-        return self._name + '#bmark' + str(i)
+        return self._name + '#bmark' + bytes(i)
 
 
     def getBookmark(self):

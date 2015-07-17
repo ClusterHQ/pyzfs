@@ -166,7 +166,7 @@ def _nvlist_add_array(nvlist, key, array):
             _dict_to_nvlist(dictionary, nested_nvlist)
             c_array.append(nested_nvlist)
         ret = _lib.nvlist_add_nvlist_array(nvlist, key, c_array, len(c_array))
-    elif isinstance(specimen, str):
+    elif isinstance(specimen, bytes):
         c_array = []
         for string in array:
             c_array.append(_ffi.new('char[]', string))
@@ -226,7 +226,7 @@ def _nvlist_to_dict(nvlist, props):
 
 def _dict_to_nvlist(props, nvlist):
     for k, v in props.items():
-        if not isinstance(k, str):
+        if not isinstance(k, bytes):
             raise TypeError('Unsupported key type ' + type(k).__name__)
         ret = 0
         if isinstance(v, dict):
@@ -234,7 +234,7 @@ def _dict_to_nvlist(props, nvlist):
                 ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
         elif isinstance(v, list):
             _nvlist_add_array(nvlist, k, v)
-        elif isinstance(v, str):
+        elif isinstance(v, bytes):
             ret = _lib.nvlist_add_string(nvlist, k, v)
         elif isinstance(v, bool):
             ret = _lib.nvlist_add_boolean_value(nvlist, k, v)
