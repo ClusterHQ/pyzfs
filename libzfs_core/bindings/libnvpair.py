@@ -1,5 +1,9 @@
 # Copyright 2015 ClusterHQ. See LICENSE file for details.
 
+"""
+Python bindings for ``libnvpair``.
+"""
+
 CDEF = """
     typedef ... nvlist_t;
     typedef ... nvpair_t;
