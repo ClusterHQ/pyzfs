@@ -145,7 +145,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
                     return lzc_exc.PoolsDiffer(name)
             else:
                 invalid_names = [b for b in bookmarks.keys() if not _is_valid_bmark_name(b)]
-                if len(invalid_names) > 0:
+                if invalid_names:
                     return lzc_exc.NameInvalid(invalid_names[0])
         if ret == errno.EEXIST:
             return lzc_exc.BookmarkExists(name)
@@ -218,7 +218,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
                     return lzc_exc.PoolsDiffer(name)
             else:
                 invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
-                if len(invalid_names) > 0:
+                if invalid_names:
                     return lzc_exc.NameInvalid(invalid_names[0])
         fs_name = None
         hold_name = None
@@ -263,7 +263,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
                     return lzc_exc.PoolsDiffer(name)
             else:
                 invalid_names = [b for b in holds.keys() if not _is_valid_snap_name(b)]
-                if len(invalid_names) > 0:
+                if invalid_names:
                     return lzc_exc.NameInvalid(invalid_names[0])
         elif ret == errno.ENOENT:
             return lzc_exc.HoldNotFound(name)
