@@ -713,7 +713,7 @@ def lzc_set_props(name, prop, val):
     '''
     props = { prop: val }
     with nvlist_in(props) as props_nv:
-        ret = _lib.lzc_set_props(name, props_nv, _ffi.NULL)
+        ret = _lib.lzc_set_props(name, props_nv, _ffi.NULL, _ffi.NULL)
     xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
 
 
