@@ -781,7 +781,7 @@ def lzc_get_props(name):
         os.close(fd)
 
     if entry is None:
-        raise DatasetNotFound(name)
+        raise exceptions.DatasetNotFound(name)
     result = result['properties']
     # In most cases the source of the property is uninteresting and the
     # value alone is sufficient.  One exception is the 'mountpoint'
