@@ -754,7 +754,7 @@ def lzc_get_props(name):
         with default values.  One exception is the ``mountpoint`` property
         for which the default value is derived from the dataset name.
     '''
-    (fd, other_fd) = lzc_list(name, {})
+    (fd, other_fd) = lzc_list(name, {'recurse': 1})
     entry = None
     try:
         while True:
