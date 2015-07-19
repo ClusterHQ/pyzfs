@@ -852,7 +852,7 @@ def lzc_list_snaps(name):
     :param str name: the name of the dataset.
     :return: an iterator that produces the names of the snapshots.
     '''
-    (fd, other_fd) = lzc_list(name, {'type': {'snapshot': None}})
+    (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
 
     def _iterator():
         try:
