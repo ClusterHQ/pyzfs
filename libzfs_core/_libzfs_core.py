@@ -394,8 +394,6 @@ def lzc_release(holds):
         if not isinstance(hold_list, list):
             raise TypeError('holds must be in a list')
         holds_dict[snap] = {hold: None for hold in hold_list}
-    #holds_dict = {snap: {hold: None for hold in hold_list}
-    #                for snap, hold_list in holds.iteritems()}
     nvlist = nvlist_in(holds_dict)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_release(nvlist, errlist_nvlist)
