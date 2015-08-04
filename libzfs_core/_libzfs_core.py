@@ -722,8 +722,8 @@ def lzc_set_prop(name, prop, val):
     :param str val: the value of the property.
     '''
     props = { prop: val }
-    with nvlist_in(props) as props_nv:
-        ret = _lib.lzc_set_prop(name, props_nv)
+    props_nv = nvlist_in(props)
+    ret = _lib.lzc_set_prop(name, props_nv)
     xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
 
 
