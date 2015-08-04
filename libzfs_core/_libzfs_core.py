@@ -22,7 +22,7 @@ from ._constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
 
 
-def lzc_create(name, is_zvol = False, props = {}):
+def lzc_create(name, is_zvol=False, props=None):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
@@ -38,6 +38,8 @@ def lzc_create(name, is_zvol = False, props = {}):
 
     Wraps ``int lzc_create(const char *fsname, dmu_objset_type_t type, nvlist_t *props)``.
     '''
+    if props is None:
+        props = {}
     if is_zvol:
         ds_type = _lib.DMU_OST_ZVOL
     else:
@@ -47,7 +49,7 @@ def lzc_create(name, is_zvol = False, props = {}):
     xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
 
 
-def lzc_clone(name, origin, props = {}):
+def lzc_clone(name, origin, props=None):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
@@ -70,6 +72,8 @@ def lzc_clone(name, origin, props = {}):
         :func:`lzc_hold` can be used to check that the snapshot exists and ensure that
         it is not destroyed before cloning.
     '''
+    if props is None:
+        props = {}
     nvlist = nvlist_in(props)
     ret = _lib.lzc_clone(name, origin, nvlist)
     xlate.lzc_clone_xlate_error(ret, name, origin, props)
@@ -95,7 +99,7 @@ def lzc_rollback(name):
     return _ffi.string(snapnamep)
 
 
-def lzc_snapshot(snaps, props = {}):
+def lzc_snapshot(snaps, props=None):
     '''
     Create snapshots.
 
@@ -146,6 +150,8 @@ def lzc_snapshot(snaps, props = {}):
     snaps_dict = { name: None for name in snaps }
     errlist = {}
     snaps_nvlist = nvlist_in(snaps_dict)
+    if props is None:
+        props = {}
     props_nvlist = nvlist_in(props)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
@@ -219,7 +225,7 @@ def lzc_bookmark(bookmarks):
     xlate.lzc_bookmark_xlate_errors(ret, errlist, bookmarks)
 
 
-def lzc_get_bookmarks(fsname, props = []):
+def lzc_get_bookmarks(fsname, props=None):
     '''
     Retrieve a list of bookmarks for the given file system.
 
@@ -246,6 +252,8 @@ def lzc_get_bookmarks(fsname, props = []):
     to their respective values.
     '''
     bmarks = {}
+    if props is None:
+        props = []
     props_dict = { name: None for name in props }
     nvlist = nvlist_in(props_dict)
     with nvlist_out(bmarks) as bmarks_nvlist:
@@ -420,7 +428,7 @@ def lzc_get_holds(snapname):
     return holds
 
 
-def lzc_send(snapname, fromsnap, fd, flags = []):
+def lzc_send(snapname, fromsnap, fd, flags=None):
     '''
     Generate a zfs send stream for the specified snapshot and write it to
     the specified file descriptor.
@@ -476,6 +484,8 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
     else:
         c_fromsnap = _ffi.NULL
     c_flags = 0
+    if flags is None:
+        flags = []
     for flag in flags:
         c_flag = {
             'embedded_data':    _lib.LZC_SEND_FLAG_EMBED_DATA,
@@ -522,7 +532,7 @@ def lzc_send_space(snapname, fromsnap = None):
     return int(valp[0])
 
 
-def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
+def lzc_receive(snapname, fd, force=False, origin=None, props=None):
     '''
     Receive from the specified ``fd``, creating the specified snapshot.
 
@@ -606,6 +616,8 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
         c_origin = origin
     else:
         c_origin = _ffi.NULL
+    if props is None:
+        props = {}
     nvlist = nvlist_in(props)
     ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
     xlate.lzc_receive_xlate_error(ret, snapname, fd, force, origin, props)
