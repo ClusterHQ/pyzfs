@@ -449,7 +449,7 @@ def lzc_send(snapname, fromsnap, fd, flags=None):
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     :raises IOError: if an input / output error occurs while writing to ``fd``.
-    :raises ValueError: if the ``flags`` contain an invalid flag name.
+    :raises UnknownStreamFeature: if the ``flags`` contain an unknown flag name.
 
     If ``fromsnap`` is None, a full (non-incremental) stream will be sent.
     If ``fromsnap`` is not None, it must be the full name of a snapshot or
@@ -498,7 +498,7 @@ def lzc_send(snapname, fromsnap, fd, flags=None):
             'large_blocks':     _lib.LZC_SEND_FLAG_LARGE_BLOCK,
         }.get(flag)
         if c_flag is None:
-            raise ValueError('Unknown flag value ' + flag)
+            raise exceptions.UnknownStreamFeature(flag)
         c_flags |= c_flag
 
     ret = _lib.lzc_send(snapname, c_fromsnap, fd, c_flags)

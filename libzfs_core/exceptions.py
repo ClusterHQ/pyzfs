@@ -223,6 +223,10 @@ class StreamFeatureNotSupported(ZFSError):
     errno = errno.ENOTSUP
     message = "Stream contains unsupported feature"
 
+class UnknownStreamFeature(ZFSError):
+    errno = errno.ENOTSUP
+    message = "Unknown feature requested for stream"
+
 class StreamIOError(ZFSError):
     message = "I/O error while writing or reading stream"
     def __init__(self, errno):
