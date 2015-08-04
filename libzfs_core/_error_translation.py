@@ -446,10 +446,23 @@ def _handle_err_list(ret, errlist, names, exception, mapper):
 
 
 def _pool_name(name):
+    '''
+    Extract a pool name from the given dataset or bookmark name.
+
+    '/' separates dataset name components.
+    '@' separates a snapshot name from the rest of the dataset name.
+    '#' separates a bookmark name from the rest of the dataset name.
+    '''
     return re.split('[/@#]', name, 1)[0]
 
 
 def _fs_name(name):
+    '''
+    Extract a dataset name from the given snapshot or bookmark name.
+
+    '@' separates a snapshot name from the rest of the dataset name.
+    '#' separates a bookmark name from the rest of the dataset name.
+    '''
     return re.split('[@#]', name, 1)[0]
 
 
