@@ -478,6 +478,12 @@ def lzc_send(snapname, fromsnap, fd, flags=None):
         ``lzc_send`` can actually accept a filesystem name as the ``snapname``.
         In that case ``lzc_send`` acts as if a temporary snapshot was created
         after the start of the call and before the stream starts being produced.
+
+    .. note::
+        ``lzc_send`` does not return until all of the stream is written to ``fd``.
+
+    .. note::
+        ``lzc_send`` does *not* close ``fd`` upon returning.
     '''
     if fromsnap is not None:
         c_fromsnap = fromsnap
@@ -566,19 +572,19 @@ def lzc_receive(snapname, fd, force=False, origin=None, props=None):
                                  filesystem already exists and it does not have any
                                  snapshots, and ``force`` is `False`.
     :raises DatasetNotFound: if the destination filesystem and its parent do not exist.
-    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exists.
+    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exist.
     :raises DatasetBusy: if ``force`` is `True` but the destination filesystem could not
                          be rolled back to a matching snapshot because a newer snapshot
                          is held and could not be destroyed.
     :raises DatasetBusy: if another receive operation is being performed on the
-                         destination filesystem and this operation has lost the race.
+                         destination filesystem.
     :raises BadStream: if the stream is corrupt or it is not recognized or it is
                        a compound stream or it is a clone stream, but ``origin``
                        is `None`.
     :raises BadStream: if a clone stream is received and the destination filesystem
                        already exists.
     :raises StreamFeatureNotSupported: if the stream has a feature that is not
-                                       supported on the receiving side.
+                                       supported on this side.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
     :raises NameInvalid: if the name of either snapshot is invalid.
@@ -597,19 +603,26 @@ def lzc_receive(snapname, fd, force=False, origin=None, props=None):
         filesystem is rolled back to a matching source snapshot if necessary.
         Intermediate snapshots are destroyed in that case.
 
-        However, none of the existing snapshots must have the same name as
+        However, none of the existing snapshots may have the same name as
         ``snapname`` even if such a snapshot were to be destroyed.
         The existing ``snapname`` snapshot always causes :exc:`.SnapshotExists`
         to be raised.
 
         If ``force`` is `True` and the stream is a full stream then the destination
         filesystem is replaced with the received filesystem unless the former
-        has any snapshots.
-        Those prevent the destination filesystem from being rolled back / replaced.
+        has any snapshots.  This prevents the destination filesystem from being
+        rolled back / replaced.
 
     .. note::
         This interface does not work on dedup'd streams
         (those with ``DMU_BACKUP_FEATURE_DEDUP``).
+
+    .. note::
+        ``lzc_receive`` does not return until all of the stream is read from ``fd``
+        and applied to the pool.
+
+    .. note::
+        ``lzc_receive`` does *not* close ``fd`` upon returning.
     '''
 
     if origin is not None:
