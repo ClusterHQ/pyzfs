@@ -750,8 +750,8 @@ def lzc_list(name, options):
     fcntl.fcntl(rfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
     fcntl.fcntl(wfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
     options['fd'] = int32_t(wfd)
-    with nvlist_in(options) as opts_nv:
-        ret = _lib.lzc_list(name, opts_nv)
+    opts_nv = nvlist_in(options)
+    ret = _lib.lzc_list(name, opts_nv)
     xlate.lzc_list_xlate_error(ret, name, options)
     return (rfd, wfd)
 
