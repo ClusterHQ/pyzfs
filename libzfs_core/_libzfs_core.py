@@ -23,7 +23,7 @@ from ._constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
 
 
-def lzc_create(name, is_zvol = False, props = {}):
+def lzc_create(name, is_zvol=False, props=None):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
@@ -39,16 +39,18 @@ def lzc_create(name, is_zvol = False, props = {}):
 
     Wraps ``int lzc_create(const char *fsname, dmu_objset_type_t type, nvlist_t *props)``.
     '''
+    if props is None:
+        props = {}
     if is_zvol:
         ds_type = _lib.DMU_OST_ZVOL
     else:
         ds_type = _lib.DMU_OST_ZFS
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_create(name, ds_type, nvlist)
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_create(name, ds_type, nvlist)
     xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
 
 
-def lzc_clone(name, origin, props = {}):
+def lzc_clone(name, origin, props=None):
     '''
     Clone a ZFS filesystem or a ZFS volume ("zvol") from a given snapshot.
 
@@ -71,8 +73,10 @@ def lzc_clone(name, origin, props = {}):
         :func:`lzc_hold` can be used to check that the snapshot exists and ensure that
         it is not destroyed before cloning.
     '''
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_clone(name, origin, nvlist)
+    if props is None:
+        props = {}
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_clone(name, origin, nvlist)
     xlate.lzc_clone_xlate_error(ret, name, origin, props)
 
 
@@ -96,7 +100,7 @@ def lzc_rollback(name):
     return _ffi.string(snapnamep)
 
 
-def lzc_snapshot(snaps, props = {}):
+def lzc_snapshot(snaps, props=None):
     '''
     Create snapshots.
 
@@ -146,9 +150,12 @@ def lzc_snapshot(snaps, props = {}):
     '''
     snaps_dict = { name: None for name in snaps }
     errlist = {}
-    with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
+    snaps_nvlist = nvlist_in(snaps_dict)
+    if props is None:
+        props = {}
+    props_nvlist = nvlist_in(props)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
     xlate.lzc_snapshot_xlate_errors(ret, errlist, snaps, props)
 
 
@@ -193,9 +200,9 @@ def lzc_destroy_snaps(snaps, defer):
     '''
     snaps_dict = { name: None for name in snaps }
     errlist = {}
-    with nvlist_in(snaps_dict) as snaps_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
+    snaps_nvlist = nvlist_in(snaps_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
     xlate.lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer)
 
 
@@ -213,13 +220,13 @@ def lzc_bookmark(bookmarks):
     snapshots must be in the same pool.
     '''
     errlist = {}
-    with nvlist_in(bookmarks) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(bookmarks)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
     xlate.lzc_bookmark_xlate_errors(ret, errlist, bookmarks)
 
 
-def lzc_get_bookmarks(fsname, props = []):
+def lzc_get_bookmarks(fsname, props=None):
     '''
     Retrieve a list of bookmarks for the given file system.
 
@@ -246,10 +253,12 @@ def lzc_get_bookmarks(fsname, props = []):
     to their respective values.
     '''
     bmarks = {}
+    if props is None:
+        props = []
     props_dict = { name: None for name in props }
-    with nvlist_in(props_dict) as nvlist:
-        with nvlist_out(bmarks) as bmarks_nvlist:
-            ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
+    nvlist = nvlist_in(props_dict)
+    with nvlist_out(bmarks) as bmarks_nvlist:
+        ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
     xlate.lzc_get_bookmarks_xlate_error(ret, fsname, props)
     return bmarks
 
@@ -275,9 +284,9 @@ def lzc_destroy_bookmarks(bookmarks):
     '''
     errlist = {}
     bmarks_dict = { name: None for name in bookmarks }
-    with nvlist_in(bmarks_dict) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(bmarks_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
     xlate.lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks)
 
 
@@ -349,9 +358,9 @@ def lzc_hold(holds, fd = None):
     errlist = {}
     if fd is None:
         fd = -1
-    with nvlist_in(holds) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
+    nvlist = nvlist_in(holds)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
     xlate.lzc_hold_xlate_errors(ret, errlist, holds, fd)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots.
@@ -394,11 +403,9 @@ def lzc_release(holds):
         if not isinstance(hold_list, list):
             raise TypeError('holds must be in a list')
         holds_dict[snap] = {hold: None for hold in hold_list}
-    #holds_dict = {snap: {hold: None for hold in hold_list}
-    #                for snap, hold_list in holds.iteritems()}
-    with nvlist_in(holds_dict) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_release(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(holds_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_release(nvlist, errlist_nvlist)
     xlate.lzc_release_xlate_errors(ret, errlist, holds)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots and tags.
@@ -422,7 +429,7 @@ def lzc_get_holds(snapname):
     return holds
 
 
-def lzc_send(snapname, fromsnap, fd, flags = []):
+def lzc_send(snapname, fromsnap, fd, flags=None):
     '''
     Generate a zfs send stream for the specified snapshot and write it to
     the specified file descriptor.
@@ -443,7 +450,7 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
     :raises SnapshotMismatch: if ``fromsnap`` is not an ancestor snapshot of ``snapname``.
     :raises PoolsDiffer: if the snapshots belong to different pools.
     :raises IOError: if an input / output error occurs while writing to ``fd``.
-    :raises ValueError: if the ``flags`` contain an invalid flag name.
+    :raises UnknownStreamFeature: if the ``flags`` contain an unknown flag name.
 
     If ``fromsnap`` is None, a full (non-incremental) stream will be sent.
     If ``fromsnap`` is not None, it must be the full name of a snapshot or
@@ -472,19 +479,27 @@ def lzc_send(snapname, fromsnap, fd, flags = []):
         ``lzc_send`` can actually accept a filesystem name as the ``snapname``.
         In that case ``lzc_send`` acts as if a temporary snapshot was created
         after the start of the call and before the stream starts being produced.
+
+    .. note::
+        ``lzc_send`` does not return until all of the stream is written to ``fd``.
+
+    .. note::
+        ``lzc_send`` does *not* close ``fd`` upon returning.
     '''
     if fromsnap is not None:
         c_fromsnap = fromsnap
     else:
         c_fromsnap = _ffi.NULL
     c_flags = 0
+    if flags is None:
+        flags = []
     for flag in flags:
         c_flag = {
             'embedded_data':    _lib.LZC_SEND_FLAG_EMBED_DATA,
             'large_blocks':     _lib.LZC_SEND_FLAG_LARGE_BLOCK,
         }.get(flag)
         if c_flag is None:
-            raise ValueError('Unknown flag value ' + flag)
+            raise exceptions.UnknownStreamFeature(flag)
         c_flags |= c_flag
 
     ret = _lib.lzc_send(snapname, c_fromsnap, fd, c_flags)
@@ -524,7 +539,7 @@ def lzc_send_space(snapname, fromsnap = None):
     return int(valp[0])
 
 
-def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
+def lzc_receive(snapname, fd, force=False, origin=None, props=None):
     '''
     Receive from the specified ``fd``, creating the specified snapshot.
 
@@ -558,19 +573,19 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
                                  filesystem already exists and it does not have any
                                  snapshots, and ``force`` is `False`.
     :raises DatasetNotFound: if the destination filesystem and its parent do not exist.
-    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exists.
+    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exist.
     :raises DatasetBusy: if ``force`` is `True` but the destination filesystem could not
                          be rolled back to a matching snapshot because a newer snapshot
                          is held and could not be destroyed.
     :raises DatasetBusy: if another receive operation is being performed on the
-                         destination filesystem and this operation has lost the race.
+                         destination filesystem.
     :raises BadStream: if the stream is corrupt or it is not recognized or it is
                        a compound stream or it is a clone stream, but ``origin``
                        is `None`.
     :raises BadStream: if a clone stream is received and the destination filesystem
                        already exists.
     :raises StreamFeatureNotSupported: if the stream has a feature that is not
-                                       supported on the receiving side.
+                                       supported on this side.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
     :raises NameInvalid: if the name of either snapshot is invalid.
@@ -589,27 +604,36 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
         filesystem is rolled back to a matching source snapshot if necessary.
         Intermediate snapshots are destroyed in that case.
 
-        However, none of the existing snapshots must have the same name as
+        However, none of the existing snapshots may have the same name as
         ``snapname`` even if such a snapshot were to be destroyed.
         The existing ``snapname`` snapshot always causes :exc:`.SnapshotExists`
         to be raised.
 
         If ``force`` is `True` and the stream is a full stream then the destination
         filesystem is replaced with the received filesystem unless the former
-        has any snapshots.
-        Those prevent the destination filesystem from being rolled back / replaced.
+        has any snapshots.  This prevents the destination filesystem from being
+        rolled back / replaced.
 
     .. note::
         This interface does not work on dedup'd streams
         (those with ``DMU_BACKUP_FEATURE_DEDUP``).
+
+    .. note::
+        ``lzc_receive`` does not return until all of the stream is read from ``fd``
+        and applied to the pool.
+
+    .. note::
+        ``lzc_receive`` does *not* close ``fd`` upon returning.
     '''
 
     if origin is not None:
         c_origin = origin
     else:
         c_origin = _ffi.NULL
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
+    if props is None:
+        props = {}
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
     xlate.lzc_receive_xlate_error(ret, snapname, fd, force, origin, props)
 
 

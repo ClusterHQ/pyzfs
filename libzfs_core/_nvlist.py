@@ -5,8 +5,6 @@ nvlist_in and nvlist_out provide support for converting between
 a dictionary on the Python side and an nvlist_t on the C side
 with the automatic memory management for C memory allocations.
 
-nvlist_in and nvlist_out are to be used with the 'with' statement.
-
 nvlist_in takes a dictionary and produces a CData object corresponding
 to a C nvlist_t pointer suitable for passing as an input parameter.
 The nvlist_t is populated based on the dictionary.
@@ -43,13 +41,14 @@ _ffi = libnvpair.ffi
 _lib = libnvpair.lib
 
 
-@contextmanager
 def nvlist_in(props):
     """
-    A context manager that converts a python dictionary to a C nvlist_t
+    This function converts a python dictionary to a C nvlist_t
     and provides automatic memory management for the latter.
-    An FFI CData object representing the nvlist_t pointer can be acccessed
-    via 'as' target.
+
+    :param dict props: the dictionary to be converted.
+    :return: an FFI CData object representing the nvlist_t pointer.
+    :rtype: CData
     """
     nvlistp = _ffi.new("nvlist_t **")
     res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
@@ -57,10 +56,7 @@ def nvlist_in(props):
         raise MemoryError('nvlist_alloc failed')
     nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
     _dict_to_nvlist(props, nvlist)
-    # NB 'yield' is the last statement, so this function could be
-    # just a regular function, it is kept as a context manager
-    # only for symmetry with nvlist_out
-    yield nvlist
+    return nvlist
 
 
 @contextmanager
@@ -73,6 +69,10 @@ def nvlist_out(props):
     The context manager takes care of memory management for the nvlist_t
     and also populates the 'props' dictionary with data from the nvlist_t
     upon leaving the 'with' block.
+
+    :param dict props: the dictionary to be populated with data from the nvlist.
+    :return: an FFI CData object representing the pointer to nvlist_t pointer.
+    :rtype: CData
     """
     nvlistp = _ffi.new("nvlist_t **")
     nvlistp[0] = _ffi.NULL # to be sure
@@ -84,6 +84,7 @@ def nvlist_out(props):
     finally:
         if nvlistp[0] != _ffi.NULL:
             _lib.nvlist_free(nvlistp[0])
+            nvlistp[0] = _ffi.NULL
 
 
 _TypeInfo = namedtuple('_TypeInfo', ['suffix', 'ctype', 'is_array', 'convert'])
@@ -230,8 +231,7 @@ def _dict_to_nvlist(props, nvlist):
             raise TypeError('Unsupported key type ' + type(k).__name__)
         ret = 0
         if isinstance(v, dict):
-            with nvlist_in(v) as sub_nvlist:
-                ret = _lib.nvlist_add_nvlist(nvlist, k, sub_nvlist)
+            ret = _lib.nvlist_add_nvlist(nvlist, k, nvlist_in(v))
         elif isinstance(v, list):
             _nvlist_add_array(nvlist, k, v)
         elif isinstance(v, bytes):

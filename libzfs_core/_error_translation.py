@@ -107,7 +107,7 @@ def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
             return lzc_exc.FilesystemNotFound(name)
         return _generic_exception(ret, name, "Failed to create snapshot")
 
-    _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
+    _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
 
 
 def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
@@ -123,7 +123,7 @@ def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
             return lzc_exc.SnapshotIsHeld(name)
         return _generic_exception(ret, name, "Failed to destroy snapshot")
 
-    _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
+    _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
 
 
 def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
@@ -155,7 +155,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
             return lzc_exc.BookmarkNotSupported(name)
         return _generic_exception(ret, name, "Failed to create bookmark")
 
-    _handleErrList(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
+    _handle_err_list(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
 
 
 def lzc_get_bookmarks_xlate_error(ret, fsname, props):
@@ -175,7 +175,7 @@ def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
             return lzc_exc.NameInvalid(name)
         return _generic_exception(ret, name, "Failed to destroy bookmark")
 
-    _handleErrList(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
+    _handle_err_list(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
 
 
 def lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap):
@@ -239,7 +239,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
 
     if ret == errno.EBADF:
         raise lzc_exc.BadHoldCleanupFD()
-    _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
+    _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
 
 
 def lzc_release_xlate_errors(ret, errlist, holds):
@@ -279,7 +279,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
         else:
             return _generic_exception(ret, name, "Failed to release snapshot hold")
 
-    _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
+    _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
 
 
 def lzc_get_holds_xlate_error(ret, snapname):
@@ -483,7 +483,34 @@ def lzc_list_snaps_xlate_error(ret, name):
     raise _generic_exception(ret, name, "Error while iterating snapshots")
 
 
-def _handleErrList(ret, errlist, names, exception, mapper):
+def _handle_err_list(ret, errlist, names, exception, mapper):
+    '''
+    Convert one or more errors from an operation into the requested exception.
+
+    :param int ret: the overall return code.
+    :param errlist: the dictionary that maps entity names to their specific error codes.
+    :type errlist: dict of bytes:int
+    :param names: the list of all names of the entities on which the operation was attempted.
+    :param type exception: the type of the exception to raise if an error occurred.
+                           The exception should be a subclass of `MultipleOperationsFailure`.
+    :param function mapper: the function that maps an error code and a name to a Python exception.
+
+    Unless ``ret`` is zero this function will raise the ``exception``.
+    If the ``errlist`` is not empty, then the compound exception will contain a list of exceptions
+    corresponding to each individual error code in the ``errlist``.
+    Otherwise, the ``exception`` will contain a list with a single exception corresponding to the
+    ``ret`` value.  If the ``names`` list contains only one element, that is, the operation was
+    attempted on a single entity, then the name of that entity is passed to the ``mapper``.
+    If the operation was attempted on multiple entities, but the ``errlist`` is empty, then we
+    can not know which entity caused the error and, thus, ``None`` is used as a name to signify
+    thati fact.
+
+    .. note::
+        Note that the ``errlist`` can contain a special element with a key of "N_MORE_ERRORS".
+        That element means that there were too many errors to place on the ``errlist``.
+        Those errors are suppressed and only their count is provided as a value of the special
+        ``N_MORE_ERRORS`` element.
+    '''
     if ret == 0:
         return
 
@@ -504,10 +531,23 @@ def _handleErrList(ret, errlist, names, exception, mapper):
 
 
 def _pool_name(name):
+    '''
+    Extract a pool name from the given dataset or bookmark name.
+
+    '/' separates dataset name components.
+    '@' separates a snapshot name from the rest of the dataset name.
+    '#' separates a bookmark name from the rest of the dataset name.
+    '''
     return re.split('[/@#]', name, 1)[0]
 
 
 def _fs_name(name):
+    '''
+    Extract a dataset name from the given snapshot or bookmark name.
+
+    '@' separates a snapshot name from the rest of the dataset name.
+    '#' separates a bookmark name from the rest of the dataset name.
+    '''
     return re.split('[@#]', name, 1)[0]
 
 

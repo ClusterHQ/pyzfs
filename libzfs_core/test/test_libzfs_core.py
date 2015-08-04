@@ -1537,7 +1537,7 @@ class ZFSTest(unittest.TestCase):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc.lzc_snapshot([snap])
         with dev_null() as fd:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(lzc_exc.UnknownStreamFeature):
                 lzc.lzc_send(snap, None, fd, ['embedded_data', 'UNKNOWN'])
 
 
