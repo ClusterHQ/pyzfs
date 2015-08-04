@@ -42,8 +42,8 @@ def lzc_create(name, is_zvol = False, props = {}):
         ds_type = _lib.DMU_OST_ZVOL
     else:
         ds_type = _lib.DMU_OST_ZFS
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_create(name, ds_type, nvlist)
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_create(name, ds_type, nvlist)
     xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
 
 
@@ -70,8 +70,8 @@ def lzc_clone(name, origin, props = {}):
         :func:`lzc_hold` can be used to check that the snapshot exists and ensure that
         it is not destroyed before cloning.
     '''
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_clone(name, origin, nvlist)
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_clone(name, origin, nvlist)
     xlate.lzc_clone_xlate_error(ret, name, origin, props)
 
 
@@ -145,9 +145,10 @@ def lzc_snapshot(snaps, props = {}):
     '''
     snaps_dict = { name: None for name in snaps }
     errlist = {}
-    with nvlist_in(snaps_dict) as snaps_nvlist, nvlist_in(props) as props_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
+    snaps_nvlist = nvlist_in(snaps_dict)
+    props_nvlist = nvlist_in(props)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
     xlate.lzc_snapshot_xlate_errors(ret, errlist, snaps, props)
 
 
@@ -192,9 +193,9 @@ def lzc_destroy_snaps(snaps, defer):
     '''
     snaps_dict = { name: None for name in snaps }
     errlist = {}
-    with nvlist_in(snaps_dict) as snaps_nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
+    snaps_nvlist = nvlist_in(snaps_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
     xlate.lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer)
 
 
@@ -212,9 +213,9 @@ def lzc_bookmark(bookmarks):
     snapshots must be in the same pool.
     '''
     errlist = {}
-    with nvlist_in(bookmarks) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(bookmarks)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
     xlate.lzc_bookmark_xlate_errors(ret, errlist, bookmarks)
 
 
@@ -246,9 +247,9 @@ def lzc_get_bookmarks(fsname, props = []):
     '''
     bmarks = {}
     props_dict = { name: None for name in props }
-    with nvlist_in(props_dict) as nvlist:
-        with nvlist_out(bmarks) as bmarks_nvlist:
-            ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
+    nvlist = nvlist_in(props_dict)
+    with nvlist_out(bmarks) as bmarks_nvlist:
+        ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
     xlate.lzc_get_bookmarks_xlate_error(ret, fsname, props)
     return bmarks
 
@@ -274,9 +275,9 @@ def lzc_destroy_bookmarks(bookmarks):
     '''
     errlist = {}
     bmarks_dict = { name: None for name in bookmarks }
-    with nvlist_in(bmarks_dict) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(bmarks_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
     xlate.lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks)
 
 
@@ -348,9 +349,9 @@ def lzc_hold(holds, fd = None):
     errlist = {}
     if fd is None:
         fd = -1
-    with nvlist_in(holds) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
+    nvlist = nvlist_in(holds)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
     xlate.lzc_hold_xlate_errors(ret, errlist, holds, fd)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots.
@@ -395,9 +396,9 @@ def lzc_release(holds):
         holds_dict[snap] = {hold: None for hold in hold_list}
     #holds_dict = {snap: {hold: None for hold in hold_list}
     #                for snap, hold_list in holds.iteritems()}
-    with nvlist_in(holds_dict) as nvlist:
-        with nvlist_out(errlist) as errlist_nvlist:
-            ret = _lib.lzc_release(nvlist, errlist_nvlist)
+    nvlist = nvlist_in(holds_dict)
+    with nvlist_out(errlist) as errlist_nvlist:
+        ret = _lib.lzc_release(nvlist, errlist_nvlist)
     xlate.lzc_release_xlate_errors(ret, errlist, holds)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots and tags.
@@ -607,8 +608,8 @@ def lzc_receive(snapname, fd, force = False, origin = None, props = {}):
         c_origin = origin
     else:
         c_origin = _ffi.NULL
-    with nvlist_in(props) as nvlist:
-        ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
     xlate.lzc_receive_xlate_error(ret, snapname, fd, force, origin, props)
 
 

@@ -19,7 +19,8 @@ from ..ctypes import (
 class TestNVList(unittest.TestCase):
     def _dict_to_nvlist_to_dict(self, props):
         res = {}
-        with nvlist_in(props) as nv_in, nvlist_out(res) as nv_out:
+        nv_in = nvlist_in(props)
+        with nvlist_out(res) as nv_out:
             _lib.nvlist_dup(nv_in, nv_out, 0)
         return res
 
