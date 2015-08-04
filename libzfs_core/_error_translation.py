@@ -107,7 +107,7 @@ def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
             return lzc_exc.FilesystemNotFound(name)
         return _generic_exception(ret, name, "Failed to create snapshot")
 
-    _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
+    _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
 
 
 def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
@@ -123,7 +123,7 @@ def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
             return lzc_exc.SnapshotIsHeld(name)
         return _generic_exception(ret, name, "Failed to destroy snapshot")
 
-    _handleErrList(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
+    _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
 
 
 def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
@@ -155,7 +155,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
             return lzc_exc.BookmarkNotSupported(name)
         return _generic_exception(ret, name, "Failed to create bookmark")
 
-    _handleErrList(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
+    _handle_err_list(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
 
 
 def lzc_get_bookmarks_xlate_error(ret, fsname, props):
@@ -175,7 +175,7 @@ def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
             return lzc_exc.NameInvalid(name)
         return _generic_exception(ret, name, "Failed to destroy bookmark")
 
-    _handleErrList(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
+    _handle_err_list(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
 
 
 def lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap):
@@ -239,7 +239,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
 
     if ret == errno.EBADF:
         raise lzc_exc.BadHoldCleanupFD()
-    _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
+    _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
 
 
 def lzc_release_xlate_errors(ret, errlist, holds):
@@ -279,7 +279,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
         else:
             return _generic_exception(ret, name, "Failed to release snapshot hold")
 
-    _handleErrList(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
+    _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
 
 
 def lzc_get_holds_xlate_error(ret, snapname):
@@ -398,7 +398,7 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     raise lzc_exc.StreamIOError(ret)
 
 
-def _handleErrList(ret, errlist, names, exception, mapper):
+def _handle_err_list(ret, errlist, names, exception, mapper):
     if ret == 0:
         return
 
