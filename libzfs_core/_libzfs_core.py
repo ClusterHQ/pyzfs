@@ -70,6 +70,7 @@ def lzc_clone(name, origin, props=None):
     :raises FilesystemNameInvalid: if the name is not a valid dataset name.
     :raises SnapshotNameInvalid: if the origin is not a valid snapshot name.
     :raises NameTooLong: if the name or the origin name is too long.
+    :raises PoolsDiffer: if the clone and the origin have different pool names.
 
     .. note::
         Because of a deficiency of the underlying C interface
