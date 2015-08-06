@@ -240,6 +240,14 @@ class ZFSTest(unittest.TestCase):
         self.assertTrue(lzc.lzc_exists(name))
 
 
+    def test_create_zvol(self):
+        name = ZFSTest.pool.makeName("fs1/fs/zvol")
+        props = { "volsize": 1024 * 1024 }
+
+        lzc.lzc_create(name, ds_type = 'zvol', props = props)
+        self.assertTrue(lzc.lzc_exists(name))
+
+
     def test_create_fs_with_prop(self):
         name = ZFSTest.pool.makeName("fs1/fs/test2")
         props = { "atime": 0 }
@@ -253,6 +261,16 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.DatasetTypeInvalid):
             lzc.lzc_create(name, ds_type = 'wrong')
+
+
+    @unittest.skip("https://www.illumos.org/issues/6101")
+    def test_create_fs_below_zvol(self):
+        name = ZFSTest.pool.makeName("fs1/fs/zvol")
+        props = { "volsize": 1024 * 1024 }
+
+        lzc.lzc_create(name, ds_type = 'zvol', props = props)
+        with self.assertRaises(lzc_exc.WrongParent):
+            lzc.lzc_create(name + '/fs')
 
 
     def test_create_fs_duplicate(self):
