@@ -841,6 +841,7 @@ def lzc_list(name, options):
     (rfd, wfd) = os.pipe()
     fcntl.fcntl(rfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
     fcntl.fcntl(wfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+    options = options.copy()
     options['fd'] = int32_t(wfd)
     opts_nv = nvlist_in(options)
     ret = _lib.lzc_list(name, opts_nv)
