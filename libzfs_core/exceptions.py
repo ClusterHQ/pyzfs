@@ -325,5 +325,11 @@ class PropertyInvalid(ZFSError):
     def __init__(self, name):
         self.name = name
 
+class DatasetTypeInvalid(ZFSError):
+    errno = errno.EINVAL
+    message = "Specified dataset type is unknown"
+    def __init__(self, name):
+        self.name = name
+
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

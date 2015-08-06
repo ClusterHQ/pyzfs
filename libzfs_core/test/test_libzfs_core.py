@@ -248,6 +248,13 @@ class ZFSTest(unittest.TestCase):
         self.assertTrue(lzc.lzc_exists(name))
 
 
+    def test_create_fs_wrong_ds_type(self):
+        name = ZFSTest.pool.makeName("fs1/fs/test1")
+
+        with self.assertRaises(lzc_exc.DatasetTypeInvalid):
+            lzc.lzc_create(name, ds_type = 'wrong')
+
+
     def test_create_fs_duplicate(self):
         name = ZFSTest.pool.makeName("fs1/fs/test6")
 
@@ -285,7 +292,7 @@ class ZFSTest(unittest.TestCase):
         props = { "BOGUS": 0 }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 
@@ -294,7 +301,7 @@ class ZFSTest(unittest.TestCase):
         props = { "atime": "off" }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 
@@ -303,7 +310,7 @@ class ZFSTest(unittest.TestCase):
         props = { "atime": 20 }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 

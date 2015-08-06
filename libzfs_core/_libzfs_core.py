@@ -22,12 +22,14 @@ from ._constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
 
 
-def lzc_create(name, is_zvol=False, props=None):
+def lzc_create(name, ds_type='zfs', props=None):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
     :param bytes name: a name of the dataset to be created.
-    :param bool is_zvol: whether to create a zvol (false by default).
+    :param str ds_type: the type of the dataset to be create, currently supported
+                        types are "zfs" (the default) for a filesystem
+                        and "zvol" for a volume.
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of bytes:Any
 
@@ -42,13 +44,15 @@ def lzc_create(name, is_zvol=False, props=None):
     '''
     if props is None:
         props = {}
-    if is_zvol:
+    if ds_type == 'zfs':
+        ds_type = _lib.DMU_OST_ZFS
+    elif ds_type == 'zvol':
         ds_type = _lib.DMU_OST_ZVOL
     else:
-        ds_type = _lib.DMU_OST_ZFS
+        raise exceptions.DatasetTypeInvalid(ds_type)
     nvlist = nvlist_in(props)
     ret = _lib.lzc_create(name, ds_type, nvlist)
-    xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
+    xlate.lzc_create_xlate_error(ret, name, ds_type, props)
 
 
 def lzc_clone(name, origin, props=None):

@@ -21,7 +21,7 @@ from . import exceptions as lzc_exc
 from ._constants import MAXNAMELEN
 
 
-def lzc_create_xlate_error(ret, name, is_zvol, props):
+def lzc_create_xlate_error(ret, name, ds_type, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
