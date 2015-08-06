@@ -841,19 +841,16 @@ def is_supported(func):
     If `is_supported` returns ``False`` for the function, then
     calling the function would result in :exc:`NotImplementedError`.
     '''
-    try:
-        # woulf fail if is_supported is not set yet
-        return func._is_supported
-    except AttributeError:
-        fname = getattr(func, '__name__', None)
-        if fname is None:
-            raise ValueError('argument does not have __name__')
-        if not fname in globals():
-            raise ValueError(fname + ' is not from libzfs_core')
-        if not callable(func):
-            raise ValueError(fname + ' is not a function')
-        func._is_supported = (getattr(_lib, fname, None) != None)
-        return func._is_supported
+    fname = getattr(func, '__name__', None)
+    if fname is None:
+        raise ValueError('argument does not have __name__')
+    if fname not in globals():
+        raise ValueError(fname + ' is not from libzfs_core')
+    if not callable(func):
+        raise ValueError(fname + ' is not a function')
+    if not fname.startswith("lzc_"):
+        raise ValueError(fname + ' is not a libzfs_core API function')
+    return getattr(_lib, fname, None) is not None
 
 
 # TODO: a better way to init and uninit the library
