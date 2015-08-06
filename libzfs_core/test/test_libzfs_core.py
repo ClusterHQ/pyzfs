@@ -240,12 +240,37 @@ class ZFSTest(unittest.TestCase):
         self.assertTrue(lzc.lzc_exists(name))
 
 
+    def test_create_zvol(self):
+        name = ZFSTest.pool.makeName("fs1/fs/zvol")
+        props = { "volsize": 1024 * 1024 }
+
+        lzc.lzc_create(name, ds_type = 'zvol', props = props)
+        self.assertTrue(lzc.lzc_exists(name))
+
+
     def test_create_fs_with_prop(self):
         name = ZFSTest.pool.makeName("fs1/fs/test2")
         props = { "atime": 0 }
 
         lzc.lzc_create(name, props = props)
         self.assertTrue(lzc.lzc_exists(name))
+
+
+    def test_create_fs_wrong_ds_type(self):
+        name = ZFSTest.pool.makeName("fs1/fs/test1")
+
+        with self.assertRaises(lzc_exc.DatasetTypeInvalid):
+            lzc.lzc_create(name, ds_type = 'wrong')
+
+
+    @unittest.skip("https://www.illumos.org/issues/6101")
+    def test_create_fs_below_zvol(self):
+        name = ZFSTest.pool.makeName("fs1/fs/zvol")
+        props = { "volsize": 1024 * 1024 }
+
+        lzc.lzc_create(name, ds_type = 'zvol', props = props)
+        with self.assertRaises(lzc_exc.WrongParent):
+            lzc.lzc_create(name + '/fs')
 
 
     def test_create_fs_duplicate(self):
@@ -285,7 +310,7 @@ class ZFSTest(unittest.TestCase):
         props = { "BOGUS": 0 }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 
@@ -294,7 +319,7 @@ class ZFSTest(unittest.TestCase):
         props = { "atime": "off" }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 
@@ -303,7 +328,7 @@ class ZFSTest(unittest.TestCase):
         props = { "atime": 20 }
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
-            lzc.lzc_create(name, False, props)
+            lzc.lzc_create(name, 'zfs', props)
         self.assertFalse(lzc.lzc_exists(name))
 
 
@@ -743,13 +768,35 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc.lzc_exists(name))
 
 
+    def test_clone_invalid_snap_name(self):
+        # Use a valid filesystem name of filesystem that
+        # exists as a snapshot name
+        snapname = ZFSTest.pool.makeName("fs1/fs")
+        name = ZFSTest.pool.makeName("fs2/clone")
+
+        with self.assertRaises(lzc_exc.SnapshotNameInvalid):
+            lzc.lzc_clone(name, snapname)
+        self.assertFalse(lzc.lzc_exists(name))
+
+
+    def test_clone_invalid_snap_name_2(self):
+        # Use a valid filesystem name of filesystem that
+        # doesn't exist as a snapshot name
+        snapname = ZFSTest.pool.makeName("fs1/nonexistent")
+        name = ZFSTest.pool.makeName("fs2/clone")
+
+        with self.assertRaises(lzc_exc.SnapshotNameInvalid):
+            lzc.lzc_clone(name, snapname)
+        self.assertFalse(lzc.lzc_exists(name))
+
+
     def test_clone_invalid_name(self):
         snapname = ZFSTest.pool.makeName("fs2@snap")
         name = ZFSTest.pool.makeName("fs1/bad#name")
 
         lzc.lzc_snapshot([snapname])
 
-        with self.assertRaises(lzc_exc.NameInvalid):
+        with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
         self.assertFalse(lzc.lzc_exists(name))
 
@@ -760,7 +807,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_snapshot([snapname])
 
-        with self.assertRaises(lzc_exc.NameInvalid):
+        with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
         self.assertFalse(lzc.lzc_exists(name))
 

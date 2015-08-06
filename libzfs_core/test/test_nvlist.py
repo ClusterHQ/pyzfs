@@ -327,18 +327,6 @@ class TestNVList(unittest.TestCase):
         res = self._dict_to_nvlist_to_dict(props)
         self.assertEqual(props, res)
 
-    # XXX API deficiency: C code allows empty arrays,
-    # but it is impossible to deduce intended value type
-    # from an empty array and there is no way to provide
-    # it explicitly.
-    @unittest.expectedFailure
-    def test_empty_array(self):
-        props = {"key": []}
-        #with self.assertRaises(IndexError):
-        #    res = self._dict_to_nvlist_to_dict(props)
-        res = self._dict_to_nvlist_to_dict(props)
-        self.assertEqual(props, res)
-
     def test_mismatching_values_array(self):
         props = {"key": [1, "string"]}
         with self.assertRaises(TypeError):
@@ -369,13 +357,6 @@ class TestNVList(unittest.TestCase):
         res = self._dict_to_nvlist_to_dict(props)
         self._assertIntArrayDictsEqual(props, res)
 
-    # Currently mixing Python types and ctypes is not supported.
-    @unittest.expectedFailure
-    def test_mixed_boolean_array(self):
-        props = {"key": [boolean_t(False), True]}
-        res = self._dict_to_nvlist_to_dict(props)
-        self._assertIntArrayDictsEqual(props, res)
-
     def test_uint64_array(self):
         props = {"key": [0, 1, 2 ** 64 - 1]}
         res = self._dict_to_nvlist_to_dict(props)
@@ -390,13 +371,6 @@ class TestNVList(unittest.TestCase):
         props = {"key": [0, -1]}
         with self.assertRaises(OverflowError):
             res = self._dict_to_nvlist_to_dict(props)
-
-    # Currently mixing Python types and ctypes is not supported.
-    @unittest.expectedFailure
-    def test_mixed_uint64_array(self):
-        props = {"key": [1, uint64_t(1)]}
-        res = self._dict_to_nvlist_to_dict(props)
-        self._assertIntArrayDictsEqual(props, res)
 
     def test_mixed_explict_int_array(self):
         with self.assertRaises(TypeError):

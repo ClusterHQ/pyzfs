@@ -23,12 +23,14 @@ from ._constants import MAXNAMELEN
 from ._nvlist import nvlist_in, nvlist_out
 
 
-def lzc_create(name, is_zvol=False, props=None):
+def lzc_create(name, ds_type='zfs', props=None):
     '''
     Create a ZFS filesystem or a ZFS volume ("zvol").
 
     :param bytes name: a name of the dataset to be created.
-    :param bool is_zvol: whether to create a zvol (false by default).
+    :param str ds_type: the type of the dataset to be create, currently supported
+                        types are "zfs" (the default) for a filesystem
+                        and "zvol" for a volume.
     :param props: a `dict` of ZFS dataset property name-value pairs (empty by default).
     :type props: dict of bytes:Any
 
@@ -36,18 +38,20 @@ def lzc_create(name, is_zvol=False, props=None):
     :raises ParentNotFound: if a parent dataset of the requested dataset does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
-
-    Wraps ``int lzc_create(const char *fsname, dmu_objset_type_t type, nvlist_t *props)``.
+    :raises NameInvalid: if the name is not a valid dataset name.
+    :raises NameTooLong: if the name is too long.
     '''
     if props is None:
         props = {}
-    if is_zvol:
+    if ds_type == 'zfs':
+        ds_type = _lib.DMU_OST_ZFS
+    elif ds_type == 'zvol':
         ds_type = _lib.DMU_OST_ZVOL
     else:
-        ds_type = _lib.DMU_OST_ZFS
+        raise exceptions.DatasetTypeInvalid(ds_type)
     nvlist = nvlist_in(props)
     ret = _lib.lzc_create(name, ds_type, nvlist)
-    xlate.lzc_create_xlate_error(ret, name, is_zvol, props)
+    xlate.lzc_create_xlate_error(ret, name, ds_type, props)
 
 
 def lzc_clone(name, origin, props=None):
@@ -64,6 +68,10 @@ def lzc_clone(name, origin, props=None):
                              or the origin snapshot does not exist.
     :raises PropertyInvalid: if one or more of the specified properties is invalid
                              or has an invalid type or value.
+    :raises FilesystemNameInvalid: if the name is not a valid dataset name.
+    :raises SnapshotNameInvalid: if the origin is not a valid snapshot name.
+    :raises NameTooLong: if the name or the origin name is too long.
+    :raises PoolsDiffer: if the clone and the origin have different pool names.
 
     .. note::
         Because of a deficiency of the underlying C interface
@@ -228,7 +236,7 @@ def lzc_bookmark(bookmarks):
 
 def lzc_get_bookmarks(fsname, props=None):
     '''
-    Retrieve a list of bookmarks for the given file system.
+    Retrieve a listing of bookmarks for the given file system.
 
     :param bytes fsname: a name of the filesystem.
     :param props: a `list` of properties that will be returned for each bookmark.
