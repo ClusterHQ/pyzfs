@@ -716,7 +716,7 @@ def _uncommitted(check_func = None):
     def _uncommitted_decorator(func, check_func = check_func):
         @functools.wraps(func)
         def _f(*args, **kwargs):
-            if not is_supported(func):
+            if not is_supported(_f):
                 raise NotImplementedError(func.__name__)
             return func(*args, **kwargs)
         if check_func is not None:
