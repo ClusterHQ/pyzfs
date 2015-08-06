@@ -871,6 +871,9 @@ def lzc_get_props(name):
         with default values.  One exception is the ``mountpoint`` property
         for which the default value is derived from the dataset name.
     '''
+    # XXX We should not need to pass the recurse option here and iterate
+    # over the result, but we have to because of ZFS-23:
+    # zfs list incorrectly works with an individual snapshot.
     (fd, other_fd) = lzc_list(name, {'recurse': 1})
     entry = None
     try:
