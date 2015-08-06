@@ -688,6 +688,9 @@ def is_supported(func):
         raise ValueError(fname + ' is not a function')
     if not fname.startswith("lzc_"):
         raise ValueError(fname + ' is not a libzfs_core API function')
+    check_func = getattr(func, "_check_func", None)
+    if check_func is not None:
+        return is_supported(check_func)
     return getattr(_lib, fname, None) is not None
 
 
@@ -711,14 +714,13 @@ def _uncommitted(check_func = None):
     This decorator is implemeted using :func:`is_supported`.
     '''
     def _uncommitted_decorator(func, check_func = check_func):
-        if check_func is None:
-            check_func = func
-
         @functools.wraps(func)
         def _f(*args, **kwargs):
-            if not is_supported(check_func):
+            if not is_supported(func):
                 raise NotImplementedError(func.__name__)
             return func(*args, **kwargs)
+        if check_func is not None:
+            _f._check_func = check_func
         return _f
     return _uncommitted_decorator
 
