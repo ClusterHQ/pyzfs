@@ -232,7 +232,7 @@ def lzc_bookmark(bookmarks):
 
 def lzc_get_bookmarks(fsname, props=None):
     '''
-    Retrieve a list of bookmarks for the given file system.
+    Retrieve a listing of bookmarks for the given file system.
 
     :param bytes fsname: a name of the filesystem.
     :param props: a `list` of properties that will be returned for each bookmark.
