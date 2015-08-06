@@ -730,7 +730,7 @@ def lzc_promote(name):
     '''
     Promotes the ZFS dataset.
 
-    :param str name: the name of the dataset to promote.
+    :param bytes name: the name of the dataset to promote.
     '''
     ret = _lib.lzc_promote(name, _ffi.NULL)
     xlate.lzc_promote_xlate_error(ret, name)
@@ -753,7 +753,7 @@ def lzc_destroy_one(name):
     '''
     Destroy the ZFS dataset.
 
-    :param str name: the name of the dataset to destroy.
+    :param bytes name: the name of the dataset to destroy.
     '''
     ret = _lib.lzc_destroy_one(name, _ffi.NULL)
     xlate.lzc_destroy_xlate_error(ret, name)
@@ -767,8 +767,8 @@ def lzc_inherit(name, prop):
     '''
     Inherit properties from a parent dataset of the given ZFS dataset.
 
-    :param str name: the name of the dataset.
-    :param str prop: the name of the property to inherit.
+    :param bytes name: the name of the dataset.
+    :param bytes prop: the name of the property to inherit.
     '''
     ret = _lib.lzc_inherit(name, prop, _ffi.NULL)
     xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
@@ -782,9 +782,9 @@ def lzc_set_props(name, prop, val):
     '''
     Set properties of the ZFS dataset.
 
-    :param str name: the name of the dataset.
-    :param str prop: the name of the property.
-    :param str val: the value of the property.
+    :param bytes name: the name of the dataset.
+    :param bytes prop: the name of the property.
+    :param Any val: the value of the property.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
@@ -816,9 +816,9 @@ def lzc_get_props(name):
     '''
     Get properties of the ZFS dataset.
 
-    :param str name: the name of the dataset.
+    :param bytes name: the name of the dataset.
     :return: a dictionary mapping the property names to their values.
-    :rtype: dict of str:Any
+    :rtype: dict of bytes:Any
 
     .. note::
         The value of ``clones`` property is a `list` of clone names
@@ -888,7 +888,7 @@ def lzc_list_children(name):
     '''
     List the children of the ZFS dataset.
 
-    :param str name: the name of the dataset.
+    :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the children.
     '''
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
@@ -924,7 +924,7 @@ def lzc_list_snaps(name):
     '''
     List the snapshots of the ZFS dataset.
 
-    :param str name: the name of the dataset.
+    :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the snapshots.
     '''
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
