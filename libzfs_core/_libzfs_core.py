@@ -668,7 +668,40 @@ def lzc_exists(name):
     return bool(ret)
 
 
+def is_supported(func):
+    '''
+    Check whether C *libzfs_core* provides implementation required
+    for the given Python wrapper.
+
+    :param function func: the function to check.
+    :return bool: whether the funciton can be used.
+
+    If `is_supported` returns ``False`` for the function, then
+    calling the function would result in :exc:`NotImplementedError`.
+    '''
+    fname = getattr(func, '__name__', None)
+    if fname is None:
+        raise ValueError('argument does not have __name__')
+    if fname not in globals():
+        raise ValueError(fname + ' is not from libzfs_core')
+    if not callable(func):
+        raise ValueError(fname + ' is not a function')
+    if not fname.startswith("lzc_"):
+        raise ValueError(fname + ' is not a libzfs_core API function')
+    return getattr(_lib, fname, None) is not None
+
+
 def _uncommitted(check_func = None):
+    '''
+    Mark an API function as being an uncommitted extension that may be
+    unavailable.
+
+    This decorator transforms a decorated function to raise :exc:`NotImplementedError`
+    if the C libzfs_core library does not provide a function with the same
+    name as the decorated function.
+
+    This decorator is implemeted using :func:`is_supported`.
+    '''
     def _uncommitted_decorator(func, check_func = check_func):
         if check_func is None:
             check_func = func
@@ -910,29 +943,6 @@ def lzc_list_snaps(name):
             os.close(fd)
 
     return _iterator()
-
-
-def is_supported(func):
-    '''
-    Check whether C *libzfs_core* provides implementation required
-    for the given Python wrapper.
-
-    :param function func: the function to check.
-    :return bool: whether the funciton can be used.
-
-    If `is_supported` returns ``False`` for the function, then
-    calling the function would result in :exc:`NotImplementedError`.
-    '''
-    fname = getattr(func, '__name__', None)
-    if fname is None:
-        raise ValueError('argument does not have __name__')
-    if fname not in globals():
-        raise ValueError(fname + ' is not from libzfs_core')
-    if not callable(func):
-        raise ValueError(fname + ' is not a function')
-    if not fname.startswith("lzc_"):
-        raise ValueError(fname + ' is not a libzfs_core API function')
-    return getattr(_lib, fname, None) is not None
 
 
 # TODO: a better way to init and uninit the library
