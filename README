@@ -16,7 +16,7 @@ in which the error code is produced.
 Unit tests and automated test for the libzfs_core API are provided
 with this package.
 Please note that the API tests perform lots of ZFS dataset level
-operatiions and ZFS tries hard to ensure that any modifications
+operations and ZFS tries hard to ensure that any modifications
 do reach stable storage. That means that the operations are done
 synchronously and that, for example, disk caches are flushed.
 Thus, the tests can be very slow on real hardware.
