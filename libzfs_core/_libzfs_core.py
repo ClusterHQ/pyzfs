@@ -664,6 +664,29 @@ def lzc_exists(name):
     return bool(ret)
 
 
+def is_supported(func):
+    '''
+    Check whether C *libzfs_core* provides implementation required
+    for the given Python wrapper.
+
+    :param function func: the function to check.
+    :return bool: whether the funciton can be used.
+
+    If `is_supported` returns ``False`` for the function, then
+    calling the function would result in :exc:`NotImplementedError`.
+    '''
+    fname = getattr(func, '__name__', None)
+    if fname is None:
+        raise ValueError('argument does not have __name__')
+    if fname not in globals():
+        raise ValueError(fname + ' is not from libzfs_core')
+    if not callable(func):
+        raise ValueError(fname + ' is not a function')
+    if not fname.startswith("lzc_"):
+        raise ValueError(fname + ' is not a libzfs_core API function')
+    return getattr(_lib, fname, None) is not None
+
+
 def _uncommitted(func):
     '''
     Mark an API function as being an uncommitted extension that may be
@@ -838,29 +861,6 @@ def lzc_list_snaps(name):
                 break
             yield _ffi.string(snapname)
     return _iterator()
-
-
-def is_supported(func):
-    '''
-    Check whether C *libzfs_core* provides implementation required
-    for the given Python wrapper.
-
-    :param function func: the function to check.
-    :return bool: whether the funciton can be used.
-
-    If `is_supported` returns ``False`` for the function, then
-    calling the function would result in :exc:`NotImplementedError`.
-    '''
-    fname = getattr(func, '__name__', None)
-    if fname is None:
-        raise ValueError('argument does not have __name__')
-    if fname not in globals():
-        raise ValueError(fname + ' is not from libzfs_core')
-    if not callable(func):
-        raise ValueError(fname + ' is not a function')
-    if not fname.startswith("lzc_"):
-        raise ValueError(fname + ' is not a libzfs_core API function')
-    return getattr(_lib, fname, None) is not None
 
 
 # TODO: a better way to init and uninit the library
