@@ -3175,6 +3175,60 @@ class ZFSTest(unittest.TestCase):
             self.assertEquals(e.name, snap)
 
 
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_children), 'not available')
+    def test_list_children(self):
+        name = ZFSTest.pool.makeName("fs1/fs")
+        names = [ZFSTest.pool.makeName("fs1/fs/test1"),
+                 ZFSTest.pool.makeName("fs1/fs/test2"),
+                 ZFSTest.pool.makeName("fs1/fs/test3"),]
+        # and one snap to see that it is not listed
+        snap = ZFSTest.pool.makeName("fs1/fs@test")
+
+        for fs in names:
+            lzc.lzc_create(fs)
+        lzc.lzc_snapshot([snap])
+
+        children = list(lzc.lzc_list_children(name))
+        self.assertItemsEqual(children, names)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
+    def test_list_snaps(self):
+        name = ZFSTest.pool.makeName("fs1/fs")
+        names = [ZFSTest.pool.makeName("fs1/fs@test1"),
+                 ZFSTest.pool.makeName("fs1/fs@test2"),
+                 ZFSTest.pool.makeName("fs1/fs@test3"),]
+        # and one filesystem to see that it is not listed
+        fs = ZFSTest.pool.makeName("fs1/fs/test")
+
+        for snap in names:
+            lzc.lzc_snapshot([snap])
+        lzc.lzc_create(fs)
+
+        snaps = list(lzc.lzc_list_snaps(name))
+        self.assertItemsEqual(snaps, names)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    def test_get_fs_props(self):
+        fs = ZFSTest.pool.makeName("new")
+        props = { "user:foo": "bar" }
+
+        lzc.lzc_create(fs, props = props)
+        actual_props = lzc.lzc_get_props(fs)
+        self.assertDictContainsSubset(props, actual_props)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    def test_get_snap_props(self):
+        snapname = ZFSTest.pool.makeName("@snap")
+        snaps = [ snapname ]
+        props = { "user:foo": "bar" }
+
+        lzc.lzc_snapshot(snaps, props)
+        actual_props = lzc.lzc_get_props(snapname)
+        self.assertDictContainsSubset(props, actual_props)
+
 
 class _TempPool(object):
     SNAPSHOTS = ['snap', 'snap1', 'snap2']
