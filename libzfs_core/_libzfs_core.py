@@ -665,6 +665,16 @@ def lzc_exists(name):
 
 
 def _uncommitted(func):
+    '''
+    Mark an API function as being an uncommitted extension that may be
+    unavailable.
+
+    This decorator transforms a decorated function to raise :exc:`NotImplementedError`
+    if the C libzfs_core library does not provide a function with the same
+    name as the decorated function.
+
+    This decorator is implemeted using :func:`is_supported`.
+    '''
     @functools.wraps(func)
     def _f(*args, **kwargs):
         if not is_supported(func):
