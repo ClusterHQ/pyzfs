@@ -39,8 +39,6 @@ def lzc_create(name, ds_type='zfs', props=None):
                              or has an invalid type or value.
     :raises NameInvalid: if the name is not a valid dataset name.
     :raises NameTooLong: if the name is too long.
-
-    Wraps ``int lzc_create(const char *fsname, dmu_objset_type_t type, nvlist_t *props)``.
     '''
     if props is None:
         props = {}
