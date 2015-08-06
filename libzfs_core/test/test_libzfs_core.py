@@ -743,13 +743,35 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(lzc.lzc_exists(name))
 
 
+    def test_clone_invalid_snap_name(self):
+        # Use a valid filesystem name of filesystem that
+        # exists as a snapshot name
+        snapname = ZFSTest.pool.makeName("fs1/fs")
+        name = ZFSTest.pool.makeName("fs2/clone")
+
+        with self.assertRaises(lzc_exc.SnapshotNameInvalid):
+            lzc.lzc_clone(name, snapname)
+        self.assertFalse(lzc.lzc_exists(name))
+
+
+    def test_clone_invalid_snap_name_2(self):
+        # Use a valid filesystem name of filesystem that
+        # doesn't exist as a snapshot name
+        snapname = ZFSTest.pool.makeName("fs1/nonexistent")
+        name = ZFSTest.pool.makeName("fs2/clone")
+
+        with self.assertRaises(lzc_exc.SnapshotNameInvalid):
+            lzc.lzc_clone(name, snapname)
+        self.assertFalse(lzc.lzc_exists(name))
+
+
     def test_clone_invalid_name(self):
         snapname = ZFSTest.pool.makeName("fs2@snap")
         name = ZFSTest.pool.makeName("fs1/bad#name")
 
         lzc.lzc_snapshot([snapname])
 
-        with self.assertRaises(lzc_exc.NameInvalid):
+        with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
         self.assertFalse(lzc.lzc_exists(name))
 
@@ -760,7 +782,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_snapshot([snapname])
 
-        with self.assertRaises(lzc_exc.NameInvalid):
+        with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
         self.assertFalse(lzc.lzc_exists(name))
 

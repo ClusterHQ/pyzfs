@@ -44,9 +44,9 @@ def lzc_clone_xlate_error(ret, name, origin, props):
         return
     if ret == errno.EINVAL:
         if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
+            raise lzc_exc.FilesystemNameInvalid(name)
         elif not _is_valid_snap_name(origin):
-            raise lzc_exc.NameInvalid(origin)
+            raise lzc_exc.SnapshotNameInvalid(origin)
         elif len(name) > MAXNAMELEN:
             raise lzc_exc.NameTooLong(name)
         elif len(origin) > MAXNAMELEN:
@@ -59,6 +59,8 @@ def lzc_clone_xlate_error(ret, name, origin, props):
     if ret == errno.EEXIST:
         raise lzc_exc.FilesystemExists(name)
     if ret == errno.ENOENT:
+        if not _is_valid_snap_name(origin):
+            raise lzc_exc.SnapshotNameInvalid(origin)
         raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to create clone")
 
@@ -136,9 +138,9 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
                 snap = bookmarks[name]
                 pool_names = map(_pool_name, bookmarks.keys())
                 if not _is_valid_bmark_name(name):
-                    return lzc_exc.NameInvalid(name)
+                    return lzc_exc.BookmarkNameInvalid(name)
                 elif not _is_valid_snap_name(snap):
-                    return lzc_exc.NameInvalid(snap)
+                    return lzc_exc.SnapshotNameInvalid(snap)
                 elif _fs_name(name) != _fs_name(snap):
                     return lzc_exc.BookmarkMismatch(name)
                 elif any(x != _pool_name(name) for x in pool_names):
@@ -146,7 +148,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
             else:
                 invalid_names = [b for b in bookmarks.keys() if not _is_valid_bmark_name(b)]
                 if invalid_names:
-                    return lzc_exc.NameInvalid(invalid_names[0])
+                    return lzc_exc.BookmarkNameInvalid(invalid_names[0])
         if ret == errno.EEXIST:
             return lzc_exc.BookmarkExists(name)
         if ret == errno.ENOENT:

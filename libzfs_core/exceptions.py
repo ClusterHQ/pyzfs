@@ -268,6 +268,21 @@ class NameInvalid(ZFSError):
     def __init__(self, name):
         self.name = name
 
+class SnapshotNameInvalid(NameInvalid):
+    message = "Invalid name for snapshot"
+    def __init__(self, name):
+        self.name = name
+
+class FilesystemNameInvalid(NameInvalid):
+    message = "Invalid name for filesystem or volume"
+    def __init__(self, name):
+        self.name = name
+
+class BookmarkNameInvalid(NameInvalid):
+    message = "Invalid name for bookmark"
+    def __init__(self, name):
+        self.name = name
+
 class ReadOnlyPool(ZFSError):
     errno = errno.EROFS
     message = "Pool is read-only"
