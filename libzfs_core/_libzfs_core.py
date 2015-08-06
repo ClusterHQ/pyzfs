@@ -933,30 +933,33 @@ def lzc_list_children(name):
     :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the children.
     '''
+    children = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
+    try:
+        while True:
+            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+            if not record_bytes:
+                break
+            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+            xlate.lzc_list_children_xlate_error(err, name)
+            if size == 0:
+                break
+            data_bytes = os.read(fd, size)
+            result = {}
+            with nvlist_out(result) as nvp:
+                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+            if ret != 0:
+                raise ZFSError(ret, "Failed to unpack list data")
+            child = result['name']
+            if child != name:
+                children.append(child)
+    finally:
+        os.close(other_fd)
+        os.close(fd)
 
     def _iterator():
-        try:
-            while True:
-                record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
-                if not record_bytes:
-                    break
-                (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-                xlate.lzc_list_children_xlate_error(err, name)
-                if size == 0:
-                    break
-                data_bytes = os.read(fd, size)
-                result = {}
-                with nvlist_out(result) as nvp:
-                    ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
-                if ret != 0:
-                    raise ZFSError(ret, "Failed to unpack list data")
-                child = result['name']
-                if child != name:
-                    yield child
-        finally:
-            os.close(other_fd)
-            os.close(fd)
+        while children:
+            yield children.pop(0)
 
     return _iterator()
 
@@ -969,30 +972,33 @@ def lzc_list_snaps(name):
     :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the snapshots.
     '''
+    snaps = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
+    try:
+        while True:
+            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+            if not record_bytes:
+                break
+            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+            xlate.lzc_list_snaps_xlate_error(err, name)
+            if size == 0:
+                break
+            data_bytes = os.read(fd, size)
+            result = {}
+            with nvlist_out(result) as nvp:
+                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+            if ret != 0:
+                raise ZFSError(ret, "Failed to unpack list data")
+            snap = result['name']
+            if snap != name:
+                snaps.append(snap)
+    finally:
+        os.close(other_fd)
+        os.close(fd)
 
     def _iterator():
-        try:
-            while True:
-                record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
-                if not record_bytes:
-                    break
-                (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-                xlate.lzc_list_snaps_xlate_error(err, name)
-                if size == 0:
-                    break
-                data_bytes = os.read(fd, size)
-                result = {}
-                with nvlist_out(result) as nvp:
-                    ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
-                if ret != 0:
-                    raise ZFSError(ret, "Failed to unpack list data")
-                snap = result['name']
-                if snap != name:
-                    yield snap
-        finally:
-            os.close(other_fd)
-            os.close(fd)
+        while snaps:
+            yield snaps.pop(0)
 
     return _iterator()
 
