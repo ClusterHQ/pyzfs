@@ -490,7 +490,7 @@ def lzc_list_xlate_error(ret, name, opts):
         return
     if ret == errno.ESRCH:
         raise StopIteration()
-    raise lzc_exc.genericException(ret, name, "Error obtaining a list")
+    raise _generic_exception(ret, name, "Error obtaining a list")
 
 
 def _handle_err_list(ret, errlist, names, exception, mapper):
