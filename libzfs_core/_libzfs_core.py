@@ -993,7 +993,9 @@ def lzc_list_snaps(name):
             if ret != 0:
                 raise ZFSError(ret, "Failed to unpack list data")
             snap = result['name']
-            if snap != name:
+            # XXX we shouldn't need to do this, but have to work around ZFS-26
+            is_snapshot = result['dmu_objset_stats']['dds_is_snapshot']
+            if is_snapshot:
                 snaps.append(snap)
     finally:
         os.close(other_fd)
