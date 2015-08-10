@@ -363,7 +363,7 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_snap_name(snapname):
+        if not _is_valid_snap_name(snapname) and not _is_valid_fs_name(snapname):
             raise lzc_exc.NameInvalid(snapname)
         elif len(snapname) > MAXNAMELEN:
             raise lzc_exc.NameTooLong(snapname)
