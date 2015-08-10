@@ -454,18 +454,43 @@ def lzc_destroy_xlate_error(ret, name):
 def lzc_inherit_prop_xlate_error(ret, name, prop):
     if ret == 0:
         return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
+        else:
+            return lzc_exc.PropertyInvalid(prop)
+    if ret == errno.ENOENT:
+        raise lzc_exc.FilesystemNotFound(name)
     raise _generic_exception(ret, name, "Failed to inherit a property")
 
 
 def lzc_set_prop_xlate_error(ret, name, prop, val):
     if ret == 0:
         return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
+        else:
+            return lzc_exc.PropertyInvalid(prop)
+    if ret == errno.ENOENT:
+        raise lzc_exc.FilesystemNotFound(name)
     raise _generic_exception(ret, name, "Failed to set a property")
 
 
 def lzc_get_props_xlate_error(ret, name):
     if ret == 0:
         return
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
+    if ret == errno.ENOENT:
+        raise lzc_exc.FilesystemNotFound(name)
     raise _generic_exception(ret, name, "Failed to get properties")
 
 
@@ -474,6 +499,11 @@ def lzc_list_children_xlate_error(ret, name):
         return
     if ret == errno.ESRCH:
         raise StopIteration()
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
     raise _generic_exception(ret, name, "Error while iterating children")
 
 
@@ -482,6 +512,11 @@ def lzc_list_snaps_xlate_error(ret, name):
         return
     if ret == errno.ESRCH:
         raise StopIteration()
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
     raise _generic_exception(ret, name, "Error while iterating snapshots")
 
 

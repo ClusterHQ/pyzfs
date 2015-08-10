@@ -758,6 +758,7 @@ def lzc_rename(source, target):
                          name after renaming.
     :raises FilesystemNotFound: if the source does not exist.
     :raises FilesystemExists: if the target already exists.
+    :raises PoolsDiffer: if the source and target belong to different pools.
     '''
     ret = _lib.lzc_rename(source, target, _ffi.NULL, _ffi.NULL)
     xlate.lzc_rename_xlate_error(ret, source, target)
