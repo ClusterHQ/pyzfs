@@ -712,6 +712,15 @@ def lzc_promote(name):
     Promotes the ZFS dataset.
 
     :param bytes name: the name of the dataset to promote.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+    :raises NameTooLong: if the dataset's origin has a snapshot that,
+                         if transferred to the dataset, would get
+                         a too long name.
+    :raises NotClone: if the dataset is not a clone.
+    :raises FilesystemNotFound: if the dataset does not exist.
+    :raises SnapshotExists: if the dataset already has a snapshot with
+                            the same name as one of the origin's snapshots.
     '''
     conflicting = _ffi.new('char[]', MAXNAMELEN + 1)
     ret = _lib.lzc_promote(name, conflicting, MAXNAMELEN + 1)
@@ -725,6 +734,12 @@ def lzc_rename(source, target):
 
     :param source name: the current name of the dataset to rename.
     :param target name: the new name of the dataset.
+    :raises NameInvalid: if either the source or target name is invalid.
+    :raises NameTooLong: if either the source or target name is too long.
+    :raises NameTooLong: if a snapshot of the source would get a too long
+                         name after renaming.
+    :raises FilesystemNotFound: if the source does not exist.
+    :raises FilesystemExists: if the target already exists.
     '''
     ret = _lib.lzc_rename(source, target)
     xlate.lzc_rename_xlate_error(ret, source, target)
@@ -736,6 +751,9 @@ def lzc_destroy(name):
     Destroy the ZFS dataset.
 
     :param bytes name: the name of the dataset to destroy.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+    :raises FilesystemNotFound: if the dataset does not exist.
     '''
     ret = _lib.lzc_destroy(name)
     xlate.lzc_destroy_xlate_error(ret, name)
@@ -748,6 +766,11 @@ def lzc_inherit_prop(name, prop):
 
     :param bytes name: the name of the dataset.
     :param bytes prop: the name of the property to inherit.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+    :raises FilesystemNotFound: if the dataset does not exist.
+    :raises PropertyInvalid: if the specified property is invalid
+                             or has an invalid type or value.
     '''
     ret = _lib.lzc_inherit_prop(name, prop)
     xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
@@ -761,6 +784,11 @@ def lzc_set_prop(name, prop, val):
     :param bytes name: the name of the dataset.
     :param bytes prop: the name of the property.
     :param Any val: the value of the property.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+    :raises FilesystemNotFound: if the dataset does not exist.
+    :raises PropertyInvalid: if the specified property is invalid
+                             or has an invalid type or value.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
@@ -776,6 +804,9 @@ def lzc_get_props(name):
     :param bytes name: the name of the dataset.
     :return: a dictionary mapping the property names to their values.
     :rtype: dict of bytes:Any
+    :raises DatasetNotFound: if the dataset does not exist.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
 
     .. note::
         The value of ``clones`` property is a `list` of clone names
@@ -822,6 +853,13 @@ def lzc_list_children(name):
 
     :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the children.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+
+    .. warning::
+        If the dataset does not exist, then the returned iterator would produce
+        no results and no error is reported.
+        That case is indistinguishable from the dataset having no children.
     '''
 
     child_name = _ffi.new('char[]', MAXNAMELEN + 1)
@@ -846,6 +884,13 @@ def lzc_list_snaps(name):
 
     :param bytes name: the name of the dataset.
     :return: an iterator that produces the names of the snapshots.
+    :raises NameInvalid: if the dataset name is invalid.
+    :raises NameTooLong: if the dataset name is too long.
+
+    .. warning::
+        If the dataset does not exist, then the returned iterator would produce
+        no results and no error is reported.
+        That case is indistinguishable from the dataset having no snapshots.
     '''
 
     snapname = _ffi.new('char[]', MAXNAMELEN + 1)
