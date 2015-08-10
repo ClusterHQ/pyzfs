@@ -525,6 +525,11 @@ def lzc_list_xlate_error(ret, name, opts):
         return
     if ret == errno.ESRCH:
         raise StopIteration()
+    if ret == errno.EINVAL:
+        if not _is_valid_fs_name(name):
+            raise lzc_exc.NameInvalid(name)
+        elif len(name) > MAXNAMELEN:
+            raise lzc_exc.NameTooLong(name)
     raise _generic_exception(ret, name, "Error obtaining a list")
 
 
