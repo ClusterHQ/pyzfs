@@ -739,6 +739,7 @@ def lzc_rename(source, target):
     :raises NameTooLong: if a snapshot of the source would get a too long
                          name after renaming.
     :raises FilesystemNotFound: if the source does not exist.
+    :raises FilesystemNotFound: if the target's parent does not exist.
     :raises FilesystemExists: if the target already exists.
     :raises PoolsDiffer: if the source and target belong to different pools.
     '''
