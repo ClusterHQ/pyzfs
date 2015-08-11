@@ -462,7 +462,7 @@ def lzc_inherit_prop_xlate_error(ret, name, prop):
         else:
             return lzc_exc.PropertyInvalid(prop)
     if ret == errno.ENOENT:
-        raise lzc_exc.FilesystemNotFound(name)
+        raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to inherit a property")
 
 
@@ -477,7 +477,7 @@ def lzc_set_prop_xlate_error(ret, name, prop, val):
         else:
             return lzc_exc.PropertyInvalid(prop)
     if ret == errno.ENOENT:
-        raise lzc_exc.FilesystemNotFound(name)
+        raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to set a property")
 
 

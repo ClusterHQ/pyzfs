@@ -769,9 +769,19 @@ def lzc_inherit_prop(name, prop):
     :param bytes prop: the name of the property to inherit.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
-    :raises FilesystemNotFound: if the dataset does not exist.
-    :raises PropertyInvalid: if the specified property is invalid
-                             or has an invalid type or value.
+    :raises DatasetNotFound: if the dataset does not exist.
+
+    Inheriting a property actually resets it to its default value
+    or removes it if it's a user property, so that the property could be
+    inherited if it's inheritable.  If the property is not inheritable
+    then it would just have its default value.
+
+    This function can be used on snapshots to inherit user defined properties.
+
+    .. note::
+        An attempt to inherit a readonly / statistic property is ignored
+        without reporting any error.
+        An attempt to inherit an unknown property is ignored as well.
     '''
     ret = _lib.lzc_inherit_prop(name, prop)
     xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
@@ -787,9 +797,14 @@ def lzc_set_prop(name, prop, val):
     :param Any val: the value of the property.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
-    :raises FilesystemNotFound: if the dataset does not exist.
-    :raises PropertyInvalid: if the specified property is invalid
-                             or has an invalid type or value.
+    :raises DatasetNotFound: if the dataset does not exist.
+
+    This function can be used on snapshots to set user defined properties.
+
+    .. note::
+        An attempt to set a readonly / statistic property is ignored
+        without reporting any error.
+        An attempt to set an unknown property is ignored as well.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
