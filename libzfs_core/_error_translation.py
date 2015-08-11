@@ -490,7 +490,7 @@ def lzc_get_props_xlate_error(ret, name):
         elif len(name) > MAXNAMELEN:
             raise lzc_exc.NameTooLong(name)
     if ret == errno.ENOENT:
-        raise lzc_exc.FilesystemNotFound(name)
+        raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to get properties")
 
 
