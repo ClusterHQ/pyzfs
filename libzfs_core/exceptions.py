@@ -79,14 +79,12 @@ class NotClone(ZFSError):
     def __init__(self, name):
         self.name = name
 
-class FilesystemExists(ZFSError):
-    errno = errno.EEXIST
+class FilesystemExists(DatasetExists):
     message = "Filesystem already exists"
     def __init__(self, name):
         self.name = name
 
-class FilesystemNotFound(ZFSError):
-    errno = errno.ENOENT
+class FilesystemNotFound(DatasetNotFound):
     message = "Filesystem not found"
     def __init__(self, name):
         self.name = name
@@ -103,14 +101,12 @@ class WrongParent(ZFSError):
     def __init__(self, name):
         self.name = name
 
-class SnapshotExists(ZFSError):
-    errno = errno.EEXIST
+class SnapshotExists(DatasetExists):
     message = "Snapshot already exists"
     def __init__(self, name):
         self.name = name
 
-class SnapshotNotFound(ZFSError):
-    errno = errno.ENOENT
+class SnapshotNotFound(DatasetNotFound):
     message = "Snapshot not found"
     def __init__(self, name):
         self.name = name

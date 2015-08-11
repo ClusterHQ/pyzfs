@@ -757,6 +757,7 @@ def lzc_rename(source, target):
     :raises NameTooLong: if a snapshot of the source would get a too long
                          name after renaming.
     :raises FilesystemNotFound: if the source does not exist.
+    :raises FilesystemNotFound: if the target's parent does not exist.
     :raises FilesystemExists: if the target already exists.
     :raises PoolsDiffer: if the source and target belong to different pools.
     '''
@@ -790,9 +791,19 @@ def lzc_inherit(name, prop):
     :param bytes prop: the name of the property to inherit.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
-    :raises FilesystemNotFound: if the dataset does not exist.
-    :raises PropertyInvalid: if the specified property is invalid
-                             or has an invalid type or value.
+    :raises DatasetNotFound: if the dataset does not exist.
+
+    Inheriting a property actually resets it to its default value
+    or removes it if it's a user property, so that the property could be
+    inherited if it's inheritable.  If the property is not inheritable
+    then it would just have its default value.
+
+    This function can be used on snapshots to inherit user defined properties.
+
+    .. note::
+        An attempt to inherit a readonly / statistic property is ignored
+        without reporting any error.
+        An attempt to inherit an unknown property is ignored as well.
     '''
     ret = _lib.lzc_inherit(name, prop, _ffi.NULL)
     xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
@@ -811,9 +822,21 @@ def lzc_set_props(name, prop, val):
     :param Any val: the value of the property.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
-    :raises FilesystemNotFound: if the dataset does not exist.
-    :raises PropertyInvalid: if the specified property is invalid
-                             or has an invalid type or value.
+    :raises DatasetNotFound: if the dataset does not exist.
+    :raises NoSpace: if the property controls a quota and the values is
+                     too small for that quota.
+
+    This function can be used on snapshots to set user defined properties.
+
+    .. note::
+        An attempt to set a readonly / statistic property is ignored
+        without reporting any error.
+        An attempt to set an unknown property is ignored as well.
+
+        Also, an attempt to set a property to an invalid value
+        could be silently ignored.  However, if the property controls
+        a quota of any kind and the value is to small for the given
+        quota, then :exc:`NoSpace` is raised.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
@@ -954,7 +977,7 @@ def lzc_get_props(name):
     else:
         mountpoint_val = '/' + name
     result = { k: v['value'] for k, v in result.iteritems() }
-    if result.has_key('clones'):
+    if 'clones' in result:
         result['clones'] = [ x for x in result['clones'] ]
     result['mountpoint'] = mountpoint_val
     return result
@@ -974,6 +997,8 @@ def lzc_list_children(name):
         If the dataset does not exist, then the returned iterator would produce
         no results and no error is reported.
         That case is indistinguishable from the dataset having no children.
+
+        An attempt to list children of a snapshot is silently ignored as well.
     '''
     children = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
@@ -1020,6 +1045,8 @@ def lzc_list_snaps(name):
         If the dataset does not exist, then the returned iterator would produce
         no results and no error is reported.
         That case is indistinguishable from the dataset having no snapshots.
+
+        An attempt to list snapshots of a snapshot is silently ignored as well.
     '''
     snaps = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
