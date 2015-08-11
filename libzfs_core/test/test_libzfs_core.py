@@ -3461,6 +3461,29 @@ class ZFSTest(unittest.TestCase):
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    def test_set_invalid_value_prop_2(self):
+        fs = ZFSTest.pool.makeName("new")
+        prop = "readonly"
+        val = 100
+
+        lzc.lzc_create(fs)
+        lzc.lzc_set_prop(fs, prop, val)
+        actual_props = lzc.lzc_get_props(fs)
+        self.assertTrue(prop not in actual_props)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    def test_set_prop_too_small_quota(self):
+        fs = ZFSTest.pool.makeName("new")
+        prop = "refquota"
+        val = 1
+
+        lzc.lzc_create(fs)
+        with self.assertRaises(lzc_exc.NoSpace) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
     def test_set_readonly_prop(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "createtxg"

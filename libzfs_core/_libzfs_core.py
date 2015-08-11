@@ -799,6 +799,8 @@ def lzc_set_prop(name, prop, val):
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
     :raises DatasetNotFound: if the dataset does not exist.
+    :raises NoSpace: if the property controls a quota and the values is
+                     too small for that quota.
 
     This function can be used on snapshots to set user defined properties.
 
@@ -806,6 +808,11 @@ def lzc_set_prop(name, prop, val):
         An attempt to set a readonly / statistic property is ignored
         without reporting any error.
         An attempt to set an unknown property is ignored as well.
+
+        Also, an attempt to set a property to an invalid value
+        could be silently ignored.  However, if the property controls
+        a quota of any kind and the value is to small for the given
+        quota, then :exc:`NoSpace` is raised.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
