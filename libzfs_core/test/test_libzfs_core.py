@@ -3200,6 +3200,15 @@ class ZFSTest(unittest.TestCase):
         self.assertFalse(children)
 
 
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_children), 'not available')
+    def test_list_children_of_snap(self):
+        snap = ZFSTest.pool.makeName("@newsnap")
+
+        lzc.lzc_snapshot([snap])
+        children = list(lzc.lzc_list_children(snap))
+        self.assertFalse(children)
+
+
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
     def test_list_snaps(self):
         name = ZFSTest.pool.makeName("fs1/fs")
@@ -3222,6 +3231,15 @@ class ZFSTest(unittest.TestCase):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         snaps = list(lzc.lzc_list_snaps(fs))
+        self.assertFalse(snaps)
+
+
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
+    def test_list_snaps_of_snap(self):
+        snap = ZFSTest.pool.makeName("@newsnap")
+
+        lzc.lzc_snapshot([snap])
+        snaps = list(lzc.lzc_list_snaps(snap))
         self.assertFalse(snaps)
 
 

@@ -884,6 +884,8 @@ def lzc_list_children(name):
         If the dataset does not exist, then the returned iterator would produce
         no results and no error is reported.
         That case is indistinguishable from the dataset having no children.
+
+        An attempt to list children of a snapshot is silently ignored as well.
     '''
 
     child_name = _ffi.new('char[]', MAXNAMELEN + 1)
@@ -915,6 +917,8 @@ def lzc_list_snaps(name):
         If the dataset does not exist, then the returned iterator would produce
         no results and no error is reported.
         That case is indistinguishable from the dataset having no snapshots.
+
+        An attempt to list snapshots of a snapshot is silently ignored as well.
     '''
 
     snapname = _ffi.new('char[]', MAXNAMELEN + 1)
