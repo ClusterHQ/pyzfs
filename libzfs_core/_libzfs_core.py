@@ -1026,11 +1026,7 @@ def lzc_list_children(name):
         os.close(other_fd)
         os.close(fd)
 
-    def _iterator():
-        while children:
-            yield children.pop(0)
-
-    return _iterator()
+    return iter(children)
 
 
 @_uncommitted(lzc_list)
@@ -1076,11 +1072,7 @@ def lzc_list_snaps(name):
         os.close(other_fd)
         os.close(fd)
 
-    def _iterator():
-        while snaps:
-            yield snaps.pop(0)
-
-    return _iterator()
+    return iter(snaps)
 
 
 # TODO: a better way to init and uninit the library
