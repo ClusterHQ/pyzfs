@@ -3317,6 +3317,23 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset({"mountpoint": "/mnt/child"}, actual_props)
 
 
+    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    def test_get_snap_clones(self):
+        fs = ZFSTest.pool.makeName("new")
+        snap = ZFSTest.pool.makeName("@snap")
+        clone1 = ZFSTest.pool.makeName("clone1")
+        clone2 = ZFSTest.pool.makeName("clone2")
+
+        lzc.lzc_create(fs)
+        lzc.lzc_snapshot([snap])
+        lzc.lzc_clone(clone1, snap)
+        lzc.lzc_clone(clone2, snap)
+
+        clones_prop = lzc.lzc_get_props(snap)["clones"]
+        self.assertIsInstance(clones_prop, list)
+        self.assertItemsEqual(clones_prop, [clone1, clone2])
+
+
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_rename), 'not available')
     def test_rename(self):
         src = ZFSTest.pool.makeName("source")
