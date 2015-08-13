@@ -972,13 +972,15 @@ def lzc_get_props(name):
         # 'mountpoint' is explicitly set.
         # 'source' can also be a special value like '$recvd', that case
         # is equivalent to the property being set on the current dataset.
-        if not mountpoint_src.startswith('$'):
+        # Note that a normal mountpoint value should start with '/'
+        # unlike the special values "none" and "legacy".
+        if mountpoint_val.startswith('/') and not mountpoint_src.startswith('$'):
             mountpoint_val = mountpoint_val + name[len(mountpoint_src):]
     else:
         mountpoint_val = '/' + name
     result = { k: v['value'] for k, v in result.iteritems() }
     if 'clones' in result:
-        result['clones'] = [ x for x in result['clones'] ]
+        result['clones'] = result['clones'].keys()
     result['mountpoint'] = mountpoint_val
     return result
 
