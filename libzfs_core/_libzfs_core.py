@@ -865,7 +865,7 @@ def lzc_get_props(name):
         mountpoint_val = '/' + name
     result = { k: v['value'] for k, v in result.iteritems() }
     if 'clones' in result:
-        result['clones'] = [ x for x in result['clones'] ]
+        result['clones'] = result['clones'].keys()
     result['mountpoint'] = mountpoint_val
     return result
 
