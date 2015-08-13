@@ -829,7 +829,8 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_snapshot([snapname])
 
-        with self.assertRaises(lzc_exc.ReadOnlyPool):
+        # it's legal to report either of the conditions
+        with self.assertRaises((lzc_exc.ReadOnlyPool, lzc_exc.PoolsDiffer)):
             lzc.lzc_clone(name, snapname)
         self.assertFalse(lzc.lzc_exists(name))
 
