@@ -1802,7 +1802,8 @@ class ZFSTest(unittest.TestCase):
         proc = subprocess.Popen(['sleep', '2'], stdin = subprocess.PIPE)
         with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, proc.stdin.fileno())
-        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+        self.assertTrue(ctx.exception.errno == errno.EPIPE or
+                ctx.exception.errno == errno.EINTR)
 
 
     @unittest.skipUnless(*lzc_send_honors_file_mode())
