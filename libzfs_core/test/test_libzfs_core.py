@@ -1523,8 +1523,6 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_snapshot([snap1])
 
         with self.assertRaises(lzc_exc.NameInvalid):
-            space = lzc.lzc_send_space(snap1, snap2)
-        with self.assertRaises(lzc_exc.NameInvalid):
             space = lzc.lzc_send_space(snap2, snap1)
         with self.assertRaises(lzc_exc.NameInvalid):
             space = lzc.lzc_send_space(snap2)
