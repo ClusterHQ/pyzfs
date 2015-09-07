@@ -890,10 +890,9 @@ def lzc_list_children(name):
         cursor[0] = 0   # opaque cursor, always starts with zero
         while True:
             ret = _lib.lzc_list_children(name, cursor, child_name)
-            try:
-                errors.lzc_list_children_translate_error(ret, name)
-            except StopIteration:
+            if ret == errno.ESRCH:
                 break
+            errors.lzc_list_children_translate_error(ret, name)
             yield _ffi.string(child_name)
     return _iterator()
 
@@ -923,10 +922,9 @@ def lzc_list_snaps(name):
         cursor[0] = 0   # opaque cursor, always starts with zero
         while True:
             ret = _lib.lzc_list_snaps(name, cursor, snapname)
-            try:
-                errors.lzc_list_snaps_translate_error(ret, name)
-            except StopIteration:
+            if ret == errno.ESRCH:
                 break
+            errors.lzc_list_snaps_translate_error(ret, name)
             yield _ffi.string(snapname)
     return _iterator()
 

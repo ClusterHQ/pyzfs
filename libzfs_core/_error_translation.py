@@ -456,8 +456,6 @@ def lzc_get_props_translate_error(ret, name):
 def lzc_list_children_translate_error(ret, name):
     if ret == 0:
         return
-    if ret == errno.ESRCH:
-        raise StopIteration()
     if ret == errno.EINVAL:
         _validate_fs_name(name)
     raise _generic_exception(ret, name, "Error while iterating children")
@@ -466,8 +464,6 @@ def lzc_list_children_translate_error(ret, name):
 def lzc_list_snaps_translate_error(ret, name):
     if ret == 0:
         return
-    if ret == errno.ESRCH:
-        raise StopIteration()
     if ret == errno.EINVAL:
         _validate_fs_name(name)
     raise _generic_exception(ret, name, "Error while iterating snapshots")
