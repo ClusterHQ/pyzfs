@@ -669,11 +669,11 @@ def is_supported(func):
     Check whether C *libzfs_core* provides implementation required
     for the given Python wrapper.
 
-    :param function func: the function to check.
-    :return bool: whether the funciton can be used.
-
     If `is_supported` returns ``False`` for the function, then
     calling the function would result in :exc:`NotImplementedError`.
+
+    :param function func: the function to check.
+    :return bool: whether the function can be used.
     '''
     fname = getattr(func, '__name__', None)
     if fname is None:
