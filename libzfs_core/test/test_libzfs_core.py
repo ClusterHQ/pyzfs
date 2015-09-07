@@ -3429,11 +3429,8 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_create(parent)
         lzc.lzc_create(child)
-        old_props = lzc.lzc_get_props(child)
-        lzc.lzc_inherit_prop(child, the_prop)
-        new_props = lzc.lzc_get_props(child)
-        # inheriting a read-only property is a nop
-        self.assertEquals(old_props, new_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_inherit_prop(child, the_prop)
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
@@ -3444,11 +3441,8 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_create(parent)
         lzc.lzc_create(child)
-        old_props = lzc.lzc_get_props(child)
-        lzc.lzc_inherit_prop(child, the_prop)
-        new_props = lzc.lzc_get_props(child)
-        # inheriting an unknown property is a nop
-        self.assertEquals(old_props, new_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_inherit_prop(child, the_prop)
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
@@ -3523,9 +3517,8 @@ class ZFSTest(unittest.TestCase):
         val = 0
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
@@ -3535,9 +3528,8 @@ class ZFSTest(unittest.TestCase):
         val = 100
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
@@ -3547,9 +3539,8 @@ class ZFSTest(unittest.TestCase):
         val = 100
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
@@ -3566,12 +3557,13 @@ class ZFSTest(unittest.TestCase):
     @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
     def test_set_readonly_prop(self):
         fs = ZFSTest.pool.makeName("new")
-        prop = "createtxg"
+        prop = "creation"
         val = 0
 
         lzc.lzc_create(fs)
         lzc.lzc_set_prop(fs, prop, val)
         actual_props = lzc.lzc_get_props(fs)
+        # the change is silently ignored
         self.assertTrue(actual_props[prop] != val)
 
 

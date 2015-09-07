@@ -25,12 +25,8 @@ def lzc_create_translate_error(ret, name, ds_type, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        else:
-            raise lzc_exc.PropertyInvalid(name)
+        _validate_fs_name(name)
+        raise lzc_exc.PropertyInvalid(name)
 
     if ret == errno.EEXIST:
         raise lzc_exc.FilesystemExists(name)
@@ -43,15 +39,9 @@ def lzc_clone_translate_error(ret, name, origin, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.FilesystemNameInvalid(name)
-        elif not _is_valid_snap_name(origin):
-            raise lzc_exc.SnapshotNameInvalid(origin)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        elif len(origin) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(origin)
-        elif _pool_name(name) != _pool_name(origin):
+        _validate_fs_name(name)
+        _validate_snap_name(origin)
+        if _pool_name(name) != _pool_name(origin):
             raise lzc_exc.PoolsDiffer(name) # see https://www.illumos.org/issues/5824
         else:
             raise lzc_exc.PropertyInvalid(name)
@@ -69,12 +59,8 @@ def lzc_rollback_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        else:
-            raise lzc_exc.SnapshotNotFound(name)
+        _validate_fs_name(name)
+        raise lzc_exc.SnapshotNotFound(name)
     if ret == errno.ENOENT:
         if not _is_valid_fs_name(name):
             raise lzc_exc.NameInvalid(name)
@@ -288,10 +274,7 @@ def lzc_get_holds_translate_error(ret, snapname):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_snap_name(snapname):
-            raise lzc_exc.NameInvalid(snapname)
-        elif len(snapname) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(snapname)
+        _validate_snap_name(snapname)
     if ret == errno.ENOENT:
         raise lzc_exc.SnapshotNotFound(snapname)
     if ret == errno.ENOTSUP:
@@ -404,12 +387,8 @@ def lzc_promote_translate_error(ret, name, conflicting):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(snapname)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        else:
-            raise lzc_exc.NotClone(name)
+        _validate_fs_name(name)
+        raise lzc_exc.NotClone(name)
     if ret == errno.ENOENT:
         raise lzc_exc.FilesystemNotFound(name)
     if ret == errno.EEXIST:
@@ -421,15 +400,9 @@ def lzc_rename_translate_error(ret, source, target):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(source):
-            raise lzc_exc.NameInvalid(source)
-        elif not _is_valid_fs_name(target):
-            raise lzc_exc.NameInvalid(target)
-        elif len(source) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(source)
-        elif len(target) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(target)
-        elif _pool_name(source) != _pool_name(target):
+        _validate_fs_name(source)
+        _validate_fs_name(target)
+        if _pool_name(source) != _pool_name(target):
             raise lzc_exc.PoolsDiffer(source)
     if ret == errno.EEXIST:
         raise lzc_exc.FilesystemExists(target)
@@ -442,10 +415,7 @@ def lzc_destroy_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
+        _validate_fs_name(name)
     if ret == errno.ENOENT:
         raise lzc_exc.FilesystemNotFound(name)
     raise _generic_exception(ret, name, "Failed to destroy dataset")
@@ -455,12 +425,8 @@ def lzc_inherit_prop_translate_error(ret, name, prop):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        else:
-            return lzc_exc.PropertyInvalid(prop)
+        _validate_fs_name(name)
+        raise lzc_exc.PropertyInvalid(prop)
     if ret == errno.ENOENT:
         raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to inherit a property")
@@ -470,12 +436,8 @@ def lzc_set_prop_translate_error(ret, name, prop, val):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
-        else:
-            return lzc_exc.PropertyInvalid(prop)
+        _validate_fs_or_snap_name(name)
+        raise lzc_exc.PropertyInvalid(prop)
     if ret == errno.ENOENT:
         raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to set a property")
@@ -485,10 +447,7 @@ def lzc_get_props_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
+        _validate_fs_or_snap_name(name)
     if ret == errno.ENOENT:
         raise lzc_exc.DatasetNotFound(name)
     raise _generic_exception(ret, name, "Failed to get properties")
@@ -500,10 +459,7 @@ def lzc_list_children_translate_error(ret, name):
     if ret == errno.ESRCH:
         raise StopIteration()
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
+        _validate_fs_name(name)
     raise _generic_exception(ret, name, "Error while iterating children")
 
 
@@ -513,10 +469,7 @@ def lzc_list_snaps_translate_error(ret, name):
     if ret == errno.ESRCH:
         raise StopIteration()
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
+        _validate_fs_name(name)
     raise _generic_exception(ret, name, "Error while iterating snapshots")
 
 
@@ -607,6 +560,34 @@ def _is_valid_bmark_name(name):
     parts = name.split('#')
     return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
            _is_valid_name_component(parts[1]))
+
+
+def _validate_fs_name(name):
+    if not _is_valid_fs_name(name):
+        raise lzc_exc.FilesystemNameInvalid(name)
+    elif len(name) > MAXNAMELEN:
+        raise lzc_exc.NameTooLong(name)
+
+
+def _validate_snap_name(name):
+    if not _is_valid_snap_name(name):
+        raise lzc_exc.SnapshotNameInvalid(name)
+    elif len(name) > MAXNAMELEN:
+        raise lzc_exc.NameTooLong(name)
+
+
+def _validate_bmark_name(name):
+    if not _is_valid_bmark_name(name):
+        raise lzc_exc.BookmarkNameInvalid(name)
+    elif len(name) > MAXNAMELEN:
+        raise lzc_exc.NameTooLong(name)
+
+
+def _validate_fs_or_snap_name(name):
+    if not _is_valid_fs_name(name) and not _is_valid_snap_name(name):
+        raise lzc_exc.NameInvalid(name)
+    elif len(name) > MAXNAMELEN:
+        raise lzc_exc.NameTooLong(name)
 
 
 def _generic_exception(err, name, message):
