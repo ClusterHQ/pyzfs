@@ -21,7 +21,7 @@ from . import exceptions as lzc_exc
 from ._constants import MAXNAMELEN
 
 
-def lzc_create_xlate_error(ret, name, ds_type, props):
+def lzc_create_translate_error(ret, name, ds_type, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -39,7 +39,7 @@ def lzc_create_xlate_error(ret, name, ds_type, props):
     raise _generic_exception(ret, name, "Failed to create filesystem")
 
 
-def lzc_clone_xlate_error(ret, name, origin, props):
+def lzc_clone_translate_error(ret, name, origin, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -65,7 +65,7 @@ def lzc_clone_xlate_error(ret, name, origin, props):
     raise _generic_exception(ret, name, "Failed to create clone")
 
 
-def lzc_rollback_xlate_error(ret, name):
+def lzc_rollback_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -83,7 +83,7 @@ def lzc_rollback_xlate_error(ret, name):
     raise _generic_exception(ret, name, "Failed to rollback")
 
 
-def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
+def lzc_snapshot_translate_errors(ret, errlist, snaps, props):
     if ret == 0:
         return
 
@@ -112,7 +112,7 @@ def lzc_snapshot_xlate_errors(ret, errlist, snaps, props):
     _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotFailure, _map)
 
 
-def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
+def lzc_destroy_snaps_translate_errors(ret, errlist, snaps, defer):
     if ret == 0:
         return
 
@@ -128,7 +128,7 @@ def lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer):
     _handle_err_list(ret, errlist, snaps, lzc_exc.SnapshotDestructionFailure, _map)
 
 
-def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
+def lzc_bookmark_translate_errors(ret, errlist, bookmarks):
     if ret == 0:
         return
 
@@ -160,7 +160,7 @@ def lzc_bookmark_xlate_errors(ret, errlist, bookmarks):
     _handle_err_list(ret, errlist, bookmarks.keys(), lzc_exc.BookmarkFailure, _map)
 
 
-def lzc_get_bookmarks_xlate_error(ret, fsname, props):
+def lzc_get_bookmarks_translate_error(ret, fsname, props):
     if ret == 0:
         return
     if ret == errno.ENOENT:
@@ -168,7 +168,7 @@ def lzc_get_bookmarks_xlate_error(ret, fsname, props):
     raise _generic_exception(ret, fsname, "Failed to list bookmarks")
 
 
-def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
+def lzc_destroy_bookmarks_translate_errors(ret, errlist, bookmarks):
     if ret == 0:
         return
 
@@ -180,7 +180,7 @@ def lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks):
     _handle_err_list(ret, errlist, bookmarks, lzc_exc.BookmarkDestructionFailure, _map)
 
 
-def lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap):
+def lzc_snaprange_space_translate_error(ret, firstsnap, lastsnap):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -201,7 +201,7 @@ def lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap):
     raise _generic_exception(ret, lastsnap, "Failed to calculate space used by range of snapshots")
 
 
-def lzc_hold_xlate_errors(ret, errlist, holds, fd):
+def lzc_hold_translate_errors(ret, errlist, holds, fd):
     if ret == 0:
         return
 
@@ -244,7 +244,7 @@ def lzc_hold_xlate_errors(ret, errlist, holds, fd):
     _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldFailure, _map)
 
 
-def lzc_release_xlate_errors(ret, errlist, holds):
+def lzc_release_translate_errors(ret, errlist, holds):
     if ret == 0:
         return
     for _, hold_list in holds.iteritems():
@@ -284,7 +284,7 @@ def lzc_release_xlate_errors(ret, errlist, holds):
     _handle_err_list(ret, errlist, holds.keys(), lzc_exc.HoldReleaseFailure, _map)
 
 
-def lzc_get_holds_xlate_error(ret, snapname):
+def lzc_get_holds_translate_error(ret, snapname):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -299,7 +299,7 @@ def lzc_get_holds_xlate_error(ret, snapname):
     raise _generic_exception(ret, snapname, "Failed to get holds on snapshot")
 
 
-def lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags):
+def lzc_send_translate_error(ret, snapname, fromsnap, fd, flags):
     if ret == 0:
         return
     if ret == errno.EXDEV and fromsnap is not None:
@@ -332,7 +332,7 @@ def lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags):
     raise lzc_exc.StreamIOError(ret)
 
 
-def lzc_send_space_xlate_error(ret, snapname, fromsnap):
+def lzc_send_space_translate_error(ret, snapname, fromsnap):
     if ret == 0:
         return
     if ret == errno.EXDEV and fromsnap is not None:
@@ -359,7 +359,7 @@ def lzc_send_space_xlate_error(ret, snapname, fromsnap):
     raise _generic_exception(ret, snapname, "Failed to estimate backup stream size")
 
 
-def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
+def lzc_receive_translate_error(ret, snapname, fd, force, origin, props):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -400,7 +400,7 @@ def lzc_receive_xlate_error(ret, snapname, fd, force, origin, props):
     raise lzc_exc.StreamIOError(ret)
 
 
-def lzc_promote_xlate_error(ret, name, conflicting):
+def lzc_promote_translate_error(ret, name, conflicting):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -417,7 +417,7 @@ def lzc_promote_xlate_error(ret, name, conflicting):
     raise _generic_exception(ret, name, "Failed to promote dataset")
 
 
-def lzc_rename_xlate_error(ret, source, target):
+def lzc_rename_translate_error(ret, source, target):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -438,7 +438,7 @@ def lzc_rename_xlate_error(ret, source, target):
     raise _generic_exception(ret, source, "Failed to rename dataset")
 
 
-def lzc_destroy_xlate_error(ret, name):
+def lzc_destroy_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -451,7 +451,7 @@ def lzc_destroy_xlate_error(ret, name):
     raise _generic_exception(ret, name, "Failed to destroy dataset")
 
 
-def lzc_inherit_prop_xlate_error(ret, name, prop):
+def lzc_inherit_prop_translate_error(ret, name, prop):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -466,7 +466,7 @@ def lzc_inherit_prop_xlate_error(ret, name, prop):
     raise _generic_exception(ret, name, "Failed to inherit a property")
 
 
-def lzc_set_prop_xlate_error(ret, name, prop, val):
+def lzc_set_prop_translate_error(ret, name, prop, val):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -481,7 +481,7 @@ def lzc_set_prop_xlate_error(ret, name, prop, val):
     raise _generic_exception(ret, name, "Failed to set a property")
 
 
-def lzc_get_props_xlate_error(ret, name):
+def lzc_get_props_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.EINVAL:
@@ -494,7 +494,7 @@ def lzc_get_props_xlate_error(ret, name):
     raise _generic_exception(ret, name, "Failed to get properties")
 
 
-def lzc_list_children_xlate_error(ret, name):
+def lzc_list_children_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.ESRCH:
@@ -507,7 +507,7 @@ def lzc_list_children_xlate_error(ret, name):
     raise _generic_exception(ret, name, "Error while iterating children")
 
 
-def lzc_list_snaps_xlate_error(ret, name):
+def lzc_list_snaps_translate_error(ret, name):
     if ret == 0:
         return
     if ret == errno.ESRCH:
