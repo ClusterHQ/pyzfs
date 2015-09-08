@@ -475,10 +475,7 @@ def lzc_list_translate_error(ret, name, opts):
     if ret == errno.ESRCH:
         raise StopIteration()
     if ret == errno.EINVAL:
-        if not _is_valid_fs_name(name):
-            raise lzc_exc.NameInvalid(name)
-        elif len(name) > MAXNAMELEN:
-            raise lzc_exc.NameTooLong(name)
+        _validate_fs_or_snap_name(name)
     raise _generic_exception(ret, name, "Error obtaining a list")
 
 
