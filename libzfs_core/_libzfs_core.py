@@ -694,15 +694,15 @@ def is_supported(func):
 
 def _uncommitted(check_func = None):
     '''
-    Mark an API function as being an uncommitted extension that may be
-    unavailable.
+    Mark an API function as being an uncommitted extension that might not be
+    available.
 
     :param function check_func: the function that would be checked
                                 instead of a decorated function.
 
-    This decorator transforms a decorated function to raise :exc:`NotImplementedError`
-    if the C libzfs_core library does not provide a function with the same
-    name as the decorated function.
+    This decorator transforms a decorated function to raise
+    :exc:`NotImplementedError` if the C libzfs_core library does not provide
+    a function with the same name as the decorated function.
     The optional `check_func` parameter can be provided if the decorated function
     does not directly call the C function but instead calls another Python
     function that follows the typical convention.
