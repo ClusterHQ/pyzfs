@@ -3294,8 +3294,8 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset(props, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset(props, child_props)
 
 
     @needs_support(lzc.lzc_get_props)
@@ -3314,8 +3314,8 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset(props, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset(props, child_props)
 
 
     @needs_support(lzc.lzc_get_props)
@@ -3335,8 +3335,8 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset({"mountpoint": "/mnt/child"}, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset({"mountpoint": "/mnt/child"}, child_props)
 
 
     @needs_support(lzc.lzc_get_props)
