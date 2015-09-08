@@ -2688,7 +2688,8 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_snap([origsnap])
         lzc.lzc_clone(clonefs, origsnap)
 
-        # XXX This fails, OpenZFS bug
+        # This may fail on older buggy systems.
+        # See: https://www.illumos.org/issues/5909
         with self.assertRaises(lzc_exc.NameTooLong):
             lzc.lzc_promote(clonefs)
 
