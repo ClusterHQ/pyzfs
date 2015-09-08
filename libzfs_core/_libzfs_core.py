@@ -920,11 +920,11 @@ def lzc_get_props(name):
     Get properties of the ZFS dataset.
 
     :param bytes name: the name of the dataset.
-    :return: a dictionary mapping the property names to their values.
-    :rtype: dict of bytes:Any
     :raises DatasetNotFound: if the dataset does not exist.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
+    :return: a dictionary mapping the property names to their values.
+    :rtype: dict of bytes:Any
 
     .. note::
         The value of ``clones`` property is a `list` of clone names
