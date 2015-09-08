@@ -180,6 +180,11 @@ def lzc_send_honors_file_mode():
     return (platform.system() == 'Linux', 'File mode is not checked')
 
 
+def needs_support(function):
+    return unittest.skipUnless(lzc.is_supported(function),
+            '{} not available'.format(function.__name__))
+
+
 class ZFSTest(unittest.TestCase):
     POOL_FILE_SIZE = 128 * 1024 * 1024
     FILESYSTEMS = ['fs1', 'fs2', 'fs1/fs']
@@ -221,23 +226,31 @@ class ZFSTest(unittest.TestCase):
             pool.reset()
 
 
+    def assertExists(self, name):
+        self.assertTrue(lzc.lzc_exists(name), 'ZFS dataset %s does not exist' % (name, ))
+
+
+    def assertNotExists(self, name):
+        self.assertFalse(lzc.lzc_exists(name), 'ZFS dataset %s exists' % (name, ))
+
+
     def test_exists(self):
-        self.assertTrue(lzc.lzc_exists(ZFSTest.pool.makeName()))
+        self.assertExists(ZFSTest.pool.makeName())
 
 
     def test_exists_in_ro_pool(self):
-        self.assertTrue(lzc.lzc_exists(ZFSTest.readonly_pool.makeName()))
+        self.assertExists(ZFSTest.readonly_pool.makeName())
 
 
     def test_exists_failure(self):
-        self.assertFalse(lzc.lzc_exists(ZFSTest.pool.makeName('nonexistent')))
+        self.assertNotExists(ZFSTest.pool.makeName('nonexistent'))
 
 
     def test_create_fs(self):
         name = ZFSTest.pool.makeName("fs1/fs/test1")
 
         lzc.lzc_create(name)
-        self.assertTrue(lzc.lzc_exists(name))
+        self.assertExists(name)
 
 
     def test_create_zvol(self):
@@ -245,7 +258,7 @@ class ZFSTest(unittest.TestCase):
         props = { "volsize": 1024 * 1024 }
 
         lzc.lzc_create(name, ds_type = 'zvol', props = props)
-        self.assertTrue(lzc.lzc_exists(name))
+        self.assertExists(name)
 
 
     def test_create_fs_with_prop(self):
@@ -253,7 +266,7 @@ class ZFSTest(unittest.TestCase):
         props = { "atime": 0 }
 
         lzc.lzc_create(name, props = props)
-        self.assertTrue(lzc.lzc_exists(name))
+        self.assertExists(name)
 
 
     def test_create_fs_wrong_ds_type(self):
@@ -294,7 +307,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.ParentNotFound):
             lzc.lzc_create(name)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_in_nonexistent_pool(self):
@@ -302,7 +315,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.ParentNotFound):
             lzc.lzc_create(name)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_with_invalid_prop(self):
@@ -311,7 +324,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
             lzc.lzc_create(name, 'zfs', props)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_with_invalid_prop_type(self):
@@ -320,7 +333,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
             lzc.lzc_create(name, 'zfs', props)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_with_invalid_prop_val(self):
@@ -329,7 +342,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
             lzc.lzc_create(name, 'zfs', props)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_with_invalid_name(self):
@@ -337,7 +350,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.NameInvalid):
             lzc.lzc_create(name)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_create_fs_with_invalid_pool_name(self):
@@ -345,7 +358,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.NameInvalid):
             lzc.lzc_create(name)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_snapshot(self):
@@ -353,7 +366,7 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname ]
 
         lzc.lzc_snapshot(snaps)
-        self.assertTrue(lzc.lzc_exists(snapname))
+        self.assertExists(snapname)
 
 
     def test_snapshot_empty_list(self):
@@ -366,7 +379,7 @@ class ZFSTest(unittest.TestCase):
         props = { "user:foo": "bar" }
 
         lzc.lzc_snapshot(snaps, props)
-        self.assertTrue(lzc.lzc_exists(snapname))
+        self.assertExists(snapname)
 
 
     def test_snapshot_invalid_props(self):
@@ -380,7 +393,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), len(snaps))
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.PropertyInvalid)
-        self.assertFalse(lzc.lzc_exists(snapname))
+        self.assertNotExists(snapname)
 
 
     def test_snapshot_ro_pool(self):
@@ -395,8 +408,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.ReadOnlyPool)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_snapshot_nonexistent_pool(self):
@@ -434,8 +447,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.FilesystemNotFound)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_multiple_snapshots_nonexistent_fs(self):
@@ -450,8 +463,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.FilesystemNotFound)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_multiple_snapshots_multiple_nonexistent_fs(self):
@@ -466,8 +479,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.FilesystemNotFound)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_snapshot_already_exists(self):
@@ -495,8 +508,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.DuplicateSnapshots)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_multiple_snapshots(self):
@@ -505,8 +518,8 @@ class ZFSTest(unittest.TestCase):
         snaps = [ snapname1, snapname2 ]
 
         lzc.lzc_snapshot(snaps)
-        self.assertTrue(lzc.lzc_exists(snapname1))
-        self.assertTrue(lzc.lzc_exists(snapname2))
+        self.assertExists(snapname1)
+        self.assertExists(snapname2)
 
 
     def test_multiple_existing_snapshots(self):
@@ -539,7 +552,7 @@ class ZFSTest(unittest.TestCase):
         self.assertEqual(len(ctx.exception.errors), 2)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.SnapshotExists)
-        self.assertFalse(lzc.lzc_exists(snapname3))
+        self.assertNotExists(snapname3)
 
 
     def test_snapshot_multiple_errors(self):
@@ -563,8 +576,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.SnapshotExists)
-        self.assertFalse(lzc.lzc_exists(snapname2))
-        self.assertFalse(lzc.lzc_exists(snapname3))
+        self.assertNotExists(snapname2)
+        self.assertNotExists(snapname3)
 
 
     def test_snapshot_different_pools(self):
@@ -579,8 +592,8 @@ class ZFSTest(unittest.TestCase):
         self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.PoolsDiffer)
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_snapshot_different_pools_ro_pool(self):
@@ -597,8 +610,8 @@ class ZFSTest(unittest.TestCase):
             # NB: depending on whether the first attempted snapshot is
             # for the read-only pool a different error is reported.
             self.assertIsInstance(e, (lzc_exc.PoolsDiffer, lzc_exc.ReadOnlyPool))
-        self.assertFalse(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertNotExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_snapshot_invalid_name(self):
@@ -717,7 +730,7 @@ class ZFSTest(unittest.TestCase):
         with zfs_mount(snap):
             # the snapshot should be force-unmounted
             lzc.lzc_destroy_snaps([snap], defer = False)
-            self.assertFalse(lzc.lzc_exists(snap))
+            self.assertNotExists(snap)
 
 
     def test_clone(self):
@@ -731,7 +744,7 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_snapshot([snapname])
 
         lzc.lzc_clone(name, snapname)
-        self.assertTrue(lzc.lzc_exists(name))
+        self.assertExists(name)
 
 
     def test_clone_nonexistent_snapshot(self):
@@ -743,7 +756,7 @@ class ZFSTest(unittest.TestCase):
         # to differentiate between the errors.
         with self.assertRaises(lzc_exc.DatasetNotFound):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_nonexistent_parent_fs(self):
@@ -754,7 +767,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.DatasetNotFound):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_to_nonexistent_pool(self):
@@ -765,7 +778,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.DatasetNotFound):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_invalid_snap_name(self):
@@ -776,7 +789,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.SnapshotNameInvalid):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_invalid_snap_name_2(self):
@@ -787,7 +800,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.SnapshotNameInvalid):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_invalid_name(self):
@@ -798,7 +811,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_invalid_pool_name(self):
@@ -809,7 +822,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.FilesystemNameInvalid):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_across_pools(self):
@@ -820,7 +833,7 @@ class ZFSTest(unittest.TestCase):
 
         with self.assertRaises(lzc_exc.PoolsDiffer):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_clone_across_pools_to_ro_pool(self):
@@ -832,7 +845,7 @@ class ZFSTest(unittest.TestCase):
         # it's legal to report either of the conditions
         with self.assertRaises((lzc_exc.ReadOnlyPool, lzc_exc.PoolsDiffer)):
             lzc.lzc_clone(name, snapname)
-        self.assertFalse(lzc.lzc_exists(name))
+        self.assertNotExists(name)
 
 
     def test_destroy_cloned_fs(self):
@@ -851,7 +864,7 @@ class ZFSTest(unittest.TestCase):
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.SnapshotIsCloned)
         for snap in snaps:
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
 
     def test_deferred_destroy_cloned_fs(self):
@@ -865,8 +878,8 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_destroy_snaps(snaps, defer = True)
 
-        self.assertTrue(lzc.lzc_exists(snapname1))
-        self.assertFalse(lzc.lzc_exists(snapname2))
+        self.assertExists(snapname1)
+        self.assertNotExists(snapname2)
 
 
     def test_rollback(self):
@@ -1159,14 +1172,14 @@ class ZFSTest(unittest.TestCase):
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
         self.assertEquals(len(bmarks), 3)
         for b in 'bmark', 'bmark1', 'bmark2':
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 0)
 
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['guid', 'createtxg', 'creation'])
         self.assertEquals(len(bmarks), 3)
         for b in 'bmark', 'bmark1', 'bmark2':
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 3)
 
@@ -1183,7 +1196,7 @@ class ZFSTest(unittest.TestCase):
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['badprop'])
         self.assertEquals(len(bmarks), 1)
         for b in ('bmark', ):
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 0)
 
@@ -1224,7 +1237,7 @@ class ZFSTest(unittest.TestCase):
 
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
         self.assertEquals(len(bmarks), 1)
-        self.assertTrue('bmark' in bmarks)
+        self.assertIn('bmark', bmarks)
 
 
     @skipUnlessBookmarksSupported
@@ -1523,8 +1536,6 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_snapshot([snap1])
 
         with self.assertRaises(lzc_exc.NameInvalid):
-            space = lzc.lzc_send_space(snap1, snap2)
-        with self.assertRaises(lzc_exc.NameInvalid):
             space = lzc.lzc_send_space(snap2, snap1)
         with self.assertRaises(lzc_exc.NameInvalid):
             space = lzc.lzc_send_space(snap2)
@@ -1804,7 +1815,8 @@ class ZFSTest(unittest.TestCase):
         proc = subprocess.Popen(['sleep', '2'], stdin = subprocess.PIPE)
         with self.assertRaises(lzc_exc.StreamIOError) as ctx:
             lzc.lzc_send(snap, None, proc.stdin.fileno())
-        self.assertEquals(ctx.exception.errno, errno.EPIPE)
+        self.assertTrue(ctx.exception.errno == errno.EPIPE or
+                ctx.exception.errno == errno.EINTR)
 
 
     @unittest.skipUnless(*lzc_send_honors_file_mode())
@@ -1876,8 +1888,8 @@ class ZFSTest(unittest.TestCase):
         with streams(srcfs, src1, src2) as (_, (full, incr)):
             lzc.lzc_receive(dstfs, full.fileno())
             lzc.lzc_receive(dstfs, incr.fileno())
-        self.assertTrue(lzc.lzc_exists(dst1))
-        self.assertTrue(lzc.lzc_exists(dst2))
+        self.assertExists(dst1)
+        self.assertExists(dst2)
 
 
     def test_recv_clone(self):
@@ -2438,9 +2450,9 @@ class ZFSTest(unittest.TestCase):
                 pass # enough to taint the fs
             lzc.lzc_snapshot([dst3])
             lzc.lzc_receive(dst2, incr.fileno(), force = True)
-        self.assertTrue(lzc.lzc_exists(dst1))
-        self.assertTrue(lzc.lzc_exists(dst2))
-        self.assertFalse(lzc.lzc_exists(dst3))
+        self.assertExists(dst1)
+        self.assertExists(dst2)
+        self.assertNotExists(dst3)
 
 
     def test_force_recv_incremental_modified_fs_plus_same_name_snap(self):
@@ -2478,9 +2490,9 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_hold({dst3: 'tag'}, cfd)
                 with self.assertRaises(lzc_exc.DatasetBusy):
                     lzc.lzc_receive(dst2, incr.fileno(), force = True)
-        self.assertTrue(lzc.lzc_exists(dst1))
-        self.assertFalse(lzc.lzc_exists(dst2))
-        self.assertTrue(lzc.lzc_exists(dst3))
+        self.assertExists(dst1)
+        self.assertNotExists(dst2)
+        self.assertExists(dst3)
 
 
     def test_force_recv_incremental_modified_fs_plus_cloned_snap(self):
@@ -2501,9 +2513,9 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_clone(cloned, dst3)
             with self.assertRaises(lzc_exc.DatasetExists):
                 lzc.lzc_receive(dst2, incr.fileno(), force = True)
-        self.assertTrue(lzc.lzc_exists(dst1))
-        self.assertFalse(lzc.lzc_exists(dst2))
-        self.assertTrue(lzc.lzc_exists(dst3))
+        self.assertExists(dst1)
+        self.assertNotExists(dst2)
+        self.assertExists(dst3)
 
 
     def test_recv_incremental_into_cloned_fs(self):
@@ -2524,8 +2536,8 @@ class ZFSTest(unittest.TestCase):
             incr.seek(0)
             with self.assertRaises(lzc_exc.StreamMismatch):
                 lzc.lzc_receive(dst2, incr.fileno(), force = True)
-        self.assertTrue(lzc.lzc_exists(dst1))
-        self.assertFalse(lzc.lzc_exists(dst2))
+        self.assertExists(dst1)
+        self.assertNotExists(dst2)
 
 
     def test_send_full_across_clone_branch_point(self):
@@ -2656,7 +2668,7 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_receive(dst_snap, fd)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    @needs_support(lzc.lzc_promote)
     def test_promote(self):
         origfs = ZFSTest.pool.makeName("fs2")
         snap = "@promote-snap-1"
@@ -2668,10 +2680,10 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_promote(clonefs)
         # the snapshot now should belong to the promoted fs
-        self.assertTrue(lzc.lzc_exists(clonefs + snap))
+        self.assertExists(clonefs + snap)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    @needs_support(lzc.lzc_promote)
     def test_promote_too_long_snapname(self):
         # origfs name must be shorter than clonefs name
         origfs = ZFSTest.pool.makeName("fs2")
@@ -2684,12 +2696,13 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_snap([origsnap])
         lzc.lzc_clone(clonefs, origsnap)
 
-        # XXX This fails, OpenZFS bug
+        # This may fail on older buggy systems.
+        # See: https://www.illumos.org/issues/5909
         with self.assertRaises(lzc_exc.NameTooLong):
             lzc.lzc_promote(clonefs)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_promote), 'not available')
+    @needs_support(lzc.lzc_promote)
     def test_promote_not_cloned(self):
         fs = ZFSTest.pool.makeName("fs2")
         with self.assertRaises(lzc_exc.NotClone):
@@ -2769,10 +2782,10 @@ class ZFSTest(unittest.TestCase):
                 self.assertIsInstance(e, lzc_exc.SnapshotIsHeld)
 
             lzc.lzc_destroy_snaps([snap], defer = True)
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
         # after automatic hold cleanup and deferred destruction
-        self.assertFalse(lzc.lzc_exists(snap))
+        self.assertNotExists(snap)
 
 
     def test_hold_many_tags(self):
@@ -2936,8 +2949,8 @@ class ZFSTest(unittest.TestCase):
 
             holds = lzc.lzc_get_holds(snap)
             self.assertEquals(len(holds), 2)
-            self.assertTrue('tag1' in holds)
-            self.assertTrue('tag2' in holds)
+            self.assertIn('tag1', holds)
+            self.assertIn('tag2', holds)
             self.assertIsInstance(holds['tag1'], (int, long))
 
 
@@ -3061,13 +3074,13 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_hold({snap: 'tag2'}, fd)
 
             lzc.lzc_destroy_snaps([snap], defer = True)
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
             lzc.lzc_release({snap: ['tag1']})
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
             lzc.lzc_release({snap: ['tag2']})
-            self.assertFalse(lzc.lzc_exists(snap))
+            self.assertNotExists(snap)
 
 
     def test_release_hold_and_multiple_snap_destruction(self):
@@ -3078,13 +3091,13 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_hold({snap: 'tag'}, fd)
 
             lzc.lzc_destroy_snaps([snap], defer = True)
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
             lzc.lzc_destroy_snaps([snap], defer = True)
-            self.assertTrue(lzc.lzc_exists(snap))
+            self.assertExists(snap)
 
             lzc.lzc_release({snap: ['tag']})
-            self.assertFalse(lzc.lzc_exists(snap))
+            self.assertNotExists(snap)
 
 
     def test_release_hold_missing_tag(self):
@@ -3176,7 +3189,7 @@ class ZFSTest(unittest.TestCase):
             self.assertEquals(e.name, snap)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_children), 'not available')
+    @needs_support(lzc.lzc_list_children)
     def test_list_children(self):
         name = ZFSTest.pool.makeName("fs1/fs")
         names = [ZFSTest.pool.makeName("fs1/fs/test1"),
@@ -3193,24 +3206,24 @@ class ZFSTest(unittest.TestCase):
         self.assertItemsEqual(children, names)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_children), 'not available')
+    @needs_support(lzc.lzc_list_children)
     def test_list_children_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         children = list(lzc.lzc_list_children(fs))
-        self.assertFalse(children)
+        self.assertEqual(children, [])
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_children), 'not available')
+    @needs_support(lzc.lzc_list_children)
     def test_list_children_of_snap(self):
         snap = ZFSTest.pool.makeName("@newsnap")
 
         lzc.lzc_snapshot([snap])
         children = list(lzc.lzc_list_children(snap))
-        self.assertFalse(children)
+        self.assertEqual(children, [])
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
+    @needs_support(lzc.lzc_list_snaps)
     def test_list_snaps(self):
         name = ZFSTest.pool.makeName("fs1/fs")
         names = [ZFSTest.pool.makeName("fs1/fs@test1"),
@@ -3227,24 +3240,24 @@ class ZFSTest(unittest.TestCase):
         self.assertItemsEqual(snaps, names)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
+    @needs_support(lzc.lzc_list_snaps)
     def test_list_snaps_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         snaps = list(lzc.lzc_list_snaps(fs))
-        self.assertFalse(snaps)
+        self.assertEqual(snaps, [])
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_list_snaps), 'not available')
+    @needs_support(lzc.lzc_list_snaps)
     def test_list_snaps_of_snap(self):
         snap = ZFSTest.pool.makeName("@newsnap")
 
         lzc.lzc_snapshot([snap])
         snaps = list(lzc.lzc_list_snaps(snap))
-        self.assertFalse(snaps)
+        self.assertEqual(snaps, [])
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_fs_props(self):
         fs = ZFSTest.pool.makeName("new")
         props = { "user:foo": "bar" }
@@ -3254,7 +3267,7 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset(props, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_snap_props(self):
         snapname = ZFSTest.pool.makeName("@snap")
         snaps = [ snapname ]
@@ -3265,16 +3278,21 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset(props, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_props_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         with self.assertRaises(lzc_exc.DatasetNotFound) as ctx:
-            props = lzc.lzc_get_props(fs)
+            lzc.lzc_get_props(fs)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_none(self):
+        '''
+        If the *mountpoint* property is set to none, then its
+        value is returned as `bytes` "none".
+        Also, a child filesystem inherits that value.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "none" }
@@ -3284,12 +3302,17 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset(props, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset(props, child_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_legacy(self):
+        '''
+        If the *mountpoint* property is set to legacy, then its
+        value is returned as `bytes` "legacy".
+        Also, a child filesystem inherits that value.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "legacy" }
@@ -3299,12 +3322,18 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset(props, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset(props, child_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_path(self):
+        '''
+        If the *mountpoint* property is set to a path and the property
+        is not explicitly set on a child filesystem, then its
+        value is that of the parent filesystem with the child's
+        name appended using the '/' separator.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "/mnt" }
@@ -3314,11 +3343,11 @@ class ZFSTest(unittest.TestCase):
         actual_props = lzc.lzc_get_props(fs)
         self.assertDictContainsSubset(props, actual_props)
         # check that mountpoint value is correctly inherited
-        actual_props = lzc.lzc_get_props(child)
-        self.assertDictContainsSubset({"mountpoint": "/mnt/child"}, actual_props)
+        child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset({"mountpoint": "/mnt/child"}, child_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_get_props), 'not available')
+    @needs_support(lzc.lzc_get_props)
     def test_get_snap_clones(self):
         fs = ZFSTest.pool.makeName("new")
         snap = ZFSTest.pool.makeName("@snap")
@@ -3331,22 +3360,21 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_clone(clone2, snap)
 
         clones_prop = lzc.lzc_get_props(snap)["clones"]
-        self.assertIsInstance(clones_prop, list)
         self.assertItemsEqual(clones_prop, [clone1, clone2])
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_rename), 'not available')
+    @needs_support(lzc.lzc_rename)
     def test_rename(self):
         src = ZFSTest.pool.makeName("source")
         tgt = ZFSTest.pool.makeName("target")
 
         lzc.lzc_create(src)
         lzc.lzc_rename(src, tgt)
-        self.assertFalse(lzc.lzc_exists(src))
-        self.assertTrue(lzc.lzc_exists(tgt))
+        self.assertNotExists(src)
+        self.assertExists(tgt)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_rename), 'not available')
+    @needs_support(lzc.lzc_rename)
     def test_rename_nonexistent(self):
         src = ZFSTest.pool.makeName("source")
         tgt = ZFSTest.pool.makeName("target")
@@ -3355,7 +3383,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_rename(src, tgt)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_rename), 'not available')
+    @needs_support(lzc.lzc_rename)
     def test_rename_existing_target(self):
         src = ZFSTest.pool.makeName("source")
         tgt = ZFSTest.pool.makeName("target")
@@ -3366,7 +3394,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_rename(src, tgt)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_rename), 'not available')
+    @needs_support(lzc.lzc_rename)
     def test_rename_nonexistent_target_parent(self):
         src = ZFSTest.pool.makeName("source")
         tgt = ZFSTest.pool.makeName("parent/target")
@@ -3376,16 +3404,16 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_rename(src, tgt)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_destroy), 'not available')
+    @needs_support(lzc.lzc_destroy)
     def test_destroy(self):
         fs = ZFSTest.pool.makeName("test-fs")
 
         lzc.lzc_create(fs)
         lzc.lzc_destroy(fs)
-        self.assertFalse(lzc.lzc_exists(fs))
+        self.assertNotExists(fs)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_destroy), 'not available')
+    @needs_support(lzc.lzc_destroy)
     def test_destroy_nonexistent(self):
         fs = ZFSTest.pool.makeName("test-fs")
 
@@ -3393,7 +3421,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_destroy(fs)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
+    @needs_support(lzc.lzc_inherit_prop)
     def test_inherit_prop(self):
         parent = ZFSTest.pool.makeName("parent")
         child = ZFSTest.pool.makeName("parent/child")
@@ -3408,7 +3436,7 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset(parent_props, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
+    @needs_support(lzc.lzc_inherit_prop)
     def test_inherit_missing_prop(self):
         parent = ZFSTest.pool.makeName("parent")
         child = ZFSTest.pool.makeName("parent/child")
@@ -3419,10 +3447,10 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_create(child, props = child_props)
         lzc.lzc_inherit_prop(child, the_prop)
         actual_props = lzc.lzc_get_props(child)
-        self.assertTrue(the_prop not in actual_props)
+        self.assertNotIn(the_prop, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
+    @needs_support(lzc.lzc_inherit_prop)
     def test_inherit_readonly_prop(self):
         parent = ZFSTest.pool.makeName("parent")
         child = ZFSTest.pool.makeName("parent/child")
@@ -3430,14 +3458,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_create(parent)
         lzc.lzc_create(child)
-        old_props = lzc.lzc_get_props(child)
-        lzc.lzc_inherit_prop(child, the_prop)
-        new_props = lzc.lzc_get_props(child)
-        # inheriting a read-only property is a nop
-        self.assertEquals(old_props, new_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_inherit_prop(child, the_prop)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
+    @needs_support(lzc.lzc_inherit_prop)
     def test_inherit_unknown_prop(self):
         parent = ZFSTest.pool.makeName("parent")
         child = ZFSTest.pool.makeName("parent/child")
@@ -3445,14 +3470,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_create(parent)
         lzc.lzc_create(child)
-        old_props = lzc.lzc_get_props(child)
-        lzc.lzc_inherit_prop(child, the_prop)
-        new_props = lzc.lzc_get_props(child)
-        # inheriting an unknown property is a nop
-        self.assertEquals(old_props, new_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_inherit_prop(child, the_prop)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_inherit_prop), 'not available')
+    @needs_support(lzc.lzc_inherit_prop)
     def test_inherit_prop_on_snap(self):
         fs = ZFSTest.pool.makeName("new")
         snapname = ZFSTest.pool.makeName("new@snap")
@@ -3471,7 +3493,7 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset({prop: fs_val}, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_fs_prop(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "user:foo"
@@ -3483,7 +3505,7 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset({prop: val}, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_snap_prop(self):
         snapname = ZFSTest.pool.makeName("@snap")
         prop = "user:foo"
@@ -3495,7 +3517,7 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset({prop: val}, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_prop_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
         prop = "user:foo"
@@ -3505,7 +3527,7 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_set_prop(fs, prop, val)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_sys_prop(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "atime"
@@ -3517,43 +3539,40 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset({prop: val}, actual_props)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_invalid_prop(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "nosuchprop"
         val = 0
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_invalid_value_prop(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "atime"
         val = 100
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_invalid_value_prop_2(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "readonly"
         val = 100
 
         lzc.lzc_create(fs)
-        lzc.lzc_set_prop(fs, prop, val)
-        actual_props = lzc.lzc_get_props(fs)
-        self.assertTrue(prop not in actual_props)
+        with self.assertRaises(lzc_exc.PropertyInvalid) as ctx:
+            lzc.lzc_set_prop(fs, prop, val)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_prop_too_small_quota(self):
         fs = ZFSTest.pool.makeName("new")
         prop = "refquota"
@@ -3564,15 +3583,16 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_set_prop(fs, prop, val)
 
 
-    @unittest.skipUnless(lzc.is_supported(lzc.lzc_set_prop), 'not available')
+    @needs_support(lzc.lzc_set_prop)
     def test_set_readonly_prop(self):
         fs = ZFSTest.pool.makeName("new")
-        prop = "createtxg"
+        prop = "creation"
         val = 0
 
         lzc.lzc_create(fs)
         lzc.lzc_set_prop(fs, prop, val)
         actual_props = lzc.lzc_get_props(fs)
+        # the change is silently ignored
         self.assertTrue(actual_props[prop] != val)
 
 

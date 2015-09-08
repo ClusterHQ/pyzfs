@@ -20,7 +20,7 @@ import os
 import struct
 import threading
 from . import exceptions
-from . import _error_translation as xlate
+from . import _error_translation as errors
 from .bindings import libzfs_core
 from ._constants import MAXNAMELEN
 from .ctypes import int32_t
@@ -55,7 +55,7 @@ def lzc_create(name, ds_type='zfs', props=None):
         raise exceptions.DatasetTypeInvalid(ds_type)
     nvlist = nvlist_in(props)
     ret = _lib.lzc_create(name, ds_type, nvlist)
-    xlate.lzc_create_xlate_error(ret, name, ds_type, props)
+    errors.lzc_create_translate_error(ret, name, ds_type, props)
 
 
 def lzc_clone(name, origin, props=None):
@@ -89,7 +89,7 @@ def lzc_clone(name, origin, props=None):
         props = {}
     nvlist = nvlist_in(props)
     ret = _lib.lzc_clone(name, origin, nvlist)
-    xlate.lzc_clone_xlate_error(ret, name, origin, props)
+    errors.lzc_clone_translate_error(ret, name, origin, props)
 
 
 def lzc_rollback(name):
@@ -108,7 +108,7 @@ def lzc_rollback(name):
     # Account for terminating NUL in C strings.
     snapnamep = _ffi.new('char[]', MAXNAMELEN + 1)
     ret = _lib.lzc_rollback(name, snapnamep, MAXNAMELEN + 1)
-    xlate.lzc_rollback_xlate_error(ret, name)
+    errors.lzc_rollback_translate_error(ret, name)
     return _ffi.string(snapnamep)
 
 
@@ -168,7 +168,7 @@ def lzc_snapshot(snaps, props=None):
     props_nvlist = nvlist_in(props)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_snapshot(snaps_nvlist, props_nvlist, errlist_nvlist)
-    xlate.lzc_snapshot_xlate_errors(ret, errlist, snaps, props)
+    errors.lzc_snapshot_translate_errors(ret, errlist, snaps, props)
 
 
 lzc_snap = lzc_snapshot
@@ -215,7 +215,7 @@ def lzc_destroy_snaps(snaps, defer):
     snaps_nvlist = nvlist_in(snaps_dict)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_destroy_snaps(snaps_nvlist, defer, errlist_nvlist)
-    xlate.lzc_destroy_snaps_xlate_errors(ret, errlist, snaps, defer)
+    errors.lzc_destroy_snaps_translate_errors(ret, errlist, snaps, defer)
 
 
 def lzc_bookmark(bookmarks):
@@ -235,7 +235,7 @@ def lzc_bookmark(bookmarks):
     nvlist = nvlist_in(bookmarks)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_bookmark(nvlist, errlist_nvlist)
-    xlate.lzc_bookmark_xlate_errors(ret, errlist, bookmarks)
+    errors.lzc_bookmark_translate_errors(ret, errlist, bookmarks)
 
 
 def lzc_get_bookmarks(fsname, props=None):
@@ -271,7 +271,7 @@ def lzc_get_bookmarks(fsname, props=None):
     nvlist = nvlist_in(props_dict)
     with nvlist_out(bmarks) as bmarks_nvlist:
         ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
-    xlate.lzc_get_bookmarks_xlate_error(ret, fsname, props)
+    errors.lzc_get_bookmarks_translate_error(ret, fsname, props)
     return bmarks
 
 
@@ -299,7 +299,7 @@ def lzc_destroy_bookmarks(bookmarks):
     nvlist = nvlist_in(bmarks_dict)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
-    xlate.lzc_destroy_bookmarks_xlate_errors(ret, errlist, bookmarks)
+    errors.lzc_destroy_bookmarks_translate_errors(ret, errlist, bookmarks)
 
 
 def lzc_snaprange_space(firstsnap, lastsnap):
@@ -331,7 +331,7 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     '''
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_snaprange_space(firstsnap, lastsnap, valp)
-    xlate.lzc_snaprange_space_xlate_error(ret, firstsnap, lastsnap)
+    errors.lzc_snaprange_space_translate_error(ret, firstsnap, lastsnap)
     return int(valp[0])
 
 
@@ -373,7 +373,7 @@ def lzc_hold(holds, fd = None):
     nvlist = nvlist_in(holds)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_hold(nvlist, fd, errlist_nvlist)
-    xlate.lzc_hold_xlate_errors(ret, errlist, holds, fd)
+    errors.lzc_hold_translate_errors(ret, errlist, holds, fd)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots.
     assert all(x == errno.ENOENT for x in errlist.itervalues())
@@ -418,7 +418,7 @@ def lzc_release(holds):
     nvlist = nvlist_in(holds_dict)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_release(nvlist, errlist_nvlist)
-    xlate.lzc_release_xlate_errors(ret, errlist, holds)
+    errors.lzc_release_translate_errors(ret, errlist, holds)
     # If there is no error (no exception raised by _handleErrList), but errlist
     # is not empty, then it contains missing snapshots and tags.
     assert all(x == errno.ENOENT for x in errlist.itervalues())
@@ -437,7 +437,7 @@ def lzc_get_holds(snapname):
     holds = {}
     with nvlist_out(holds) as nvlist:
         ret = _lib.lzc_get_holds(snapname, nvlist)
-    xlate.lzc_get_holds_xlate_error(ret, snapname)
+    errors.lzc_get_holds_translate_error(ret, snapname)
     return holds
 
 
@@ -515,7 +515,7 @@ def lzc_send(snapname, fromsnap, fd, flags=None):
         c_flags |= c_flag
 
     ret = _lib.lzc_send(snapname, c_fromsnap, fd, c_flags)
-    xlate.lzc_send_xlate_error(ret, snapname, fromsnap, fd, flags)
+    errors.lzc_send_translate_error(ret, snapname, fromsnap, fd, flags)
 
 
 def lzc_send_space(snapname, fromsnap = None):
@@ -547,7 +547,7 @@ def lzc_send_space(snapname, fromsnap = None):
         c_fromsnap = _ffi.NULL
     valp = _ffi.new('uint64_t *')
     ret = _lib.lzc_send_space(snapname, c_fromsnap, valp)
-    xlate.lzc_send_space_xlate_error(ret, snapname, fromsnap)
+    errors.lzc_send_space_translate_error(ret, snapname, fromsnap)
     return int(valp[0])
 
 
@@ -646,7 +646,7 @@ def lzc_receive(snapname, fd, force=False, origin=None, props=None):
         props = {}
     nvlist = nvlist_in(props)
     ret = _lib.lzc_receive(snapname, nvlist, c_origin, force, fd)
-    xlate.lzc_receive_xlate_error(ret, snapname, fd, force, origin, props)
+    errors.lzc_receive_translate_error(ret, snapname, fd, force, origin, props)
 
 
 lzc_recv = lzc_receive
@@ -673,15 +673,13 @@ def is_supported(func):
     Check whether C *libzfs_core* provides implementation required
     for the given Python wrapper.
 
-    :param function func: the function to check.
-    :return bool: whether the funciton can be used.
-
     If `is_supported` returns ``False`` for the function, then
     calling the function would result in :exc:`NotImplementedError`.
+
+    :param function func: the function to check.
+    :return bool: whether the function can be used.
     '''
-    fname = getattr(func, '__name__', None)
-    if fname is None:
-        raise ValueError('argument does not have __name__')
+    fname = func.__name__
     if fname not in globals():
         raise ValueError(fname + ' is not from libzfs_core')
     if not callable(func):
@@ -711,7 +709,7 @@ def _uncommitted(check_func = None):
     One example is :func:`lzc_list_snaps` that calls :func:`lzc_list` that
     calls ``lzc_list`` in libzfs_core.
 
-    This decorator is implemeted using :func:`is_supported`.
+    This decorator is implemented using :func:`is_supported`.
     '''
     def _uncommitted_decorator(func, check_func = check_func):
         @functools.wraps(func)
@@ -742,7 +740,7 @@ def lzc_promote(name):
                             the same name as one of the origin's snapshots.
     '''
     ret = _lib.lzc_promote(name, _ffi.NULL)
-    xlate.lzc_promote_xlate_error(ret, name)
+    errors.lzc_promote_translate_error(ret, name)
 
 
 @_uncommitted()
@@ -762,7 +760,7 @@ def lzc_rename(source, target):
     :raises PoolsDiffer: if the source and target belong to different pools.
     '''
     ret = _lib.lzc_rename(source, target, _ffi.NULL, _ffi.NULL)
-    xlate.lzc_rename_xlate_error(ret, source, target)
+    errors.lzc_rename_translate_error(ret, source, target)
 
 
 @_uncommitted()
@@ -776,7 +774,7 @@ def lzc_destroy_one(name):
     :raises FilesystemNotFound: if the dataset does not exist.
     '''
     ret = _lib.lzc_destroy_one(name, _ffi.NULL)
-    xlate.lzc_destroy_xlate_error(ret, name)
+    errors.lzc_destroy_translate_error(ret, name)
 
 
 lzc_destroy = lzc_destroy_one
@@ -792,6 +790,8 @@ def lzc_inherit(name, prop):
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
     :raises DatasetNotFound: if the dataset does not exist.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+                             or has an invalid type or value.
 
     Inheriting a property actually resets it to its default value
     or removes it if it's a user property, so that the property could be
@@ -799,14 +799,9 @@ def lzc_inherit(name, prop):
     then it would just have its default value.
 
     This function can be used on snapshots to inherit user defined properties.
-
-    .. note::
-        An attempt to inherit a readonly / statistic property is ignored
-        without reporting any error.
-        An attempt to inherit an unknown property is ignored as well.
     '''
     ret = _lib.lzc_inherit(name, prop, _ffi.NULL)
-    xlate.lzc_inherit_prop_xlate_error(ret, name, prop)
+    errors.lzc_inherit_prop_translate_error(ret, name, prop)
 
 
 lzc_inherit_prop = lzc_inherit
@@ -825,23 +820,19 @@ def lzc_set_props(name, prop, val):
     :raises DatasetNotFound: if the dataset does not exist.
     :raises NoSpace: if the property controls a quota and the values is
                      too small for that quota.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+                             or has an invalid type or value.
 
     This function can be used on snapshots to set user defined properties.
 
     .. note::
         An attempt to set a readonly / statistic property is ignored
         without reporting any error.
-        An attempt to set an unknown property is ignored as well.
-
-        Also, an attempt to set a property to an invalid value
-        could be silently ignored.  However, if the property controls
-        a quota of any kind and the value is to small for the given
-        quota, then :exc:`NoSpace` is raised.
     '''
     props = { prop: val }
     props_nv = nvlist_in(props)
     ret = _lib.lzc_set_props(name, props_nv, _ffi.NULL, _ffi.NULL)
-    xlate.lzc_set_prop_xlate_error(ret, name, prop, val)
+    errors.lzc_set_prop_translate_error(ret, name, prop, val)
 
 
 lzc_set_prop = lzc_set_props
@@ -897,7 +888,7 @@ def lzc_list(name, options):
     options['fd'] = int32_t(wfd)
     opts_nv = nvlist_in(options)
     ret = _lib.lzc_list(name, opts_nv)
-    xlate.lzc_list_xlate_error(ret, name, options)
+    errors.lzc_list_translate_error(ret, name, options)
     return (rfd, wfd)
 
 
@@ -937,7 +928,7 @@ def lzc_get_props(name):
             if not record_bytes:
                 break
             (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            xlate.lzc_get_props_xlate_error(err, name)
+            errors.lzc_get_props_translate_error(err, name)
             if size == 0:
                 break
             data_bytes = os.read(fd, size)
@@ -1010,7 +1001,7 @@ def lzc_list_children(name):
             if not record_bytes:
                 break
             (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            xlate.lzc_list_children_xlate_error(err, name)
+            errors.lzc_list_children_translate_error(err, name)
             if size == 0:
                 break
             data_bytes = os.read(fd, size)
@@ -1054,7 +1045,7 @@ def lzc_list_snaps(name):
             if not record_bytes:
                 break
             (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            xlate.lzc_list_snaps_xlate_error(err, name)
+            errors.lzc_list_snaps_translate_error(err, name)
             if size == 0:
                 break
             data_bytes = os.read(fd, size)
