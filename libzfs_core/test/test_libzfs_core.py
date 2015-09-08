@@ -3203,7 +3203,7 @@ class ZFSTest(unittest.TestCase):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         children = list(lzc.lzc_list_children(fs))
-        self.assertFalse(children)
+        self.assertEqual(children, [])
 
 
     @needs_support(lzc.lzc_list_children)
@@ -3212,7 +3212,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_snapshot([snap])
         children = list(lzc.lzc_list_children(snap))
-        self.assertFalse(children)
+        self.assertEqual(children, [])
 
 
     @needs_support(lzc.lzc_list_snaps)
@@ -3237,7 +3237,7 @@ class ZFSTest(unittest.TestCase):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         snaps = list(lzc.lzc_list_snaps(fs))
-        self.assertFalse(snaps)
+        self.assertEqual(snaps, [])
 
 
     @needs_support(lzc.lzc_list_snaps)
@@ -3246,7 +3246,7 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_snapshot([snap])
         snaps = list(lzc.lzc_list_snaps(snap))
-        self.assertFalse(snaps)
+        self.assertEqual(snaps, [])
 
 
     @needs_support(lzc.lzc_get_props)
