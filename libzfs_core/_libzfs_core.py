@@ -879,9 +879,10 @@ def lzc_list(name, options):
         Absence of this option means that only the given dataset
         is listed.
 
-    types : dict of bytes:None
+    type : dict of bytes:None
         specifies dataset types to include into the listing.
         Currently allowed keys are "filesystem", "volume", "snapshot".
+        Absence of this option implies all types.
 
     The first of the returned file descriptors can be used to
     read the listing in a binary encounded format.  The data is
