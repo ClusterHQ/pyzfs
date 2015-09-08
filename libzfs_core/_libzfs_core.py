@@ -692,7 +692,7 @@ def is_supported(func):
     return getattr(_lib, fname, None) is not None
 
 
-def _uncommitted(depends_on = None):
+def _uncommitted(depends_on=None):
     '''
     Mark an API function as being an uncommitted extension that might not be
     available.
@@ -714,7 +714,7 @@ def _uncommitted(depends_on = None):
 
     This decorator is implemented using :func:`is_supported`.
     '''
-    def _uncommitted_decorator(func, depends_on = depends_on):
+    def _uncommitted_decorator(func, depends_on=depends_on):
         @functools.wraps(func)
         def _f(*args, **kwargs):
             if not is_supported(_f):
@@ -948,9 +948,10 @@ def _list(name, recurse=None, types=None):
             record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
             if not record_bytes:
                 break
-            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+            (size, _, err, _, _) = struct.unpack(
+                _PIPE_RECORD_FORMAT, record_bytes)
             if err == errno.ESRCH:
-                break;
+                break
             errors.lzc_list_translate_error(err, name, options)
             if size == 0:
                 break
