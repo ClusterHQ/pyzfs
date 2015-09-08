@@ -910,8 +910,60 @@ def lzc_list(name, options):
     return (rfd, wfd)
 
 
+# Description of the binary format used to pass data from the kernel.
 _PIPE_RECORD_FORMAT = 'IBBBB'
 _PIPE_RECORD_SIZE = struct.calcsize(_PIPE_RECORD_FORMAT)
+
+
+def _list(name, recurse=None, types=None):
+    '''
+    A wrapper for :func:`lzc_list` that hides details of working
+    with the file descriptors and provides data in an easy to
+    consume format.
+
+    :param bytes name: the name of the dataset to be listed, could
+                       be a snapshot, a volume or a filesystem.
+    :param recurse: specifies depth of the recursive listing.
+                    If ``None`` the depth is not limited.
+    :param types: specifies dataset types to include into the listing.
+                  Currently allowed keys are "filesystem", "volume", "snapshot".
+                  None or an empty list means all dataset types.
+    :type types: list of bytes or None
+    :type recurse: integer or None
+    :return: a list of dictionaries each describing a single listed
+             element.
+    :rtype: list of dict
+    '''
+    # Convert types to a dict suitable for mapping to an nvlist.
+    if types is not None:
+        types = {x: None for x in types}
+    options = {'recurse': recurse, 'type': types}
+    (fd, other_fd) = lzc_list(name, options)
+    if fd is None:
+        return iter([])
+
+    entries = []
+    try:
+        while True:
+            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
+            if not record_bytes:
+                break
+            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
+            if err == errno.ESRCH:
+                break;
+            errors.lzc_list_translate_error(err, name, options)
+            if size == 0:
+                break
+            data_bytes = os.read(fd, size)
+            result = {}
+            with nvlist_out(result) as nvp:
+                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
+            if ret != 0:
+                raise ZFSError(ret, "Failed to unpack list data")
+            entries.append(result)
+    finally:
+        os.close(other_fd)
+        os.close(fd)
 
 
 @_uncommitted(lzc_list)
@@ -938,36 +990,12 @@ def lzc_get_props(name):
     # XXX We should not need to pass the recurse option here and iterate
     # over the result, but we have to because of ZFS-23:
     # zfs list incorrectly works with an individual snapshot.
-    (fd, other_fd) = lzc_list(name, {'recurse': 1})
-    if fd is None:
-        raise exceptions.DatasetNotFound(name)
-
-    entry = None
-    try:
-        while True:
-            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
-            if not record_bytes:
-                break
-            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            errors.lzc_get_props_translate_error(err, name)
-            if size == 0:
-                break
-            data_bytes = os.read(fd, size)
-            result = {}
-            with nvlist_out(result) as nvp:
-                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
-            if ret != 0:
-                raise ZFSError(ret, "Failed to unpack list data")
-            entry = result['name']
-            if entry == name:
-                break
-            else:
-                entry = None
-    finally:
-        os.close(other_fd)
-        os.close(fd)
-
-    if entry is None:
+    result = None
+    for entry in _list(name, recurse=1):
+        if entry['name'] == name:
+            result = entry
+            break
+    if result is None:
         raise exceptions.DatasetNotFound(name)
     result = result['properties']
     # In most cases the source of the property is uninteresting and the
@@ -1015,31 +1043,10 @@ def lzc_list_children(name):
         An attempt to list children of a snapshot is silently ignored as well.
     '''
     children = []
-    (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
-    if fd is None:
-        return iter([])
-
-    try:
-        while True:
-            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
-            if not record_bytes:
-                break
-            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            errors.lzc_list_children_translate_error(err, name)
-            if size == 0:
-                break
-            data_bytes = os.read(fd, size)
-            result = {}
-            with nvlist_out(result) as nvp:
-                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
-            if ret != 0:
-                raise ZFSError(ret, "Failed to unpack list data")
-            child = result['name']
-            if child != name:
-                children.append(child)
-    finally:
-        os.close(other_fd)
-        os.close(fd)
+    for entry in _list(name, recurse=1, types=['filesystem', 'volume']):
+        child = entry['name']
+        if child != name:
+            children.append(child)
 
     return iter(children)
 
@@ -1062,33 +1069,11 @@ def lzc_list_snaps(name):
         An attempt to list snapshots of a snapshot is silently ignored as well.
     '''
     snaps = []
-    (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
-    if fd is None:
-        return iter([])
-
-    try:
-        while True:
-            record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
-            if not record_bytes:
-                break
-            (size, _, err, _, _) =  struct.unpack(_PIPE_RECORD_FORMAT, record_bytes)
-            errors.lzc_list_snaps_translate_error(err, name)
-            if size == 0:
-                break
-            data_bytes = os.read(fd, size)
-            result = {}
-            with nvlist_out(result) as nvp:
-                ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
-            if ret != 0:
-                raise ZFSError(ret, "Failed to unpack list data")
-            snap = result['name']
-            # XXX we shouldn't need to do this, but have to work around ZFS-26
-            is_snapshot = result['dmu_objset_stats']['dds_is_snapshot']
-            if is_snapshot:
-                snaps.append(snap)
-    finally:
-        os.close(other_fd)
-        os.close(fd)
+    for entry in _list(name, recurse=1, types=['snapshot']):
+        # XXX we shouldn't need to do this, but have to work around ZFS-26
+        is_snapshot = entry['dmu_objset_stats']['dds_is_snapshot']
+        if is_snapshot:
+            snaps.append(entry['name'])
 
     return iter(snaps)
 
