@@ -1172,14 +1172,14 @@ class ZFSTest(unittest.TestCase):
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
         self.assertEquals(len(bmarks), 3)
         for b in 'bmark', 'bmark1', 'bmark2':
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 0)
 
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['guid', 'createtxg', 'creation'])
         self.assertEquals(len(bmarks), 3)
         for b in 'bmark', 'bmark1', 'bmark2':
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 3)
 
@@ -1196,7 +1196,7 @@ class ZFSTest(unittest.TestCase):
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'), ['badprop'])
         self.assertEquals(len(bmarks), 1)
         for b in ('bmark', ):
-            self.assertTrue(b in bmarks)
+            self.assertIn(b, bmarks)
             self.assertIsInstance(bmarks[b], dict)
             self.assertEquals(len(bmarks[b]), 0)
 
@@ -1237,7 +1237,7 @@ class ZFSTest(unittest.TestCase):
 
         bmarks = lzc.lzc_get_bookmarks(ZFSTest.pool.makeName('fs1'))
         self.assertEquals(len(bmarks), 1)
-        self.assertTrue('bmark' in bmarks)
+        self.assertIn('bmark', bmarks)
 
 
     @skipUnlessBookmarksSupported
@@ -2949,8 +2949,8 @@ class ZFSTest(unittest.TestCase):
 
             holds = lzc.lzc_get_holds(snap)
             self.assertEquals(len(holds), 2)
-            self.assertTrue('tag1' in holds)
-            self.assertTrue('tag2' in holds)
+            self.assertIn('tag1', holds)
+            self.assertIn('tag2', holds)
             self.assertIsInstance(holds['tag1'], (int, long))
 
 
@@ -3447,7 +3447,7 @@ class ZFSTest(unittest.TestCase):
         lzc.lzc_create(child, props = child_props)
         lzc.lzc_inherit_prop(child, the_prop)
         actual_props = lzc.lzc_get_props(child)
-        self.assertTrue(the_prop not in actual_props)
+        self.assertNotIn(the_prop, actual_props)
 
 
     @needs_support(lzc.lzc_inherit_prop)
