@@ -3275,7 +3275,7 @@ class ZFSTest(unittest.TestCase):
         fs = ZFSTest.pool.makeName("nonexistent")
 
         with self.assertRaises(lzc_exc.DatasetNotFound) as ctx:
-            props = lzc.lzc_get_props(fs)
+            lzc.lzc_get_props(fs)
 
 
     @needs_support(lzc.lzc_get_props)
