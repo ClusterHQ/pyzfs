@@ -696,7 +696,7 @@ def _uncommitted(func):
     if the C libzfs_core library does not provide a function with the same
     name as the decorated function.
 
-    This decorator is implemeted using :func:`is_supported`.
+    This decorator is implemented using :func:`is_supported`.
     '''
     @functools.wraps(func)
     def _f(*args, **kwargs):
