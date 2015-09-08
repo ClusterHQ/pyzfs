@@ -3280,6 +3280,11 @@ class ZFSTest(unittest.TestCase):
 
     @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_none(self):
+        '''
+        If the *mountpoint* property is set to none, then its
+        value is returned as `bytes` "none".
+        Also, a child filesystem inherits that value.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "none" }
@@ -3295,6 +3300,11 @@ class ZFSTest(unittest.TestCase):
 
     @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_legacy(self):
+        '''
+        If the *mountpoint* property is set to legacy, then its
+        value is returned as `bytes` "legacy".
+        Also, a child filesystem inherits that value.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "legacy" }
@@ -3310,6 +3320,12 @@ class ZFSTest(unittest.TestCase):
 
     @needs_support(lzc.lzc_get_props)
     def test_get_mountpoint_path(self):
+        '''
+        If the *mountpoint* property is set to a path and the property
+        is not explicitly set on a child filesystem, then its
+        value is that of the parent filesystem with the child's
+        name appended using the '/' separator.
+        '''
         fs = ZFSTest.pool.makeName("new")
         child = ZFSTest.pool.makeName("new/child")
         props = { "mountpoint": "/mnt" }
