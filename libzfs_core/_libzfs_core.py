@@ -960,7 +960,8 @@ def _list(name, recurse=None, types=None):
             with nvlist_out(result) as nvp:
                 ret = _lib.nvlist_unpack(data_bytes, size, nvp, 0)
             if ret != 0:
-                raise ZFSError(ret, "Failed to unpack list data")
+                raise exceptions.ZFSGenericError(ret, None,
+                                                 "Failed to unpack list data")
             entries.append(result)
     finally:
         os.close(other_fd)
