@@ -687,8 +687,8 @@ def is_supported(func):
 
 def _uncommitted(func):
     '''
-    Mark an API function as being an uncommitted extension that may be
-    unavailable.
+    Mark an API function as being an uncommitted extension that might not be
+    available.
 
     This decorator transforms a decorated function to raise :exc:`NotImplementedError`
     if the C libzfs_core library does not provide a function with the same
