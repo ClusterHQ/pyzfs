@@ -780,6 +780,9 @@ def lzc_destroy_one(name):
     errors.lzc_destroy_translate_error(ret, name)
 
 
+# As the extended API is not committed yet, the names of the new interfaces
+# are not settled down yet.
+# lzc_destroy() might make more sense as we do not have lzc_create_one().
 lzc_destroy = lzc_destroy_one
 
 
@@ -807,6 +810,9 @@ def lzc_inherit(name, prop):
     errors.lzc_inherit_prop_translate_error(ret, name, prop)
 
 
+# As the extended API is not committed yet, the names of the new interfaces
+# are not settled down yet.
+# lzc_inherit_prop makes it clearer what is to be inherited.
 lzc_inherit_prop = lzc_inherit
 
 
@@ -838,6 +844,12 @@ def lzc_set_props(name, prop, val):
     errors.lzc_set_prop_translate_error(ret, name, prop, val)
 
 
+# As the extended API is not committed yet, the names of the new interfaces
+# are not settled down yet.
+# It's not clear if atomically setting multiple properties is an achievable
+# goal and an interface acting on mutiple entities must do so atomically
+# by convention.
+# Being able to set a single property at a time is sufficient for ClusterHQ.
 lzc_set_prop = lzc_set_props
 
 
