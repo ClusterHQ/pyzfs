@@ -675,9 +675,7 @@ def is_supported(func):
     :param function func: the function to check.
     :return bool: whether the function can be used.
     '''
-    fname = getattr(func, '__name__', None)
-    if fname is None:
-        raise ValueError('argument does not have __name__')
+    fname = func.__name__
     if fname not in globals():
         raise ValueError(fname + ' is not from libzfs_core')
     if not callable(func):
