@@ -967,6 +967,8 @@ def _list(name, recurse=None, types=None):
         os.close(other_fd)
         os.close(fd)
 
+    return entries
+
 
 @_uncommitted(lzc_list)
 def lzc_get_props(name):
