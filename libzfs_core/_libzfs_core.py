@@ -690,9 +690,9 @@ def _uncommitted(func):
     Mark an API function as being an uncommitted extension that might not be
     available.
 
-    This decorator transforms a decorated function to raise :exc:`NotImplementedError`
-    if the C libzfs_core library does not provide a function with the same
-    name as the decorated function.
+    This decorator transforms a decorated function to raise
+    :exc:`NotImplementedError` if the C libzfs_core library does not provide
+    a function with the same name as the decorated function.
 
     This decorator is implemented using :func:`is_supported`.
     '''
