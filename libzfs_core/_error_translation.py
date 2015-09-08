@@ -14,7 +14,6 @@ The parameters and exceptions are documented in the `libzfs_core` interfaces.
 """
 
 import errno
-import os
 import re
 import string
 from . import exceptions as lzc_exc
@@ -42,7 +41,7 @@ def lzc_clone_translate_error(ret, name, origin, props):
         _validate_fs_name(name)
         _validate_snap_name(origin)
         if _pool_name(name) != _pool_name(origin):
-            raise lzc_exc.PoolsDiffer(name) # see https://www.illumos.org/issues/5824
+            raise lzc_exc.PoolsDiffer(name)  # see https://www.illumos.org/issues/5824
         else:
             raise lzc_exc.PropertyInvalid(name)
 
@@ -196,7 +195,6 @@ def lzc_hold_translate_errors(ret, errlist, holds, fd):
             return lzc_exc.PoolsDiffer(name)
         elif ret == errno.EINVAL:
             if name:
-                tag = holds[name]
                 pool_names = map(_pool_name, holds.keys())
                 if not _is_valid_snap_name(name):
                     return lzc_exc.NameInvalid(name)
@@ -292,7 +290,7 @@ def lzc_send_translate_error(ret, snapname, fromsnap, fd, flags):
             raise lzc_exc.SnapshotMismatch(snapname)
     elif ret == errno.EINVAL:
         if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
-            not _is_valid_bmark_name(fromsnap)):
+                not _is_valid_bmark_name(fromsnap)):
             raise lzc_exc.NameInvalid(fromsnap)
         elif not _is_valid_snap_name(snapname) and not _is_valid_fs_name(snapname):
             raise lzc_exc.NameInvalid(snapname)
@@ -304,7 +302,7 @@ def lzc_send_translate_error(ret, snapname, fromsnap, fd, flags):
             raise lzc_exc.PoolsDiffer(snapname)
     elif ret == errno.ENOENT:
         if (fromsnap is not None and not _is_valid_snap_name(fromsnap) and
-            not _is_valid_bmark_name(fromsnap)):
+                not _is_valid_bmark_name(fromsnap)):
             raise lzc_exc.NameInvalid(fromsnap)
         raise lzc_exc.SnapshotNotFound(snapname)
     elif ret == errno.ENAMETOOLONG:
@@ -557,13 +555,13 @@ def _is_valid_fs_name(name):
 def _is_valid_snap_name(name):
     parts = name.split('@')
     return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
-           _is_valid_name_component(parts[1]))
+            _is_valid_name_component(parts[1]))
 
 
 def _is_valid_bmark_name(name):
     parts = name.split('#')
     return (len(parts) == 2 and _is_valid_fs_name(parts[0]) and
-           _is_valid_name_component(parts[1]))
+            _is_valid_name_component(parts[1]))
 
 
 def _validate_fs_name(name):
@@ -600,7 +598,7 @@ def _generic_exception(err, name, message):
     else:
         return lzc_exc.ZFSGenericError(err, message, name)
 
-_error_to_exception = { e.errno: e for e in [
+_error_to_exception = {e.errno: e for e in [
     lzc_exc.ZIOError,
     lzc_exc.NoSpace,
     lzc_exc.QuotaExceeded,

@@ -160,7 +160,7 @@ def lzc_snapshot(snaps, props=None):
           The latter is the case when the short name alone exceeds the maximum
           allowed length.
     '''
-    snaps_dict = { name: None for name in snaps }
+    snaps_dict = {name: None for name in snaps}
     errlist = {}
     snaps_nvlist = nvlist_in(snaps_dict)
     if props is None:
@@ -210,7 +210,7 @@ def lzc_destroy_snaps(snaps, defer):
         A snapshot name referring to a filesystem that doesn't exist is ignored.
         However, non-existent pool name causes :exc:`PoolNotFound`.
     '''
-    snaps_dict = { name: None for name in snaps }
+    snaps_dict = {name: None for name in snaps}
     errlist = {}
     snaps_nvlist = nvlist_in(snaps_dict)
     with nvlist_out(errlist) as errlist_nvlist:
@@ -267,7 +267,7 @@ def lzc_get_bookmarks(fsname, props=None):
     bmarks = {}
     if props is None:
         props = []
-    props_dict = { name: None for name in props }
+    props_dict = {name: None for name in props}
     nvlist = nvlist_in(props_dict)
     with nvlist_out(bmarks) as bmarks_nvlist:
         ret = _lib.lzc_get_bookmarks(fsname, nvlist, bmarks_nvlist)
@@ -295,7 +295,7 @@ def lzc_destroy_bookmarks(bookmarks):
     Either all bookmarks that existed are destroyed or an exception is raised.
     '''
     errlist = {}
-    bmarks_dict = { name: None for name in bookmarks }
+    bmarks_dict = {name: None for name in bookmarks}
     nvlist = nvlist_in(bmarks_dict)
     with nvlist_out(errlist) as errlist_nvlist:
         ret = _lib.lzc_destroy_bookmarks(nvlist, errlist_nvlist)
@@ -335,7 +335,7 @@ def lzc_snaprange_space(firstsnap, lastsnap):
     return int(valp[0])
 
 
-def lzc_hold(holds, fd = None):
+def lzc_hold(holds, fd=None):
     '''
     Create *user holds* on snapshots.  If there is a hold on a snapshot,
     the snapshot can not be destroyed.  (However, it can be marked for deletion
@@ -518,7 +518,7 @@ def lzc_send(snapname, fromsnap, fd, flags=None):
     errors.lzc_send_translate_error(ret, snapname, fromsnap, fd, flags)
 
 
-def lzc_send_space(snapname, fromsnap = None):
+def lzc_send_space(snapname, fromsnap=None):
     '''
     Estimate size of a full or incremental backup stream
     given the optional starting snapshot and the ending snapshot.
@@ -838,7 +838,7 @@ def lzc_set_props(name, prop, val):
         An attempt to set a readonly / statistic property is ignored
         without reporting any error.
     '''
-    props = { prop: val }
+    props = {prop: val}
     props_nv = nvlist_in(props)
     ret = _lib.lzc_set_props(name, props_nv, _ffi.NULL, _ffi.NULL)
     errors.lzc_set_prop_translate_error(ret, name, prop, val)
@@ -1018,7 +1018,7 @@ def lzc_get_props(name):
             mountpoint_val = mountpoint_val + name[len(mountpoint_src):]
     else:
         mountpoint_val = '/' + name
-    result = { k: v['value'] for k, v in result.iteritems() }
+    result = {k: v['value'] for k, v in result.iteritems()}
     if 'clones' in result:
         result['clones'] = result['clones'].keys()
     result['mountpoint'] = mountpoint_val

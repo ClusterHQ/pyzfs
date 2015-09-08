@@ -51,7 +51,7 @@ def nvlist_in(props):
     :rtype: CData
     """
     nvlistp = _ffi.new("nvlist_t **")
-    res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
+    res = _lib.nvlist_alloc(nvlistp, 1, 0)  # UNIQUE_NAME == 1
     if res != 0:
         raise MemoryError('nvlist_alloc failed')
     nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
@@ -75,7 +75,7 @@ def nvlist_out(props):
     :rtype: CData
     """
     nvlistp = _ffi.new("nvlist_t **")
-    nvlistp[0] = _ffi.NULL # to be sure
+    nvlistp[0] = _ffi.NULL  # to be sure
     try:
         yield nvlistp
         # clear old entries, if any
@@ -88,6 +88,7 @@ def nvlist_out(props):
 
 
 _TypeInfo = namedtuple('_TypeInfo', ['suffix', 'ctype', 'is_array', 'convert'])
+
 
 def _type_info(typeid):
     return {
@@ -105,7 +106,8 @@ def _type_info(typeid):
         _lib.DATA_TYPE_STRING:          _TypeInfo("string", "char **", False, _ffi.string),
         _lib.DATA_TYPE_NVLIST:          _TypeInfo("nvlist", "nvlist_t **", False, lambda x: _nvlist_to_dict(x, {})),
         _lib.DATA_TYPE_BOOLEAN_ARRAY:   _TypeInfo("boolean_array", "boolean_t **", True, bool),
-        _lib.DATA_TYPE_BYTE_ARRAY:      _TypeInfo("byte_array", "uchar_t **", True, int),            # XXX use bytearray ?
+        # XXX use bytearray ?
+        _lib.DATA_TYPE_BYTE_ARRAY:      _TypeInfo("byte_array", "uchar_t **", True, int),
         _lib.DATA_TYPE_INT8_ARRAY:      _TypeInfo("int8_array", "int8_t **", True, int),
         _lib.DATA_TYPE_UINT8_ARRAY:     _TypeInfo("uint8_array", "uint8_t **", True, int),
         _lib.DATA_TYPE_INT16_ARRAY:     _TypeInfo("int16_array", "int16_t **", True, int),
@@ -143,16 +145,16 @@ def _nvlist_add_array(nvlist, key, array):
             pass
         elif type(element) is not type(specimen):
             raise TypeError('Array has elements of different types: ' +
-                type(specimen).__name__ +
-                ' and ' +
-                type(element).__name__)
+                            type(specimen).__name__ +
+                            ' and ' +
+                            type(element).__name__)
         elif specimen_ctype is not None:
             ctype = _ffi.typeof(element)
             if ctype is not specimen_ctype:
                 raise TypeError('Array has elements of different C types: ' +
-                    _ffi.typeof(specimen).cname +
-                    ' and ' +
-                    _ffi.typeof(element).cname)
+                                _ffi.typeof(specimen).cname +
+                                ' and ' +
+                                _ffi.typeof(element).cname)
 
     if isinstance(specimen, dict):
         # NB: can't use automatic memory management via nvlist_in() here,
@@ -160,7 +162,7 @@ def _nvlist_add_array(nvlist, key, array):
         c_array = []
         for dictionary in array:
             nvlistp = _ffi.new('nvlist_t **')
-            res = _lib.nvlist_alloc(nvlistp, 1, 0) # UNIQUE_NAME == 1
+            res = _lib.nvlist_alloc(nvlistp, 1, 0)  # UNIQUE_NAME == 1
             if res != 0:
                 raise MemoryError('nvlist_alloc failed')
             nested_nvlist = _ffi.gc(nvlistp[0], _lib.nvlist_free)
@@ -196,7 +198,7 @@ def _nvlist_to_dict(nvlist, props):
         typeinfo = _type_info(typeid)
         # XXX nvpair_type_is_array() is broken for  DATA_TYPE_INT8_ARRAY at the moment
         # see https://www.illumos.org/issues/5778
-        #is_array = bool(_lib.nvpair_type_is_array(pair))
+        # is_array = bool(_lib.nvpair_type_is_array(pair))
         is_array = typeinfo.is_array
         cfunc = getattr(_lib, "nvpair_value_%s" % (typeinfo.suffix,), None)
         val = None
@@ -213,7 +215,7 @@ def _nvlist_to_dict(nvlist, props):
                 val.append(typeinfo.convert(valptr[0][i]))
         else:
             if typeid == _lib.DATA_TYPE_BOOLEAN:
-                val = None # XXX or should it be True ?
+                val = None  # XXX or should it be True ?
             else:
                 valptr = _ffi.new(typeinfo.ctype)
                 ret = cfunc(pair, valptr)
