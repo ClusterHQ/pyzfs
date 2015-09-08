@@ -888,6 +888,8 @@ def lzc_list(name, options):
     options['fd'] = int32_t(wfd)
     opts_nv = nvlist_in(options)
     ret = _lib.lzc_list(name, opts_nv)
+    if ret == errno.ESRCH:
+        return (None, None)
     errors.lzc_list_translate_error(ret, name, options)
     return (rfd, wfd)
 
@@ -921,6 +923,9 @@ def lzc_get_props(name):
     # over the result, but we have to because of ZFS-23:
     # zfs list incorrectly works with an individual snapshot.
     (fd, other_fd) = lzc_list(name, {'recurse': 1})
+    if fd is None:
+        raise exceptions.DatasetNotFound(name)
+
     entry = None
     try:
         while True:
@@ -995,6 +1000,9 @@ def lzc_list_children(name):
     '''
     children = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'filesystem': None, 'volume': None}})
+    if fd is None:
+        return iter([])
+
     try:
         while True:
             record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
@@ -1039,6 +1047,9 @@ def lzc_list_snaps(name):
     '''
     snaps = []
     (fd, other_fd) = lzc_list(name, {'recurse': 1, 'type': {'snapshot': None}})
+    if fd is None:
+        return iter([])
+
     try:
         while True:
             record_bytes = os.read(fd, _PIPE_RECORD_SIZE)

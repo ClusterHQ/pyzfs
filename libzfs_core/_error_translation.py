@@ -472,8 +472,6 @@ def lzc_list_snaps_translate_error(ret, name):
 def lzc_list_translate_error(ret, name, opts):
     if ret == 0:
         return
-    if ret == errno.ESRCH:
-        raise StopIteration()
     if ret == errno.EINVAL:
         _validate_fs_or_snap_name(name)
     raise _generic_exception(ret, name, "Error obtaining a list")
