@@ -1767,6 +1767,9 @@ class ZFSTest(unittest.TestCase):
             self.assertTrue(
                 filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
 
+    # This test case fails unless unless a patch from
+    # https://clusterhq.atlassian.net/browse/ZFS-20
+    # is applied to libzfs_core, otherwise it succeeds.
     @unittest.skip("fails with unpatched libzfs_core")
     def test_recv_without_explicit_snap_name(self):
         srcfs = ZFSTest.pool.makeName("fs1")
