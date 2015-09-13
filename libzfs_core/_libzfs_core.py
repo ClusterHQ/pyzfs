@@ -938,6 +938,12 @@ def _list(name, recurse=None, types=None):
     if types is not None:
         types = {x: None for x in types}
     options = {'recurse': recurse, 'type': types}
+
+    # Note that other_fd is used by the kernel side to write
+    # the data, so we have to keep that descriptor open until
+    # we are done.
+    # Also, we have to explicitly close the descriptor as the
+    # kernel doesn't do that.
     (fd, other_fd) = lzc_list(name, options)
     if fd is None:
         return iter([])
