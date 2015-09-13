@@ -946,9 +946,8 @@ def _list(name, recurse=None, types=None):
     # kernel doesn't do that.
     (fd, other_fd) = lzc_list(name, options)
     if fd is None:
-        return iter([])
+        return
 
-    entries = []
     try:
         while True:
             record_bytes = os.read(fd, _PIPE_RECORD_SIZE)
@@ -968,12 +967,10 @@ def _list(name, recurse=None, types=None):
             if ret != 0:
                 raise exceptions.ZFSGenericError(ret, None,
                                                  "Failed to unpack list data")
-            entries.append(result)
+            yield result
     finally:
         os.close(other_fd)
         os.close(fd)
-
-    return entries
 
 
 @_uncommitted(lzc_list)
