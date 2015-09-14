@@ -6,7 +6,6 @@ The package that contains a module per each C library that
 to make calls to functions in the libraries.
 """
 
-import sys
 import threading
 import importlib
 
@@ -15,6 +14,7 @@ from cffi import FFI
 
 def _setup_cffi():
     class LazyLibrary(object):
+
         def __init__(self, ffi, libname):
             self._ffi = ffi
             self._libname = libname
@@ -29,7 +29,7 @@ def _setup_cffi():
 
             return getattr(self._lib, name)
 
-    MODULES = [ "libnvpair", "libzfs_core" ]
+    MODULES = ["libnvpair", "libzfs_core"]
     ffi = FFI()
 
     for module_name in MODULES:

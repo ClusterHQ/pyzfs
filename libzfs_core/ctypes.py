@@ -9,6 +9,7 @@ from .bindings.libnvpair import ffi as _ffi
 
 def _ffi_cast(type_name):
     type_info = _ffi.typeof(type_name)
+
     def _func(value):
         # this is for overflow / underflow checking only
         if type_info.kind == 'enum':
@@ -16,7 +17,7 @@ def _ffi_cast(type_name):
                 type_info.elements[value]
             except KeyError as e:
                 raise OverflowError('Invalid enum <%s> value %s' %
-                    (type_info.cname, e.message))
+                                    (type_info.cname, e.message))
         else:
             _ffi.new(type_name + '*', value)
         return _ffi.cast(type_name, value)
