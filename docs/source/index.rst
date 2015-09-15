@@ -25,6 +25,8 @@ Documentation for the libzfs_core
 
 .. automodule:: libzfs_core
    :members:
+   :exclude-members: lzc_snap, lzc_recv, lzc_destroy_one,
+       lzc_inherit, lzc_set_props, lzc_list
 
 Documentation for the libzfs_core exceptions
 ********************************************
