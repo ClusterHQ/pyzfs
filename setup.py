@@ -8,7 +8,7 @@ setup(
     description = "Wrapper for libzfs_core",
     author = "ClusterHQ",
     author_email = "support@clusterhq.com",
-    url = "https://clusterhq.com/",
+    url = "pyzfs.readthedocs.org",
     license = "Apache License, Version 2.0",
     classifiers = [
         "Development Status :: 4 - Beta",
