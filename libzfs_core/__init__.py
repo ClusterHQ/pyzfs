@@ -16,6 +16,9 @@ error codes.  The wrapper takes care to provide one-to-many mapping
 of the error codes to the exceptions by interpreting a context
 in which the error code is produced.
 
+To submit an issue or contribute to development of this package
+please visit its `GitHub repository <https://github.com/ClusterHQ/pyzfs>`_.
+
 .. data:: MAXNAMELEN
 
     Maximum length of any ZFS name.
