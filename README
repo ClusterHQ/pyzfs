@@ -23,3 +23,6 @@ Thus, the tests can be very slow on real hardware.
 It is recommended to place the default temporary directory or
 a temporary directory specified by, for instance, TMP environment
 variable on a memory backed filesystem.
+
+Package documentation: http://pyzfs.readthedocs.org
+Package development: https://github.com/ClusterHQ/pyzfs
