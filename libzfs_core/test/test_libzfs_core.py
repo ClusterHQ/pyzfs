@@ -1267,7 +1267,7 @@ class ZFSTest(unittest.TestCase):
 
     def test_snaprange_space_nonexistent(self):
         snap1 = ZFSTest.pool.makeName("fs1@snap1")
-        snap2 = ZFSTest.pool.makeName("fs2@snap2")
+        snap2 = ZFSTest.pool.makeName("fs1@snap2")
 
         lzc.lzc_snapshot([snap1])
 
