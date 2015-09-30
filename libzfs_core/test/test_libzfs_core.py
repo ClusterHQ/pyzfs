@@ -654,8 +654,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.SnapshotDestructionFailure) as ctx:
             lzc.lzc_destroy_snaps(snaps, False)
 
-        # NB: one common error is reported.
-        self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
 
