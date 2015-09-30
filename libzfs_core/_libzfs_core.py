@@ -1081,9 +1081,10 @@ def lzc_list_snaps(name):
     snaps = []
     for entry in _list(name, recurse=1, types=['snapshot']):
         # XXX we shouldn't need to do this, but have to work around ZFS-26
+        snap = entry['name']
         is_snapshot = entry['dmu_objset_stats']['dds_is_snapshot']
-        if is_snapshot:
-            snaps.append(entry['name'])
+        if is_snapshot and snap != name:
+            snaps.append(snap)
 
     return iter(snaps)
 
