@@ -168,6 +168,11 @@ def lzc_destroy_bookmarks_translate_errors(ret, errlist, bookmarks):
 def lzc_snaprange_space_translate_error(ret, firstsnap, lastsnap):
     if ret == 0:
         return
+    if ret == errno.EXDEV and firstsnap is not None:
+        if _pool_name(firstsnap) != _pool_name(lastsnap):
+            raise lzc_exc.PoolsDiffer(lastsnap)
+        else:
+            raise lzc_exc.SnapshotMismatch(lastsnap)
     if ret == errno.EINVAL:
         if not _is_valid_snap_name(firstsnap):
             raise lzc_exc.NameInvalid(firstsnap)
