@@ -3021,8 +3021,8 @@ class ZFSTest(unittest.TestCase):
     def test_list_children_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
 
-        children = list(lzc.lzc_list_children(fs))
-        self.assertEqual(children, [])
+        with self.assertRaises(lzc_exc.DatasetNotFound):
+            list(lzc.lzc_list_children(fs))
 
     @needs_support(lzc.lzc_list_children)
     def test_list_children_of_snap(self):
@@ -3052,8 +3052,8 @@ class ZFSTest(unittest.TestCase):
     def test_list_snaps_nonexistent(self):
         fs = ZFSTest.pool.makeName("nonexistent")
 
-        snaps = list(lzc.lzc_list_snaps(fs))
-        self.assertEqual(snaps, [])
+        with self.assertRaises(lzc_exc.DatasetNotFound):
+            list(lzc.lzc_list_snaps(fs))
 
     @needs_support(lzc.lzc_list_snaps)
     def test_list_snaps_of_snap(self):
