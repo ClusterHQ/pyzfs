@@ -3283,8 +3283,8 @@ class ZFSTest(unittest.TestCase):
     @needs_support(lzc.lzc_set_prop)
     def test_set_sys_prop(self):
         fs = ZFSTest.pool.makeName("new")
-        prop = "atime"
-        val = 0
+        prop = "recordsize"
+        val = 4096
 
         lzc.lzc_create(fs)
         lzc.lzc_set_prop(fs, prop, val)
