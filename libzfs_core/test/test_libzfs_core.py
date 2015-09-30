@@ -291,7 +291,7 @@ class ZFSTest(unittest.TestCase):
 
     def test_create_fs_with_invalid_prop_type(self):
         name = ZFSTest.pool.makeName("fs1/fs/test4")
-        props = {"atime": "off"}
+        props = {"recordsize": "128k"}
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
             lzc.lzc_create(name, 'zfs', props)
@@ -654,8 +654,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.SnapshotDestructionFailure) as ctx:
             lzc.lzc_destroy_snaps(snaps, False)
 
-        # NB: one common error is reported.
-        self.assertEquals(len(ctx.exception.errors), 1)
         for e in ctx.exception.errors:
             self.assertIsInstance(e, lzc_exc.NameTooLong)
 
@@ -3285,8 +3283,8 @@ class ZFSTest(unittest.TestCase):
     @needs_support(lzc.lzc_set_prop)
     def test_set_sys_prop(self):
         fs = ZFSTest.pool.makeName("new")
-        prop = "atime"
-        val = 0
+        prop = "recordsize"
+        val = 4096
 
         lzc.lzc_create(fs)
         lzc.lzc_set_prop(fs, prop, val)
