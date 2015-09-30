@@ -291,7 +291,7 @@ class ZFSTest(unittest.TestCase):
 
     def test_create_fs_with_invalid_prop_type(self):
         name = ZFSTest.pool.makeName("fs1/fs/test4")
-        props = {"atime": "off"}
+        props = {"recordsize": "128k"}
 
         with self.assertRaises(lzc_exc.PropertyInvalid):
             lzc.lzc_create(name, 'zfs', props)
