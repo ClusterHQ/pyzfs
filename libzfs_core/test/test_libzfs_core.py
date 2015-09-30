@@ -159,29 +159,6 @@ def snap_always_unmounted_before_destruction():
     return (platform.system() != 'Linux', 'snapshot is not auto-unmounted')
 
 
-def ebadf_confuses_dev_zfs_state():
-    # For an unknown reason tests that are executed after a test
-    # where a bad file descriptor is used are unexpectedly failing
-    # on Linux.
-    return (platform.system() == 'Linux', 'EBADF confuses /dev/zfs state')
-
-
-def bug_with_random_file_as_cleanup_fd():
-    # BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
-    # IP: [<ffffffffa0218aa0>] zfsdev_getminor+0x10/0x20 [zfs]
-    # Call Trace:
-    #  [<ffffffffa021b4b0>] zfs_onexit_fd_hold+0x20/0x40 [zfs]
-    #  [<ffffffffa0214043>] zfs_ioc_hold+0x93/0xd0 [zfs]
-    #  [<ffffffffa0215890>] zfsdev_ioctl+0x200/0x500 [zfs]
-    return (platform.system() == 'Linux', 'Gets killed')
-
-
-def lzc_send_honors_file_mode():
-    # Apparently there are not enough checks in the kernel code
-    # to refuse to write via a file descriptor opened in read-only mode.
-    return (platform.system() == 'Linux', 'File mode is not checked')
-
-
 def needs_support(function):
     return unittest.skipUnless(lzc.is_supported(function),
                                '{} not available'.format(function.__name__))
@@ -1651,7 +1628,6 @@ class ZFSTest(unittest.TestCase):
             fd = output.fileno()
             lzc.lzc_send(snap2, bmark, fd)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc.lzc_snapshot([snap])
@@ -1663,7 +1639,6 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_send(snap, None, bad_fd)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd_2(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc.lzc_snapshot([snap])
@@ -1672,7 +1647,6 @@ class ZFSTest(unittest.TestCase):
             lzc.lzc_send(snap, None, -2)
         self.assertEquals(ctx.exception.errno, errno.EBADF)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_send_bad_fd_3(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc.lzc_snapshot([snap])
@@ -1711,7 +1685,6 @@ class ZFSTest(unittest.TestCase):
         self.assertTrue(ctx.exception.errno == errno.EPIPE or
                         ctx.exception.errno == errno.EINTR)
 
-    @unittest.skipUnless(*lzc_send_honors_file_mode())
     def test_send_to_ro_file(self):
         snap = ZFSTest.pool.makeName("fs1@snap")
         lzc.lzc_snapshot([snap])
@@ -2563,7 +2536,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.NotClone):
             lzc.lzc_promote(fs)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2574,7 +2546,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, bad_fd)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd_2(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2582,7 +2553,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, -2)
 
-    @unittest.skipIf(*ebadf_confuses_dev_zfs_state())
     def test_hold_bad_fd_3(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2592,7 +2562,6 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, bad_fd)
 
-    @unittest.skipIf(*bug_with_random_file_as_cleanup_fd())
     def test_hold_wrong_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
