@@ -870,6 +870,7 @@ def lzc_list(name, options):
     :return: a pair of file descriptors the first of which can be
              used to read the listing.
     :rtype: tuple of (int, int)
+    :raises DatasetNotFound: if the dataset does not exist.
 
     Two options are currently available:
 
@@ -1041,6 +1042,7 @@ def lzc_list_children(name):
     :return: an iterator that produces the names of the children.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
+    :raises DatasetNotFound: if the dataset does not exist.
 
     .. warning::
         If the dataset does not exist, then the returned iterator would produce
@@ -1067,6 +1069,7 @@ def lzc_list_snaps(name):
     :return: an iterator that produces the names of the snapshots.
     :raises NameInvalid: if the dataset name is invalid.
     :raises NameTooLong: if the dataset name is too long.
+    :raises DatasetNotFound: if the dataset does not exist.
 
     .. warning::
         If the dataset does not exist, then the returned iterator would produce
