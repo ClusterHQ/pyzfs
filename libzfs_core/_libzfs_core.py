@@ -995,16 +995,7 @@ def lzc_get_props(name):
         with default values.  One exception is the ``mountpoint`` property
         for which the default value is derived from the dataset name.
     '''
-    # XXX We should not need to pass the recurse option here and iterate
-    # over the result, but we have to because of ZFS-23:
-    # zfs list incorrectly works with an individual snapshot.
-    result = None
-    for entry in _list(name, recurse=1):
-        if entry['name'] == name:
-            result = entry
-            break
-    if result is None:
-        raise exceptions.DatasetNotFound(name)
+    result = next(_list(name))
     is_snapshot = result['dmu_objset_stats']['dds_is_snapshot']
     result = result['properties']
     # In most cases the source of the property is uninteresting and the
@@ -1084,10 +1075,8 @@ def lzc_list_snaps(name):
     '''
     snaps = []
     for entry in _list(name, recurse=1, types=['snapshot']):
-        # XXX we shouldn't need to do this, but have to work around ZFS-26
         snap = entry['name']
-        is_snapshot = entry['dmu_objset_stats']['dds_is_snapshot']
-        if is_snapshot and snap != name:
+        if snap != name:
             snaps.append(snap)
 
     return iter(snaps)
