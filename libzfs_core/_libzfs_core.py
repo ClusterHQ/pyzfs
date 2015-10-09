@@ -1005,6 +1005,7 @@ def lzc_get_props(name):
             break
     if result is None:
         raise exceptions.DatasetNotFound(name)
+    is_snapshot = result['dmu_objset_stats']['dds_is_snapshot']
     result = result['properties']
     # In most cases the source of the property is uninteresting and the
     # value alone is sufficient.  One exception is the 'mountpoint'
@@ -1024,12 +1025,15 @@ def lzc_get_props(name):
         # unlike the special values "none" and "legacy".
         if mountpoint_val.startswith('/') and not mountpoint_src.startswith('$'):
             mountpoint_val = mountpoint_val + name[len(mountpoint_src):]
-    else:
+    elif not is_snapshot:
         mountpoint_val = '/' + name
+    else:
+        mountpoint_val = None
     result = {k: v['value'] for k, v in result.iteritems()}
     if 'clones' in result:
         result['clones'] = result['clones'].keys()
-    result['mountpoint'] = mountpoint_val
+    if mountpoint_val is not None:
+        result['mountpoint'] = mountpoint_val
     return result
 
 
