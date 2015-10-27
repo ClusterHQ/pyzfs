@@ -159,6 +159,11 @@ def snap_always_unmounted_before_destruction():
     return (platform.system() != 'Linux', 'snapshot is not auto-unmounted')
 
 
+def illumos_bug_6379():
+    # zfs_ioc_hold() panics on a bad cleanup fd
+    return (platform.system() == 'SunOS', 'see https://www.illumos.org/issues/6379')
+
+
 def needs_support(function):
     return unittest.skipUnless(lzc.is_supported(function),
                                '{} not available'.format(function.__name__))
@@ -2534,6 +2539,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.NotClone):
             lzc.lzc_promote(fs)
 
+    @unittest.skipIf(*illumos_bug_6379())
     def test_hold_bad_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2544,6 +2550,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, bad_fd)
 
+    @unittest.skipIf(*illumos_bug_6379())
     def test_hold_bad_fd_2(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2551,6 +2558,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, -2)
 
+    @unittest.skipIf(*illumos_bug_6379())
     def test_hold_bad_fd_3(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
@@ -2560,6 +2568,7 @@ class ZFSTest(unittest.TestCase):
         with self.assertRaises(lzc_exc.BadHoldCleanupFD):
             lzc.lzc_hold({snap: 'tag'}, bad_fd)
 
+    @unittest.skipIf(*illumos_bug_6379())
     def test_hold_wrong_fd(self):
         snap = ZFSTest.pool.getRoot().getSnap()
         lzc.lzc_snapshot([snap])
