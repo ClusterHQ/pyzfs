@@ -42,19 +42,76 @@ def suppress(exceptions=None):
 
 
 @contextlib.contextmanager
-def zfs_mount(fs):
+def _zfs_mount(fs):
     mntdir = tempfile.mkdtemp()
+    if platform.system() == 'SunOS':
+        mount_cmd = ['mount', '-F', 'zfs', fs, mntdir]
+    else:
+        mount_cmd = ['mount', '-t', 'zfs', fs, mntdir]
+    unmount_cmd = ['umount', '-f', mntdir]
+
     try:
-        subprocess.check_output(
-            ['mount', '-t', 'zfs', fs, mntdir], stderr=subprocess.STDOUT)
+        subprocess.check_output(mount_cmd, stderr=subprocess.STDOUT)
         try:
             yield mntdir
         finally:
             with suppress():
-                subprocess.check_output(
-                    ['umount', '-f', mntdir], stderr=subprocess.STDOUT)
+                subprocess.check_output(unmount_cmd, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print 'failed to mount %s @ %s : %s' % (fs, mntdir, e.output)
+        raise
     finally:
         os.rmdir(mntdir)
+
+
+# XXX On illumos it is impossible to explicitly mount a snapshot.
+# So, either we need to implicitly mount it using .zfs/snapshot/
+# or we need to create a clone and mount it readonly (and discard
+# it afterwards).
+# At the moment the former approach is implemented.
+
+# This dictionary is used to keep track of mounted filesystems
+# (not snapshots), so that we do not try to mount a filesystem
+# more than once in the case more than one snapshot of the
+# filesystem is accessed from the same context or the filesystem
+# and its snapshot are accessed.
+_mnttab = {}
+
+
+@contextlib.contextmanager
+def _illumos_mount_fs(fs):
+    if fs in _mnttab:
+        yield _mnttab[fs]
+    else:
+        with _zfs_mount(fs) as mntdir:
+            _mnttab[fs] = mntdir
+            try:
+                yield mntdir
+            finally:
+                _mnttab.pop(fs, None)
+
+
+@contextlib.contextmanager
+def _illumos_mount_snap(fs):
+    (base, snap) = fs.split('@', 1)
+    with _illumos_mount_fs(base) as mntdir:
+        yield os.path.join(mntdir, '.zfs', 'snapshot', snap)
+
+
+@contextlib.contextmanager
+def _zfs_mount_illumos(fs):
+    if '@' not in fs:
+        with _illumos_mount_fs(fs) as mntdir:
+            yield mntdir
+    else:
+        with _illumos_mount_snap(fs) as mntdir:
+            yield mntdir
+
+
+if platform.system() == 'SunOS':
+    zfs_mount = _zfs_mount_illumos
+else:
+    zfs_mount = _zfs_mount
 
 
 @contextlib.contextmanager
