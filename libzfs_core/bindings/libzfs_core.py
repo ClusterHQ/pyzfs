@@ -20,6 +20,40 @@ CDEF = """
         DMU_OST_NUMTYPES
     } dmu_objset_type_t;
 
+    #define MAXNAMELEN 256
+
+    struct drr_begin {
+        uint64_t drr_magic;
+        uint64_t drr_versioninfo; /* was drr_version */
+        uint64_t drr_creation_time;
+        dmu_objset_type_t drr_type;
+        uint32_t drr_flags;
+        uint64_t drr_toguid;
+        uint64_t drr_fromguid;
+        char drr_toname[MAXNAMELEN];
+    };
+
+    typedef struct zio_cksum {
+        uint64_t	zc_word[4];
+    } zio_cksum_t;
+
+    typedef struct dmu_replay_record {
+        enum {
+            DRR_BEGIN, DRR_OBJECT, DRR_FREEOBJECTS,
+            DRR_WRITE, DRR_FREE, DRR_END, DRR_WRITE_BYREF,
+            DRR_SPILL, DRR_WRITE_EMBEDDED, DRR_NUMTYPES
+        } drr_type;
+        uint32_t drr_payloadlen;
+        union {
+            struct drr_begin drr_begin;
+            /* ... */
+            struct drr_checksum {
+                uint64_t drr_pad[34];
+                zio_cksum_t drr_checksum;
+            } drr_checksum;
+        } drr_u;
+    } dmu_replay_record_t;
+
     int libzfs_core_init(void);
     void libzfs_core_fini(void);
 
@@ -38,8 +72,10 @@ CDEF = """
     int lzc_get_holds(const char *, nvlist_t **);
 
     int lzc_send(const char *, const char *, int, enum lzc_send_flags);
-    int lzc_receive(const char *, nvlist_t *, const char *, boolean_t, int);
     int lzc_send_space(const char *, const char *, uint64_t *);
+    int lzc_receive(const char *, nvlist_t *, const char *, boolean_t, int);
+    int lzc_receive_with_header(const char *, nvlist_t *, const char *, boolean_t,
+        boolean_t, int, const struct drr_begin *);
 
     boolean_t lzc_exists(const char *);
 

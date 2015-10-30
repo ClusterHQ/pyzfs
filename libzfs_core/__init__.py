@@ -45,6 +45,7 @@ from ._libzfs_core import (
     lzc_send,
     lzc_send_space,
     lzc_receive,
+    lzc_receive_with_header,
     lzc_recv,
     lzc_exists,
     is_supported,
@@ -56,6 +57,7 @@ from ._libzfs_core import (
     lzc_get_props,
     lzc_list_children,
     lzc_list_snaps,
+    receive_header,
 )
 
 __all__ = [
@@ -78,6 +80,7 @@ __all__ = [
     'lzc_send',
     'lzc_send_space',
     'lzc_receive',
+    'lzc_receive_with_header',
     'lzc_recv',
     'lzc_exists',
     'is_supported',
@@ -89,6 +92,7 @@ __all__ = [
     'lzc_get_props',
     'lzc_list_children',
     'lzc_list_snaps',
+    'receive_header',
 ]
 
 # vim: softtabstop=4 tabstop=4 expandtab shiftwidth=4

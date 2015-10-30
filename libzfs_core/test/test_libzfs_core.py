@@ -1800,24 +1800,6 @@ class ZFSTest(unittest.TestCase):
             self.assertTrue(
                 filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
 
-    # This test case fails unless unless a patch from
-    # https://clusterhq.atlassian.net/browse/ZFS-20
-    # is applied to libzfs_core, otherwise it succeeds.
-    @unittest.skip("fails with unpatched libzfs_core")
-    def test_recv_without_explicit_snap_name(self):
-        srcfs = ZFSTest.pool.makeName("fs1")
-        src1 = srcfs + "@snap1"
-        src2 = srcfs + "@snap2"
-        dstfs = ZFSTest.pool.makeName("fs2/received-100")
-        dst1 = dstfs + '@snap1'
-        dst2 = dstfs + '@snap2'
-
-        with streams(srcfs, src1, src2) as (_, (full, incr)):
-            lzc.lzc_receive(dstfs, full.fileno())
-            lzc.lzc_receive(dstfs, incr.fileno())
-        self.assertExists(dst1)
-        self.assertExists(dst2)
-
     def test_recv_clone(self):
         orig_src = ZFSTest.pool.makeName("fs2@send-origin")
         clone = ZFSTest.pool.makeName("fs1/fs/send-clone")
@@ -2431,6 +2413,27 @@ class ZFSTest(unittest.TestCase):
                 lzc.lzc_receive(dst2, incr.fileno(), force=True)
         self.assertExists(dst1)
         self.assertNotExists(dst2)
+
+    def test_recv_with_header_full(self):
+        src = ZFSTest.pool.makeName("fs1@snap")
+        dst = ZFSTest.pool.makeName("fs2/received")
+
+        with temp_file_in_fs(ZFSTest.pool.makeName("fs1")) as name:
+            lzc.lzc_snapshot([src])
+
+        with tempfile.TemporaryFile(suffix='.ztream') as stream:
+            lzc.lzc_send(src, None, stream.fileno())
+            stream.seek(0)
+
+            (header, c_header) = lzc.receive_header(stream.fileno())
+            self.assertEqual(src, header['drr_toname'])
+            snap = header['drr_toname'].split('@', 1)[1]
+            lzc.lzc_receive_with_header(dst + '@' + snap, stream.fileno(), c_header)
+
+        name = os.path.basename(name)
+        with zfs_mount(src) as mnt1, zfs_mount(dst) as mnt2:
+            self.assertTrue(
+                filecmp.cmp(os.path.join(mnt1, name), os.path.join(mnt2, name), False))
 
     def test_send_full_across_clone_branch_point(self):
         origfs = ZFSTest.pool.makeName("fs2")

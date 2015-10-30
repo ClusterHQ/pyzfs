@@ -652,6 +652,125 @@ def lzc_receive(snapname, fd, force=False, origin=None, props=None):
 lzc_recv = lzc_receive
 
 
+def lzc_receive_with_header(snapname, fd, header, force=False, origin=None, props=None):
+    '''
+    Like :func:`lzc_receive`, but allows the caller to read the begin record
+    and then to pass it in.
+
+    That could be useful if the caller wants to derive, for example,
+    the snapname or the origin parameters based on the information contained in
+    the begin record.
+    :func:`receive_header` can be used to receive the begin record from the file
+    descriptor.
+
+    :param bytes snapname: the name of the snapshot to create.
+    :param int fd: the file descriptor from which to read the stream.
+    :param header: the stream's begin header.
+    :type header: ``cffi`` `CData` representing the header structure.
+    :param bool force: whether to roll back or destroy the target filesystem
+                       if that is required to receive the stream.
+    :param origin: the optional origin snapshot name if the stream is for a clone.
+    :type origin: bytes or None
+    :param props: the properties to set on the snapshot as *received* properties.
+    :type props: dict of bytes : Any
+
+    :raises IOError: if an input / output error occurs while reading from the ``fd``.
+    :raises DatasetExists: if the snapshot named ``snapname`` already exists.
+    :raises DatasetExists: if the stream is a full stream and the destination filesystem already exists.
+    :raises DatasetExists: if ``force`` is `True` but the destination filesystem could not
+                           be rolled back to a matching snapshot because a newer snapshot
+                           exists and it is an origin of a cloned filesystem.
+    :raises StreamMismatch: if an incremental stream is received and the latest
+                            snapshot of the destination filesystem does not match
+                            the source snapshot of the stream.
+    :raises StreamMismatch: if a full stream is received and the destination
+                            filesystem already exists and it has at least one snapshot,
+                            and ``force`` is `False`.
+    :raises StreamMismatch: if an incremental clone stream is received but the specified
+                            ``origin`` is not the actual received origin.
+    :raises DestinationModified: if an incremental stream is received and the destination
+                                 filesystem has been modified since the last snapshot
+                                 and ``force`` is `False`.
+    :raises DestinationModified: if a full stream is received and the destination
+                                 filesystem already exists and it does not have any
+                                 snapshots, and ``force`` is `False`.
+    :raises DatasetNotFound: if the destination filesystem and its parent do not exist.
+    :raises DatasetNotFound: if the ``origin`` is not `None` and does not exist.
+    :raises DatasetBusy: if ``force`` is `True` but the destination filesystem could not
+                         be rolled back to a matching snapshot because a newer snapshot
+                         is held and could not be destroyed.
+    :raises DatasetBusy: if another receive operation is being performed on the
+                         destination filesystem.
+    :raises BadStream: if the stream is corrupt or it is not recognized or it is
+                       a compound stream or it is a clone stream, but ``origin``
+                       is `None`.
+    :raises BadStream: if a clone stream is received and the destination filesystem
+                       already exists.
+    :raises StreamFeatureNotSupported: if the stream has a feature that is not
+                                       supported on this side.
+    :raises PropertyInvalid: if one or more of the specified properties is invalid
+                             or has an invalid type or value.
+    :raises NameInvalid: if the name of either snapshot is invalid.
+    :raises NameTooLong: if the name of either snapshot is too long.
+    '''
+
+    if origin is not None:
+        c_origin = origin
+    else:
+        c_origin = _ffi.NULL
+    if props is None:
+        props = {}
+    nvlist = nvlist_in(props)
+    ret = _lib.lzc_receive_with_header(snapname, nvlist, c_origin, force,
+                                       False, fd, _ffi.addressof(header))
+    errors.lzc_receive_translate_error(ret, snapname, fd, force, origin, props)
+
+
+def receive_header(fd):
+    '''
+    Read the begin record of the ZFS backup stream from the given file descriptor.
+
+    This is a helper function for :func:`lzc_receive_with_header`.
+
+    :param int fd: the file descriptor from which to read the stream.
+    :return: a tuple with two elements where the first one is a Python `dict` representing
+             the fields of the begin record and the second one is an opaque object
+             suitable for passing to :func:`lzc_receive_with_header`.
+    :raises IOError: if an input / output error occurs while reading from the ``fd``.
+
+    At present the following fields can be of interest in the header:
+
+    drr_toname : bytes
+        the name of the snapshot for which the stream has been created
+    drr_toguid : integer
+        the GUID of the snapshot for which the stream has been created
+    drr_fromguid : integer
+        the GUID of the starting snapshot in the case the stream is incremental,
+        zero otherwise
+    drr_flags : integer
+        the flags describing the stream's properties
+    drr_type : integer
+        the type of the dataset for which the stream has been created
+        (volume, filesystem)
+    '''
+    # read sizeof(dmu_replay_record_t) bytes directly into the memort backing 'record'
+    record = _ffi.new("dmu_replay_record_t *")
+    _ffi.buffer(record)[:] = os.read(fd, _ffi.sizeof(record[0]))
+    # get drr_begin member and its representation as a Pythn dict
+    c_header = record.drr_u.drr_begin
+    header = {}
+    for field, descr in _ffi.typeof(c_header).fields:
+        if descr.type.kind == 'primitive':
+            header[field] = getattr(c_header, field)
+        elif descr.type.kind == 'enum':
+            header[field] = getattr(c_header, field)
+        elif descr.type.kind == 'array' and descr.type.item.cname == 'char':
+            header[field] = _ffi.string(getattr(c_header, field))
+        else:
+            raise TypeError('Unexpected field type in drr_begin: ' + str(descr.type))
+    return (header, c_header)
+
+
 def lzc_exists(name):
     '''
     Check if a dataset (a filesystem, or a volume, or a snapshot)
