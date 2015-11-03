@@ -722,7 +722,7 @@ def lzc_receive_with_header(snapname, fd, header, force=False, origin=None, prop
         props = {}
     nvlist = nvlist_in(props)
     ret = _lib.lzc_receive_with_header(snapname, nvlist, c_origin, force,
-                                       False, fd, _ffi.addressof(header))
+                                       False, fd, header)
     errors.lzc_receive_translate_error(ret, snapname, fd, force, origin, props)
 
 
@@ -757,18 +757,18 @@ def receive_header(fd):
     record = _ffi.new("dmu_replay_record_t *")
     _ffi.buffer(record)[:] = os.read(fd, _ffi.sizeof(record[0]))
     # get drr_begin member and its representation as a Pythn dict
-    c_header = record.drr_u.drr_begin
+    drr_begin = record.drr_u.drr_begin
     header = {}
-    for field, descr in _ffi.typeof(c_header).fields:
+    for field, descr in _ffi.typeof(drr_begin).fields:
         if descr.type.kind == 'primitive':
-            header[field] = getattr(c_header, field)
+            header[field] = getattr(drr_begin, field)
         elif descr.type.kind == 'enum':
-            header[field] = getattr(c_header, field)
+            header[field] = getattr(drr_begin, field)
         elif descr.type.kind == 'array' and descr.type.item.cname == 'char':
-            header[field] = _ffi.string(getattr(c_header, field))
+            header[field] = _ffi.string(getattr(drr_begin, field))
         else:
             raise TypeError('Unexpected field type in drr_begin: ' + str(descr.type))
-    return (header, c_header)
+    return (header, record)
 
 
 def lzc_exists(name):
