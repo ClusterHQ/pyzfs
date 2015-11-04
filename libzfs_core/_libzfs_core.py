@@ -742,7 +742,7 @@ def lzc_promote(name):
     :raises SnapshotExists: if the dataset already has a snapshot with
                             the same name as one of the origin's snapshots.
     '''
-    ret = _lib.lzc_promote(name, _ffi.NULL)
+    ret = _lib.lzc_promote(name, _ffi.NULL, _ffi.NULL)
     errors.lzc_promote_translate_error(ret, name)
 
 
