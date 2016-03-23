@@ -392,6 +392,8 @@ def lzc_promote_translate_error(ret, name):
     if ret == errno.EINVAL:
         _validate_fs_name(name)
         raise lzc_exc.NotClone(name)
+    if ret == errno.ENOTSOCK:
+        raise lzc_exc.NotClone(name)
     if ret == errno.ENOENT:
         raise lzc_exc.FilesystemNotFound(name)
     if ret == errno.EEXIST:
