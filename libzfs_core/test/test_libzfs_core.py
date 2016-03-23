@@ -3106,6 +3106,20 @@ class ZFSTest(unittest.TestCase):
         self.assertDictContainsSubset(props, actual_props)
 
     @needs_support(lzc.lzc_get_props)
+    def test_get_fs_props_with_child(self):
+        parent = ZFSTest.pool.makeName("parent")
+        child = ZFSTest.pool.makeName("parent/child")
+        parent_props = {"user:foo": "parent"}
+        child_props = {"user:foo": "child"}
+
+        lzc.lzc_create(parent, props=parent_props)
+        lzc.lzc_create(child, props=child_props)
+        actual_parent_props = lzc.lzc_get_props(parent)
+        actual_child_props = lzc.lzc_get_props(child)
+        self.assertDictContainsSubset(parent_props, actual_parent_props)
+        self.assertDictContainsSubset(child_props, actual_child_props)
+
+    @needs_support(lzc.lzc_get_props)
     def test_get_snap_props(self):
         snapname = ZFSTest.pool.makeName("@snap")
         snaps = [snapname]
