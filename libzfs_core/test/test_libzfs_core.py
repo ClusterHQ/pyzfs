@@ -19,6 +19,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import uuid
 from .. import _libzfs_core as lzc
 from .. import exceptions as lzc_exc
@@ -292,6 +293,11 @@ class ZFSTest(unittest.TestCase):
 
         lzc.lzc_create(name, ds_type='zvol', props=props)
         self.assertExists(name)
+        # On Gentoo with ZFS 0.6.5.4 the volume is busy
+        # and can not be destroyed right after its creation.
+        # A reason for this is unknown at the moment.
+        # Because of that the post-test clean up could fail.
+        time.sleep(0.1)
 
     def test_create_fs_with_prop(self):
         name = ZFSTest.pool.makeName("fs1/fs/test2")
