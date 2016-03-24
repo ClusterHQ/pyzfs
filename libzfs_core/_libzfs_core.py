@@ -927,18 +927,23 @@ def _list(name, recurse=None, types=None):
     :param recurse: specifies depth of the recursive listing.
                     If ``None`` the depth is not limited.
     :param types: specifies dataset types to include into the listing.
-                  Currently allowed keys are "filesystem", "volume", "snapshot".
-                  None or an empty list means all dataset types.
+        Currently allowed keys are "filesystem", "volume", "snapshot".
+        ``None`` is equivalent to specifying the type of the dataset
+        named by `name`.
     :type types: list of bytes or None
     :type recurse: integer or None
     :return: a list of dictionaries each describing a single listed
              element.
     :rtype: list of dict
     '''
+    options = {}
+
     # Convert types to a dict suitable for mapping to an nvlist.
     if types is not None:
         types = {x: None for x in types}
-    options = {'recurse': recurse, 'type': types}
+        options['type'] = types
+    if recurse is None or recurse > 0:
+        options['recurse'] = recurse
 
     # Note that other_fd is used by the kernel side to write
     # the data, so we have to keep that descriptor open until
@@ -995,7 +1000,7 @@ def lzc_get_props(name):
         with default values.  One exception is the ``mountpoint`` property
         for which the default value is derived from the dataset name.
     '''
-    result = next(_list(name))
+    result = next(_list(name, recurse=0))
     is_snapshot = result['dmu_objset_stats']['dds_is_snapshot']
     result = result['properties']
     # In most cases the source of the property is uninteresting and the
