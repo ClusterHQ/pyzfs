@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyzfs",
-    version="0.2.2",
+    version="0.2.3",
     description="Wrapper for libzfs_core",
     author="ClusterHQ",
     author_email="support@clusterhq.com",
